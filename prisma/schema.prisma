@@ -1,0 +1,307 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  password   String
+  name       String
+  phone      String?
+  role       String     @default("BUSINESS_OWNER") // "BUSINESS_OWNER" | "ADMIN"
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  businesses Business[]
+}
+
+model Business {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  slug            String         @unique
+  sector          String         @default("BERBER") // "BERBER" | "GUZELLIK" | "RESTORAN" | "KLINIK" | "OTO_SERVIS" | "DIGER"
+  description     String?
+  logo            String?
+  coverImage      String?
+  phone           String
+  address         String
+  city            String         @default("İstanbul")
+  whatsappNumber  String?
+  isVerified      Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  themeId         String?        @default("premium-dark")
+
+  services        Service[]
+  employees       Employee[]
+  customers       Customer[]
+  appointments    Appointment[]
+  workingHours    WorkingHour[]
+  page            Page?
+  reviews         Review[]
+  subscription    Subscription?
+  notifications   Notification[]
+  gallery         Gallery?
+  galleryItems    GalleryItem[]
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String
+  slug     String    @unique
+  sector   String
+  icon     String?
+  services Service[]
+}
+
+model Service {
+  id              String            @id @default(uuid())
+  businessId      String
+  business        Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  categoryId      String?
+  category        Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name            String
+  description     String?
+  durationMinutes Int               @default(30)
+  price           Float             @default(0)
+  image           String?
+  isActive        Boolean           @default(true)
+  sectorDetails   String?           // JSON for sector specific data (e.g. capacity, brand)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  employeeServices EmployeeService[]
+  appointments     Appointment[]
+}
+
+model Employee {
+  id          String            @id @default(uuid())
+  businessId  String
+  business    Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String
+  photo       String?
+  specialty   String
+  phone       String?
+  email       String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  employeeServices EmployeeService[]
+  appointments     Appointment[]
+  workingHours     WorkingHour[]
+  reviews          Review[]
+}
+
+model EmployeeService {
+  id         String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  serviceId  String
+  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, serviceId])
+}
+
+model Customer {
+  id                String        @id @default(uuid())
+  businessId        String
+  business          Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name              String
+  phone             String
+  email             String?
+  notes             String?
+  totalAppointments Int           @default(0)
+  totalSpent        Float         @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  appointments      Appointment[]
+  reviews           Review[]
+}
+
+model Appointment {
+  id            String    @id @default(uuid())
+  businessId    String
+  business      Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  
+  date          String    // YYYY-MM-DD
+  startTime     String    // HH:mm
+  endTime       String    // HH:mm
+  status        String    @default("PENDING") // "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED"
+  
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  notes         String?
+  price         Float     @default(0)
+  sectorData    String?   // JSON for sector details (plate number, guest count, etc.)
+  isBlockedSlot Boolean   @default(false)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  review        Review?
+}
+
+model WorkingHour {
+  id             String    @id @default(uuid())
+  businessId     String
+  business       Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  employeeId     String?
+  employee       Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int       // 0: Pazar, 1: Pazartesi, ..., 6: Cumartesi
+  isOpen         Boolean   @default(true)
+  openTime       String    @default("09:00")
+  closeTime      String    @default("19:00")
+  breakStartTime String?   @default("13:00")
+  breakEndTime   String?   @default("14:00")
+}
+
+model Page {
+  id             String   @id @default(uuid())
+  businessId     String   @unique
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  blocksJson     String   // Array of blocks in JSON: Hero, About, Services, Staff, Gallery, Reviews, Location, Booking, Contact
+  themeColor     String   @default("indigo")
+  font           String   @default("Inter")
+  themeId        String?  @default("premium-dark")
+  themeOverrides String?  // JSON for overrides: primaryColor, heroLayout, customStyle
+  sectionOrder   String?  // JSON array for section order e.g. ["Hero", "Services", "Staff", "Reviews", "Booking", "Location"]
+  hiddenSections String?  // JSON array for hidden section types e.g. ["Gallery"]
+  isPublished    Boolean  @default(true)
+  seoTitle       String?
+  seoDescription String?
+  updatedAt      DateTime @updatedAt
+}
+
+model Review {
+  id            String       @id @default(uuid())
+  businessId    String
+  business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customerId    String?
+  customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  appointmentId String       @unique
+  appointment   Appointment  @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  employeeId    String?
+  employee      Employee?    @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  
+  rating        Int          // 1 to 5
+  comment       String
+  customerName  String
+  businessReply String?
+  replyDate     DateTime?
+  isApproved    Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+}
+
+model Subscription {
+  id                     String    @id @default(uuid())
+  businessId             String    @unique
+  business               Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planType               String    @default("TRIAL") // "TRIAL" | "PRO" | "ENTERPRISE"
+  trialStartDate         DateTime  @default(now())
+  trialEndDate           DateTime
+  subscriptionStartDate  DateTime?
+  subscriptionEndDate    DateTime?
+  status                 String    @default("trial") // "trial" | "active" | "expired" | "cancelled"
+  paymentStatus          String    @default("paid")  // "paid" | "pending" | "failed"
+  monthlyPrice           Float     @default(89.0)
+  paymentProvider        String?   @default("PayTR")
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title      String
+  message    String
+  type       String   @default("APPOINTMENT") // "APPOINTMENT" | "REVIEW" | "SUBSCRIPTION" | "SYSTEM"
+  isRead     Boolean  @default(false)
+  link       String?
+  createdAt  DateTime @default(now())
+}
+
+model ThemeCatalog {
+  id                  String   @id // e.g. "premium-dark"
+  name                String
+  description         String
+  previewImage        String?
+  supportedCategories String   // JSON array string e.g. '["BERBER", "OTO_SERVIS", "PREMIUM"]'
+  isActive            Boolean  @default(true)
+  isPremium           Boolean  @default(false)
+  isBeta              Boolean  @default(false)
+  orderIndex          Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Gallery {
+  id                      String        @id @default(uuid())
+  businessId              String        @unique
+  business                Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  enabled                 Boolean       @default(false)
+  showTitle               Boolean       @default(true)
+  title                   String?       @default("Galerimiz")
+  subtitle                String?       @default("Hizmetlerimizden ve çalışmalarımızdan kareler.")
+  layout                  String        @default("INFINITE_FLOW") // "INFINITE_FLOW" | "DUAL_FLOW" | "CINEMATIC_STRIP" | "CARDS" | "MASONRY" | "EDITORIAL" | "FULL_BLEED"
+  direction               String        @default("right-to-left") // "right-to-left" | "left-to-right"
+  speed                   String        @default("NORMAL") // "VERY_SLOW" | "SLOW" | "NORMAL" | "FAST" | "VERY_FAST"
+  pauseOnHover            Boolean       @default(true)
+  imageSize               String        @default("MEDIUM") // "SMALL" | "MEDIUM" | "LARGE" | "XL" | "FULL"
+  aspectRatio             String        @default("4:5") // "1:1" | "4:5" | "3:2" | "16:9" | "portrait" | "landscape"
+  borderRadius            String        @default("rounded") // "none" | "subtle" | "rounded" | "extra"
+  scrollAnimation         String        @default("Fade Up") // "None" | "Fade In" | "Fade Up" | "Fade Down" | "Slide Left" | "Slide Right" | "Scale In" | "Blur Reveal" | "Clip Reveal" | "Stagger Reveal"
+  parallaxEnabled         Boolean       @default(false)
+  scrollReactive          Boolean       @default(false)
+  scrollDirectionTracking Boolean       @default(false)
+  clickAction             String        @default("LIGHTBOX") // "NONE" | "LIGHTBOX" | "FULLSCREEN"
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  items                   GalleryItem[]
+}
+
+model GalleryItem {
+  id          String   @id @default(uuid())
+  galleryId   String
+  gallery     Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  imageUrl    String
+  title       String?
+  description String?
+  altText     String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FeatureFlag {
+  id                  String   @id @default(uuid())
+  key                 String   @unique // e.g. "gallerySystem"
+  isEnabled           Boolean  @default(true)
+  enabledSectors      String?  // JSON array string e.g. '["BERBER", "GUZELLIK", ...]' or null for all
+  disabledBusinessIds String?  // JSON array string
+  enabledBusinessIds  String?  // JSON array string
+  description         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+

@@ -1,0 +1,586 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --background: 220 20% 6%;
+    --foreground: 0 0% 98%;
+    --card: 222 18% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 222 18% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 142 76% 45%;
+    --primary-foreground: 144 80% 6%;
+    --secondary: 220 14% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 14% 14%;
+    --muted-foreground: 215 15% 65%;
+    --accent: 142 70% 45%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 14% 16%;
+    --input: 220 14% 16%;
+    --ring: 142 76% 45%;
+  }
+
+  .light-theme {
+    --background: 0 0% 100%;
+    --foreground: 222 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 20% 10%;
+    --primary: 142 76% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 20% 10%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 142 76% 40%;
+    --accent-foreground: 220 20% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 142 76% 40%;
+  }
+}
+
+/* ─────────── BASE ─────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background-color: #080c10;
+  color: #f1f5f9;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─────────── SCROLLBARS ─────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(8,12,16,0.9); }
+::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.3); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(34,197,94,0.6); }
+
+/* ─────────── KEYFRAMES ─────────── */
+@keyframes fade-in        { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fade-in-up     { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slide-in-left  { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes slide-in-right { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes scale-in       { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+@keyframes shimmer        { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+@keyframes pulse-ring     { 0%{box-shadow:0 0 0 0 rgba(34,197,94,0.4)} 70%{box-shadow:0 0 0 10px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+@keyframes float          { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes float-slow     { 0%,100%{transform:translateY(0) rotate(0deg)} 33%{transform:translateY(-6px) rotate(1deg)} 66%{transform:translateY(-3px) rotate(-1deg)} }
+@keyframes gradient-shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes spin-slow      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes blink-cursor   { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ─────────── ANIMATION UTILITIES ─────────── */
+.animate-fade-in     { animation: fade-in 0.5s ease forwards; }
+.animate-fade-in-up  { animation: fade-in-up 0.6s ease forwards; }
+.animate-slide-left  { animation: slide-in-left 0.5s ease forwards; }
+.animate-slide-right { animation: slide-in-right 0.5s ease forwards; }
+.animate-scale-in    { animation: scale-in 0.4s ease forwards; }
+.animate-float       { animation: float 3s ease-in-out infinite; }
+.animate-float-slow  { animation: float-slow 5s ease-in-out infinite; }
+.animate-spin-slow   { animation: spin-slow 8s linear infinite; }
+.animate-gradient    { animation: gradient-shift 4s ease infinite; background-size: 200% 200%; }
+.animate-pulse-ring  { animation: pulse-ring 2s cubic-bezier(.455,.03,.515,.955) infinite; }
+.animate-blink       { animation: blink-cursor 1s ease-in-out infinite; }
+
+.delay-100  { animation-delay: 100ms; }
+.delay-200  { animation-delay: 200ms; }
+.delay-300  { animation-delay: 300ms; }
+.delay-400  { animation-delay: 400ms; }
+.delay-500  { animation-delay: 500ms; }
+.delay-700  { animation-delay: 700ms; }
+.delay-1000 { animation-delay: 1000ms; }
+
+/* ─────────── MARQUEE / CAROUSEL FLOW ─────────── */
+@keyframes marquee-rtl {
+  0% {
+    transform: translate3d(0%, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes marquee-ltr {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0%, 0, 0);
+  }
+}
+
+.marquee-flow-rtl {
+  animation: marquee-rtl var(--marquee-duration, 35s) linear infinite;
+  will-change: transform;
+}
+
+.marquee-flow-ltr {
+  animation: marquee-ltr var(--marquee-duration, 35s) linear infinite;
+  will-change: transform;
+}
+
+.marquee-flow-rtl-fast {
+  animation: marquee-rtl calc(var(--marquee-duration, 35s) * 1.15) linear infinite;
+  will-change: transform;
+}
+
+.marquee-flow-ltr-fast {
+  animation: marquee-ltr calc(var(--marquee-duration, 35s) * 1.15) linear infinite;
+  will-change: transform;
+}
+
+.marquee-track-container:hover .marquee-flow-rtl,
+.marquee-track-container:hover .marquee-flow-ltr,
+.marquee-track-container:hover .marquee-flow-rtl-fast,
+.marquee-track-container:hover .marquee-flow-ltr-fast {
+  animation-play-state: paused;
+}
+
+/* ─────────── GLASSMORPHISM ─────────── */
+.glass-panel {
+  background: rgba(12,18,24,0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.glass-card {
+  background: rgba(18,24,32,0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.glass-card-hover { transition: all 0.25s ease; }
+.glass-card-hover:hover {
+  background: rgba(22,32,44,0.75);
+  border-color: rgba(34,197,94,0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,197,94,0.15);
+}
+
+/* ─────────── GLOW ─────────── */
+.glow-primary { box-shadow: 0 0 60px -15px rgba(34,197,94,0.35), 0 0 120px -40px rgba(34,197,94,0.15); }
+.glow-emerald { box-shadow: 0 0 60px -15px rgba(34,197,94,0.4); }
+.glow-amber   { box-shadow: 0 0 60px -15px rgba(245,158,11,0.3); }
+.glow-rose    { box-shadow: 0 0 60px -15px rgba(244,63,94,0.3); }
+
+/* ─────────── SHIMMER SKELETON ─────────── */
+.shimmer {
+  background: linear-gradient(90deg,rgba(30,41,59,0.4) 25%,rgba(51,65,85,0.6) 50%,rgba(30,41,59,0.4) 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+/* ─────────── GRADIENT TEXT & BRAND ─────────── */
+.gradient-text-green {
+  background: linear-gradient(135deg,#86efac,#22c55e,#16a34a);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.gradient-text-lime {
+  background: linear-gradient(135deg,#facc15 0%,#a3e635 40%,#22c55e 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.gradient-text-aurora {
+  background: linear-gradient(135deg,#a3e635 0%,#22c55e 40%,#06b6d4 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.gradient-text-warm {
+  background: linear-gradient(135deg,#fbbf24,#f59e0b,#f97316);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+/* ─────────── BUTTONS ─────────── */
+.btn-primary-green {
+  background-color: #22c55e;
+  color: #041408;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+.btn-primary-green:hover {
+  background-color: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 8px 30px -4px rgba(34,197,94,0.5);
+  transform: translateY(-1px);
+}
+.btn-pill {
+  border-radius: 9999px;
+}
+
+/* ─────────── STATUS BADGES ─────────── */
+.badge-completed, .badge-confirmed {
+  background: rgba(34,197,94,0.14);
+  color: #4ade80;
+  border: 1px solid rgba(34,197,94,0.3);
+}
+.badge-pending {
+  background: rgba(245,158,11,0.14);
+  color: #fbbf24;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.badge-cancelled {
+  background: rgba(244,63,94,0.14);
+  color: #fb7185;
+  border: 1px solid rgba(244,63,94,0.3);
+}
+
+/* ─────────── MESH BG ─────────── */
+.mesh-bg {
+  background-color: #080c10;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(34,197,94,0.1) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(163,230,53,0.06) 0%, transparent 60%);
+}
+
+/* ─────────── CARD HOVER ─────────── */
+.card-hover { transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
+.card-hover:hover { transform: translateY(-2px); box-shadow: 0 16px 48px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,197,94,0.2); }
+.card-press:active { transform: scale(0.98); }
+
+/* ─────────── SCROLL REVEAL ─────────── */
+/* Only hide elements if JS is running (progressive enhancement) */
+.js-reveal-ready .reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1);
+}
+.js-reveal-ready .reveal-left {
+  opacity: 0;
+  transform: translateX(-32px);
+  transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1);
+}
+.js-reveal-ready .reveal-right {
+  opacity: 0;
+  transform: translateX(32px);
+  transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1);
+}
+/* Visible state (always works, with or without js-reveal-ready) */
+.reveal.is-visible,
+.js-reveal-ready .reveal.is-visible { opacity: 1; transform: translateY(0); }
+.reveal-left.is-visible,
+.js-reveal-ready .reveal-left.is-visible { opacity: 1; transform: translateX(0); }
+.reveal-right.is-visible,
+.js-reveal-ready .reveal-right.is-visible { opacity: 1; transform: translateX(0); }
+
+/* ─────────── FOCUS RING ─────────── */
+:focus-visible { outline: 2px solid rgba(34,197,94,0.6); outline-offset: 2px; border-radius: 4px; }
+
+/* ─────────── METRIC CARD ─────────── */
+.metric-card { position: relative; overflow: hidden; }
+.metric-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg,transparent,rgba(34,197,94,0.5),transparent);
+  transform: translateX(-100%); transition: transform 0.5s ease;
+}
+.metric-card:hover::before { transform: translateX(100%); }
+
+/* ─────────── NAV ACTIVE GLOW ─────────── */
+.nav-active-glow { box-shadow: inset 0 0 20px rgba(34,197,94,0.1), 0 0 0 1px rgba(34,197,94,0.3); }
+
+/* ─────────── HERO ORBS ─────────── */
+.hero-orb-1 {
+  position:absolute; width:700px; height:700px;
+  background: radial-gradient(circle,rgba(34,197,94,0.14) 0%,transparent 70%);
+  top:-200px; left:50%; transform:translateX(-50%);
+  pointer-events:none; filter:blur(50px);
+}
+.hero-orb-2 {
+  position:absolute; width:500px; height:500px;
+  background: radial-gradient(circle,rgba(163,230,53,0.08) 0%,transparent 70%);
+  bottom:-100px; right:-100px; pointer-events:none; filter:blur(60px);
+}
+
+/* ─────────── GRID BACKGROUND ─────────── */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(34,197,94,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(34,197,94,0.03) 1px,transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ─────────── STARS ─────────── */
+.star-fill  { fill: #fbbf24; color: #fbbf24; }
+.star-empty { fill: rgba(100,116,139,0.3); color: rgba(100,116,139,0.3); }
+
+/* ─────────── STATUS DOT ─────────── */
+.status-dot-live { position: relative; }
+.status-dot-live::before {
+  content:''; position:absolute; inset:-2px; border-radius:50%;
+  background: rgba(34,197,94,0.4); animation: pulse-ring 2s ease-out infinite;
+}
+
+/* ─────────── PAGE ENTER ─────────── */
+.page-enter { animation: fade-in 0.35s ease forwards; }
+
+/* ─────────── GRADIENT BORDER ─────────── */
+.gradient-border {
+  position: relative;
+  background-clip: padding-box;
+  border: 1px solid transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RANDEVUGO DASHBOARD - LIGHT THEME (DEFAULT)
+   Background: #F6F7FB | Cards: #FFFFFF | Text: #111827 | Border: #E4E7EC
+   Sidebar: #080D1B (Dark) | Purple: #6246EA | RandevuGo Green: #00C98D
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. Main Background and Scroll Area */
+.dash-theme-light .dash-main-area {
+  background-color: #F6F7FB !important;
+  color: #111827 !important;
+}
+
+.dash-theme-light .dash-content-scroll::-webkit-scrollbar-track {
+  background: #F2F4F7;
+}
+.dash-theme-light .dash-content-scroll::-webkit-scrollbar-thumb {
+  background: #D0D5DD;
+  border-radius: 9999px;
+}
+.dash-theme-light .dash-content-scroll::-webkit-scrollbar-thumb:hover {
+  background: #98A2B3;
+}
+
+/* 2. Text Colors (Exclude live preview canvas) */
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h1,
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h2,
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h3,
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h4,
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h5,
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h6 {
+  color: #111827 !important;
+}
+
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-100,
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-200 {
+  color: #111827 !important;
+}
+
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-300 {
+  color: #344054 !important;
+}
+
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-400,
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-500 {
+  color: #667085 !important;
+}
+
+/* 3. Cards & Panels */
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-slate-900"],
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-slate-950"]:not(.bg-black):not(.theme-live-preview-viewport *),
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-[#0E1528]"]:not(.theme-live-preview-viewport *),
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-[#151D36]"]:not(.theme-live-preview-viewport *) {
+  background-color: #FFFFFF !important;
+  border-color: #E4E7EC !important;
+  box-shadow: 0 1px 3px 0 rgba(16, 24, 40, 0.05), 0 1px 2px -1px rgba(16, 24, 40, 0.03);
+}
+
+/* 4. Wells, Sub-sections, Nested items */
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-slate-800"]:not(button):not(a):not(.theme-live-preview-viewport *) {
+  background-color: #F8F9FC !important;
+  border-color: #E4E7EC !important;
+}
+
+/* 5. Borders */
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="border-slate-800"],
+.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="border-slate-700"] {
+  border-color: #E4E7EC !important;
+}
+
+/* 6. Form Inputs, Selects & Textareas */
+.dash-theme-light .dash-main-area input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dash-theme-light .dash-main-area select,
+.dash-theme-light .dash-main-area textarea {
+  background-color: #FFFFFF !important;
+  border: 1px solid #D0D5DD !important;
+  color: #111827 !important;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.05) !important;
+  transition: all 0.15s ease-in-out;
+}
+
+.dash-theme-light .dash-main-area input::placeholder,
+.dash-theme-light .dash-main-area textarea::placeholder {
+  color: #98A2B3 !important;
+}
+
+.dash-theme-light .dash-main-area input:focus,
+.dash-theme-light .dash-main-area select:focus,
+.dash-theme-light .dash-main-area textarea:focus {
+  border-color: #6246EA !important;
+  outline: none !important;
+  box-shadow: 0 0 0 4px rgba(98, 70, 234, 0.12) !important;
+}
+
+/* 7. Tables */
+.dash-theme-light .dash-main-area table {
+  background-color: #FFFFFF !important;
+  border-color: #E4E7EC !important;
+}
+
+.dash-theme-light .dash-main-area thead,
+.dash-theme-light .dash-main-area th {
+  background-color: #F8F9FC !important;
+  color: #475467 !important;
+  border-bottom: 1px solid #E4E7EC !important;
+  font-weight: 600 !important;
+}
+
+.dash-theme-light .dash-main-area tbody tr {
+  border-bottom: 1px solid #F2F4F7 !important;
+  transition: background-color 0.15s ease;
+}
+
+.dash-theme-light .dash-main-area tbody tr:hover {
+  background-color: #F9FAFB !important;
+}
+
+.dash-theme-light .dash-main-area td {
+  color: #111827 !important;
+}
+
+/* 8. Status Badges */
+.dash-theme-light .dash-main-area [class*="bg-emerald-500/10"],
+.dash-theme-light .dash-main-area [class*="bg-emerald-500/15"],
+.dash-theme-light .dash-main-area [class*="bg-emerald-500/20"] {
+  background-color: #ECFDF3 !important;
+  color: #027A48 !important;
+  border: 1px solid #A6F4C5 !important;
+}
+
+.dash-theme-light .dash-main-area [class*="bg-indigo-500/10"],
+.dash-theme-light .dash-main-area [class*="bg-indigo-500/15"],
+.dash-theme-light .dash-main-area [class*="bg-indigo-500/20"] {
+  background-color: #F4F3FF !important;
+  color: #5925DC !important;
+  border: 1px solid #D9D6FE !important;
+}
+
+.dash-theme-light .dash-main-area [class*="bg-amber-500/10"],
+.dash-theme-light .dash-main-area [class*="bg-amber-500/15"],
+.dash-theme-light .dash-main-area [class*="bg-amber-500/20"] {
+  background-color: #FFFAEB !important;
+  color: #B54708 !important;
+  border: 1px solid #FEDF89 !important;
+}
+
+.dash-theme-light .dash-main-area [class*="bg-rose-500/10"],
+.dash-theme-light .dash-main-area [class*="bg-rose-500/15"],
+.dash-theme-light .dash-main-area [class*="bg-rose-500/20"] {
+  background-color: #FEF3F2 !important;
+  color: #B42318 !important;
+  border: 1px solid #FECDCA !important;
+}
+
+/* 9. Buttons */
+.dash-theme-light .dash-main-area button.bg-indigo-600,
+.dash-theme-light .dash-main-area a.bg-indigo-600 {
+  background-color: #6246EA !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 1px 3px 0 rgba(98, 70, 234, 0.3) !important;
+}
+
+.dash-theme-light .dash-main-area button.bg-indigo-600:hover,
+.dash-theme-light .dash-main-area a.bg-indigo-600:hover {
+  background-color: #5339d1 !important;
+}
+
+/* Secondary outline / neutral buttons */
+.dash-theme-light .dash-main-area button[class*="border-slate-700"]:not(.bg-indigo-600),
+.dash-theme-light .dash-main-area a[class*="border-slate-700"]:not(.bg-indigo-600),
+.dash-theme-light .dash-main-area button[class*="border-slate-800"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
+.dash-theme-light .dash-main-area a[class*="border-slate-800"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
+  background-color: #FFFFFF !important;
+  border-color: #D0D5DD !important;
+  color: #344054 !important;
+}
+
+.dash-theme-light .dash-main-area button[class*="border-slate-700"]:hover:not(.bg-indigo-600),
+.dash-theme-light .dash-main-area a[class*="border-slate-700"]:hover:not(.bg-indigo-600),
+.dash-theme-light .dash-main-area button[class*="border-slate-800"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
+.dash-theme-light .dash-main-area a[class*="border-slate-800"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
+  background-color: #F8F9FC !important;
+  color: #111827 !important;
+  border-color: #B2BCC9 !important;
+}
+
+/* 10. Calendar Component specific tweaks */
+.dash-theme-light .dash-main-area .divide-slate-800\/80 {
+  border-color: #E4E7EC !important;
+}
+.dash-theme-light .dash-main-area .divide-slate-800\/80 > * + * {
+  border-color: #E4E7EC !important;
+}
+
+/* 11. Pill tabs and filter buttons */
+.dash-theme-light .dash-main-area button[class*="bg-slate-950"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
+.dash-theme-light .dash-main-area a[class*="bg-slate-950"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
+  background-color: #FFFFFF !important;
+  border-color: #E4E7EC !important;
+  color: #475467 !important;
+}
+
+.dash-theme-light .dash-main-area button[class*="bg-slate-950"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
+.dash-theme-light .dash-main-area a[class*="bg-slate-950"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
+  background-color: #F8F9FC !important;
+  color: #111827 !important;
+}
+
+/* 12. Active Tab Purple Accent */
+.dash-theme-light .dash-main-area .bg-indigo-600\/15 {
+  background-color: #F4F3FF !important;
+  color: #6246EA !important;
+  border-color: #D9D6FE !important;
+}
+
+/* 13. Unselected icon badges and small wells */
+.dash-theme-light .dash-main-area [class*="bg-slate-700"]:not(button):not(a):not(.theme-live-preview-viewport *) {
+  background-color: #F2F4F7 !important;
+  color: #344054 !important;
+  border-color: #E4E7EC !important;
+}
+
+.dash-theme-light .dash-main-area [class*="bg-slate-700"]:not(button):not(a):not(.theme-live-preview-viewport *) svg {
+  color: #344054 !important;
+}
+
+/* Selected active items in gallery and themes */
+.dash-theme-light .dash-main-area .bg-indigo-600 svg,
+.dash-theme-light .dash-main-area [class*="bg-[#6246EA]"] svg {
+  color: #FFFFFF !important;
+}
+
+/* 14. Option selection buttons (direction, size, ratio in gallery) */
+.dash-theme-light .dash-main-area button[class*="bg-slate-800/60"],
+.dash-theme-light .dash-main-area button[class*="bg-slate-800/50"],
+.dash-theme-light .dash-main-area button[class*="bg-slate-800/40"] {
+  background-color: #FFFFFF !important;
+  border-color: #E4E7EC !important;
+  color: #475467 !important;
+}
+
+.dash-theme-light .dash-main-area button[class*="bg-slate-800/60"]:hover,
+.dash-theme-light .dash-main-area button[class*="bg-slate-800/50"]:hover,
+.dash-theme-light .dash-main-area button[class*="bg-slate-800/40"]:hover {
+  background-color: #F8F9FC !important;
+  color: #111827 !important;
+}
+
+.dash-theme-light .dash-main-area button[class*="bg-indigo-600/20"] {
+  background-color: #F4F3FF !important;
+  border-color: #6246EA !important;
+  color: #6246EA !important;
+}
+
+
+
