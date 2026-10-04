@@ -193,13 +193,14 @@ export default function CalendarClient({
 
   return (
     <div className="space-y-6">
-      {/* Calendar Controls Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-5 shadow-sm backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-xl bg-[#F8F9FC] dark:bg-slate-950 border border-[#E4E7EC] dark:border-slate-800 p-1 text-xs">
+      {/* Top Controls Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3.5 sm:p-4 shadow-sm">
+        {/* View Mode Switch & Today */}
+        <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+          <div className="flex items-center bg-[#F8F9FC] dark:bg-slate-950 p-1 rounded-xl border border-[#E4E7EC] dark:border-slate-800 text-xs">
             <button
               onClick={() => setViewMode("day")}
-              className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
+              className={`rounded-lg px-2.5 sm:px-3 py-1.5 font-medium transition-all ${
                 viewMode === "day"
                   ? "bg-[#6246EA] text-white font-semibold shadow-xs"
                   : "text-[#667085] dark:text-slate-400 hover:text-[#111827] dark:hover:text-slate-200"
@@ -209,7 +210,7 @@ export default function CalendarClient({
             </button>
             <button
               onClick={() => setViewMode("week")}
-              className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
+              className={`rounded-lg px-2.5 sm:px-3 py-1.5 font-medium transition-all ${
                 viewMode === "week"
                   ? "bg-[#6246EA] text-white font-semibold shadow-xs"
                   : "text-[#667085] dark:text-slate-400 hover:text-[#111827] dark:hover:text-slate-200"
@@ -219,7 +220,7 @@ export default function CalendarClient({
             </button>
             <button
               onClick={() => setViewMode("month")}
-              className={`rounded-lg px-3 py-1.5 font-medium transition-all ${
+              className={`rounded-lg px-2.5 sm:px-3 py-1.5 font-medium transition-all ${
                 viewMode === "month"
                   ? "bg-[#6246EA] text-white font-semibold shadow-xs"
                   : "text-[#667085] dark:text-slate-400 hover:text-[#111827] dark:hover:text-slate-200"
@@ -231,21 +232,22 @@ export default function CalendarClient({
 
           <button
             onClick={handleToday}
-            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs font-semibold text-[#344054] dark:text-slate-300 hover:bg-[#F8F9FC] transition-colors shadow-xs"
+            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950 px-3 sm:px-3.5 py-2 text-xs font-semibold text-[#344054] dark:text-slate-300 hover:bg-[#F8F9FC] transition-colors shadow-xs"
           >
             Bugün
           </button>
         </div>
 
         {/* Date Navigator */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-3 w-full sm:w-auto py-1.5 sm:py-0 border-y sm:border-y-0 border-[#F2F4F7] dark:border-slate-850">
           <button
             onClick={handlePrev}
-            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/80 p-2 text-[#667085] dark:text-slate-400 hover:bg-[#F8F9FC] hover:text-[#111827] transition-colors shadow-xs"
+            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/80 p-2 text-[#667085] dark:text-slate-400 hover:bg-[#F8F9FC] hover:text-[#111827] transition-colors shadow-xs shrink-0"
+            aria-label="Önceki"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-sm font-bold text-[#111827] dark:text-slate-200 min-w-[160px] text-center">
+          <span className="text-xs sm:text-sm font-bold text-[#111827] dark:text-slate-200 min-w-[130px] sm:min-w-[160px] text-center">
             {currentDate.toLocaleDateString("tr-TR", {
               month: "long",
               year: "numeric",
@@ -254,26 +256,27 @@ export default function CalendarClient({
           </span>
           <button
             onClick={handleNext}
-            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/80 p-2 text-[#667085] dark:text-slate-400 hover:bg-[#F8F9FC] hover:text-[#111827] transition-colors shadow-xs"
+            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/80 p-2 text-[#667085] dark:text-slate-400 hover:bg-[#F8F9FC] hover:text-[#111827] transition-colors shadow-xs shrink-0"
+            aria-label="Sonraki"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
           <button
             onClick={() => setIsBlockModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[#E4E7EC] dark:border-slate-700 bg-white dark:bg-slate-800/80 px-3.5 py-2 text-xs font-semibold text-[#344054] dark:text-slate-300 hover:bg-[#F8F9FC] transition-colors shadow-xs"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E4E7EC] dark:border-slate-700 bg-white dark:bg-slate-800/80 px-3 sm:px-3.5 py-2 text-xs font-semibold text-[#344054] dark:text-slate-300 hover:bg-[#F8F9FC] transition-colors shadow-xs"
           >
-            <Lock className="w-3.5 h-3.5 text-amber-500" />
+            <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             <span>Saat Kapat</span>
           </button>
           <button
             onClick={() => setIsNewModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#6246EA] hover:bg-[#5136D6] px-4 py-2 text-xs font-bold text-white shadow-md shadow-[#6246EA]/25 transition-all active:scale-95"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#6246EA] hover:bg-[#5136D6] px-3.5 sm:px-4 py-2 text-xs font-bold text-white shadow-md shadow-[#6246EA]/25 transition-all active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>Yeni Randevu</span>
           </button>
         </div>
@@ -281,119 +284,123 @@ export default function CalendarClient({
 
       {/* VIEW: WEEKLY */}
       {viewMode === "week" && (
-        <div className="rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden shadow-sm">
-          {/* Weekday headers */}
-          <div className="grid grid-cols-7 border-b border-[#E4E7EC] dark:border-slate-800 bg-[#F8F9FC] dark:bg-slate-950/60 text-center text-xs">
-            {weekDays.map((d, i) => {
-              const isToday =
-                d.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
-              return (
-                <div
-                  key={i}
-                  className={`py-3.5 px-1 border-r border-[#E4E7EC] dark:border-slate-800/80 last:border-r-0 transition-colors ${
-                    isToday
-                      ? "bg-[#ECE8FF] text-[#6246EA] font-bold"
-                      : "text-[#667085] dark:text-slate-400"
-                  }`}
-                >
-                  <span className="block text-[11px] uppercase tracking-wider font-semibold">
-                    {d.toLocaleDateString("tr-TR", { weekday: "short" })}
-                  </span>
-                  <span
-                    className={`text-base font-bold mt-0.5 block ${
-                      isToday ? "text-[#6246EA]" : "text-[#111827] dark:text-slate-200"
-                    }`}
-                  >
-                    {d.getDate()}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Grid of days */}
-          <div className="grid grid-cols-7 min-h-[520px] divide-x divide-[#E4E7EC] dark:divide-slate-800/80 bg-white dark:bg-slate-950/20">
-            {weekDays.map((d, idx) => {
-              const dateKey = d.toISOString().split("T")[0];
-              const dayAppts = appointments.filter((a) => a.date === dateKey);
-
-              return (
-                <div key={idx} className="p-2 space-y-2">
-                  {dayAppts.length === 0 ? (
-                    <div className="text-[11px] text-[#98A2B3] dark:text-slate-600 text-center pt-8 font-medium">
-                      Boş
-                    </div>
-                  ) : (
-                    dayAppts.map((appt) => (
-                      <div
-                        key={appt.id}
-                        onClick={() => setSelectedAppt(appt)}
-                        className={`cursor-pointer rounded-2xl p-2.5 text-xs transition-all hover:scale-[1.02] shadow-xs ${
-                          appt.isBlockedSlot
-                            ? "bg-slate-100 border border-slate-300 text-slate-700 dark:bg-slate-800/80 dark:border-amber-500/30 dark:text-amber-300"
-                            : appt.status === "CONFIRMED"
-                            ? "bg-emerald-50 border border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-200 hover:border-emerald-400"
-                            : appt.status === "COMPLETED"
-                            ? "bg-[#F4F3FF] border border-[#DDD6FE] text-[#312E81] dark:bg-indigo-950/40 dark:border-indigo-500/30 dark:text-indigo-200 hover:border-[#6246EA]"
-                            : appt.status === "CANCELLED"
-                            ? "bg-rose-50/80 border border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-500/20 dark:text-rose-300 opacity-75"
-                            : "bg-amber-50 border border-amber-200 text-amber-900 dark:bg-amber-950/30 dark:border-amber-500/25 dark:text-amber-200 hover:border-amber-400"
+        <div className="rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto scrollbar-thin">
+            <div className="min-w-[700px]">
+              {/* Weekday headers */}
+              <div className="grid grid-cols-7 border-b border-[#E4E7EC] dark:border-slate-800 bg-[#F8F9FC] dark:bg-slate-950/60 text-center text-xs">
+                {weekDays.map((d, i) => {
+                  const isToday =
+                    d.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+                  return (
+                    <div
+                      key={i}
+                      className={`py-3 sm:py-3.5 px-1 border-r border-[#E4E7EC] dark:border-slate-800/80 last:border-r-0 transition-colors ${
+                        isToday
+                          ? "bg-[#ECE8FF] text-[#6246EA] font-bold"
+                          : "text-[#667085] dark:text-slate-400"
+                      }`}
+                    >
+                      <span className="block text-[11px] uppercase tracking-wider font-semibold">
+                        {d.toLocaleDateString("tr-TR", { weekday: "short" })}
+                      </span>
+                      <span
+                        className={`text-base font-bold mt-0.5 block ${
+                          isToday ? "text-[#6246EA]" : "text-[#111827] dark:text-slate-200"
                         }`}
                       >
-                        <div className="flex items-center justify-between font-bold text-[11px]">
-                          <span>{appt.startTime}</span>
-                          <span
-                            className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md ${
-                              appt.status === "CONFIRMED"
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300"
+                        {d.getDate()}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Grid of days */}
+              <div className="grid grid-cols-7 min-h-[520px] divide-x divide-[#E4E7EC] dark:divide-slate-800/80 bg-white dark:bg-slate-950/20">
+                {weekDays.map((d, idx) => {
+                  const dateKey = d.toISOString().split("T")[0];
+                  const dayAppts = appointments.filter((a) => a.date === dateKey);
+
+                  return (
+                    <div key={idx} className="p-2 space-y-2">
+                      {dayAppts.length === 0 ? (
+                        <div className="text-[11px] text-[#98A2B3] dark:text-slate-600 text-center pt-8 font-medium">
+                          Boş
+                        </div>
+                      ) : (
+                        dayAppts.map((appt) => (
+                          <div
+                            key={appt.id}
+                            onClick={() => setSelectedAppt(appt)}
+                            className={`cursor-pointer rounded-2xl p-2.5 text-xs transition-all hover:scale-[1.02] shadow-xs ${
+                              appt.isBlockedSlot
+                                ? "bg-slate-100 border border-slate-300 text-slate-700 dark:bg-slate-800/80 dark:border-amber-500/30 dark:text-amber-300"
+                                : appt.status === "CONFIRMED"
+                                ? "bg-emerald-50 border border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-200 hover:border-emerald-400"
                                 : appt.status === "COMPLETED"
-                                ? "bg-[#ECE8FF] text-[#6246EA] dark:bg-indigo-900/50 dark:text-indigo-300"
+                                ? "bg-[#F4F3FF] border border-[#DDD6FE] text-[#312E81] dark:bg-indigo-950/40 dark:border-indigo-500/30 dark:text-indigo-200 hover:border-[#6246EA]"
                                 : appt.status === "CANCELLED"
-                                ? "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300"
-                                : "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
+                                ? "bg-rose-50/80 border border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-500/20 dark:text-rose-300 opacity-75"
+                                : "bg-amber-50 border border-amber-200 text-amber-900 dark:bg-amber-950/30 dark:border-amber-500/25 dark:text-amber-200 hover:border-amber-400"
                             }`}
                           >
-                            {appt.status === "CONFIRMED"
-                              ? "Onaylı"
-                              : appt.status === "COMPLETED"
-                              ? "Tamamlandı"
-                              : appt.status === "CANCELLED"
-                              ? "İptal"
-                              : "Bekliyor"}
-                          </span>
-                        </div>
-                        <div
-                          className={`font-bold truncate mt-1 text-xs ${
-                            appt.status === "CANCELLED"
-                              ? "line-through text-rose-900 dark:text-rose-300"
-                              : "text-[#111827] dark:text-white"
-                          }`}
-                        >
-                          {appt.customerName}
-                        </div>
-                        <div
-                          className={`text-[10px] truncate mt-0.5 ${
-                            appt.status === "CANCELLED"
-                              ? "line-through text-rose-600/70"
-                              : "text-[#667085] dark:text-slate-300"
-                          }`}
-                        >
-                          {appt.service?.name}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              );
-            })}
+                            <div className="flex items-center justify-between font-bold text-[11px]">
+                              <span>{appt.startTime}</span>
+                              <span
+                                className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md ${
+                                  appt.status === "CONFIRMED"
+                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300"
+                                    : appt.status === "COMPLETED"
+                                    ? "bg-[#ECE8FF] text-[#6246EA] dark:bg-indigo-900/50 dark:text-indigo-300"
+                                    : appt.status === "CANCELLED"
+                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300"
+                                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
+                                }`}
+                              >
+                                {appt.status === "CONFIRMED"
+                                  ? "Onaylı"
+                                  : appt.status === "COMPLETED"
+                                  ? "Tamamlandı"
+                                  : appt.status === "CANCELLED"
+                                  ? "İptal"
+                                  : "Bekliyor"}
+                              </span>
+                            </div>
+                            <div
+                              className={`font-bold truncate mt-1 text-xs ${
+                                appt.status === "CANCELLED"
+                                  ? "line-through text-rose-900 dark:text-rose-300"
+                                  : "text-[#111827] dark:text-white"
+                              }`}
+                            >
+                              {appt.customerName}
+                            </div>
+                            <div
+                              className={`text-[10px] truncate mt-0.5 ${
+                                appt.status === "CANCELLED"
+                                  ? "line-through text-rose-600/70"
+                                  : "text-[#667085] dark:text-slate-300"
+                              }`}
+                            >
+                              {appt.service?.name}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* VIEW: DAILY */}
       {viewMode === "day" && (
-        <div className="rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-[#111827] dark:text-slate-100 mb-4">
+        <div className="rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-6 shadow-sm">
+          <h3 className="text-base sm:text-lg font-bold text-[#111827] dark:text-slate-100 mb-4">
             {currentDate.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" })} Randevuları
           </h3>
 
@@ -409,26 +416,26 @@ export default function CalendarClient({
                   <div
                     key={appt.id}
                     onClick={() => setSelectedAppt(appt)}
-                    className="cursor-pointer flex items-center justify-between p-4 rounded-2xl bg-[#F8F9FC] dark:bg-slate-950/60 border border-[#E4E7EC] dark:border-slate-800 hover:border-[#6246EA]/30 transition-colors shadow-xs"
+                    className="cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-[#F8F9FC] dark:bg-slate-950/60 border border-[#E4E7EC] dark:border-slate-800 hover:border-[#6246EA]/30 transition-colors shadow-xs"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 text-center font-bold text-[#6246EA] text-base">
+                    <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                      <div className="px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-center font-bold text-[#6246EA] text-sm shrink-0">
                         {appt.startTime}
                       </div>
-                      <div>
-                        <span className="font-bold text-[#111827] dark:text-slate-100 block text-sm">
+                      <div className="min-w-0">
+                        <span className="font-bold text-[#111827] dark:text-slate-100 block text-sm truncate">
                           {appt.customerName}
                         </span>
-                        <span className="text-xs text-[#667085] dark:text-slate-400">
-                          {appt.service?.name} • Uzman: {appt.employee?.name}
+                        <span className="text-xs text-[#667085] dark:text-slate-400 block truncate">
+                          {appt.service?.name} {appt.employee?.name ? `• Uzman: ${appt.employee?.name}` : ""}
                         </span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 block text-sm">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E4E7EC] dark:border-slate-800">
+                      <span className="text-xs text-[#667085] dark:text-slate-400 font-semibold">{appt.status}</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
                         {formatCurrency(appt.price)}
                       </span>
-                      <span className="text-xs text-[#667085] dark:text-slate-400 font-semibold">{appt.status}</span>
                     </div>
                   </div>
                 ))
@@ -439,41 +446,43 @@ export default function CalendarClient({
 
       {/* VIEW: MONTHLY */}
       {viewMode === "month" && (
-        <div className="rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 shadow-sm">
-          <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-[#667085] dark:text-slate-400 mb-3">
-            {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((day) => (
-              <div key={day} className="py-1">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-2">
-            {[...Array(30)].map((_, i) => {
-              const dayNum = i + 1;
-              const dateKey = `${currentDate.getFullYear()}-${String(
-                currentDate.getMonth() + 1
-              ).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-              const count = appointments.filter((a) => a.date === dateKey).length;
-
-              return (
-                <div
-                  key={i}
-                  className={`min-h-[70px] rounded-xl border p-2 text-left transition-colors ${
-                    count > 0
-                      ? "border-[#D9D6FE] bg-[#F4F3FF] dark:border-indigo-500/30 dark:bg-indigo-950/20"
-                      : "border-[#E4E7EC] bg-white dark:border-slate-800/80 dark:bg-slate-950/40"
-                  }`}
-                >
-                  <span className="text-xs font-bold text-[#111827] dark:text-slate-300">{dayNum}</span>
-                  {count > 0 && (
-                    <span className="mt-1 block text-[10px] text-[#6246EA] font-bold bg-[#ECE8FF] px-1.5 py-0.5 rounded-md border border-[#D9D6FE] w-max">
-                      {count} randevu
-                    </span>
-                  )}
+        <div className="rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-6 shadow-sm overflow-x-auto scrollbar-thin">
+          <div className="min-w-[500px]">
+            <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-[#667085] dark:text-slate-400 mb-3">
+              {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((day) => (
+                <div key={day} className="py-1">
+                  {day}
                 </div>
-              );
-            })}
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-2">
+              {[...Array(30)].map((_, i) => {
+                const dayNum = i + 1;
+                const dateKey = `${currentDate.getFullYear()}-${String(
+                  currentDate.getMonth() + 1
+                ).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+                const count = appointments.filter((a) => a.date === dateKey).length;
+
+                return (
+                  <div
+                    key={i}
+                    className={`min-h-[70px] rounded-xl border p-2 text-left transition-colors ${
+                      count > 0
+                        ? "border-[#D9D6FE] bg-[#F4F3FF] dark:border-indigo-500/30 dark:bg-indigo-950/20"
+                        : "border-[#E4E7EC] bg-white dark:border-slate-800/80 dark:bg-slate-950/40"
+                    }`}
+                  >
+                    <span className="text-xs font-bold text-[#111827] dark:text-slate-300">{dayNum}</span>
+                    {count > 0 && (
+                      <span className="mt-1 block text-[10px] text-[#6246EA] font-bold bg-[#ECE8FF] px-1.5 py-0.5 rounded-md border border-[#D9D6FE] w-max">
+                        {count} randevu
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

@@ -48,7 +48,28 @@ export async function GET(req: Request) {
         isActive: true,
         ...(employeeId && employeeId !== "any" ? { id: employeeId } : {}),
       },
+      include: {
+        employeeServices: true,
+        workingHours: {
+          where: { dayOfWeek },
+        },
+      },
     });
+
+    // If a service is specified, filter to employees that offer this service
+    if (serviceId) {
+      const hasSpecificAssignments = activeEmployees.some(
+        (e) => Array.isArray(e.employeeServices) && e.employeeServices.length > 0
+      );
+      if (hasSpecificAssignments) {
+        activeEmployees = activeEmployees.filter(
+          (e) =>
+            !e.employeeServices ||
+            e.employeeServices.length === 0 ||
+            e.employeeServices.some((es) => es.serviceId === serviceId)
+        );
+      }
+    }
 
     if (activeEmployees.length === 0) {
       return NextResponse.json({ slots: [], message: "Seçilen kriterde uygun çalışan bulunamadı." });
@@ -101,7 +122,7 @@ export async function GET(req: Request) {
         continue;
       }
 
-      // Check break overlap
+      // Check business break overlap
       if (breakStartMin !== null && breakEndMin !== null) {
         if (slotStart < breakEndMin && slotEnd > breakStartMin) {
           continue; // Overlaps with lunch break
@@ -110,6 +131,25 @@ export async function GET(req: Request) {
 
       // Check if at least one employee is available during this slot
       const isSlotAvailable = activeEmployees.some((emp) => {
+        // 1. Check employee personal working hours if configured
+        if (emp.workingHours && emp.workingHours.length > 0) {
+          const empWh = emp.workingHours[0];
+          if (!empWh.isOpen) return false;
+          const empOpenMin = timeToMinutes(empWh.openTime);
+          const empCloseMin = timeToMinutes(empWh.closeTime);
+          if (slotStart < empOpenMin || slotEnd > empCloseMin) {
+            return false;
+          }
+          if (empWh.breakStartTime && empWh.breakEndTime) {
+            const empBreakStart = timeToMinutes(empWh.breakStartTime);
+            const empBreakEnd = timeToMinutes(empWh.breakEndTime);
+            if (slotStart < empBreakEnd && slotEnd > empBreakStart) {
+              return false;
+            }
+          }
+        }
+
+        // 2. Check employee appointment conflicts
         const empAppointments = existingAppointments.filter((a) => a.employeeId === emp.id);
         const hasConflict = empAppointments.some((a) => {
           const aStart = timeToMinutes(a.startTime);

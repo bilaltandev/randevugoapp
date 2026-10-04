@@ -69,21 +69,22 @@ export function DashboardHeader({
           : "border-b border-slate-800/80 bg-slate-950/70 text-slate-100 backdrop-blur-xl"
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {onToggleMobileMenu && (
           <button
             onClick={onToggleMobileMenu}
-            className={`md:hidden rounded-lg p-2 transition-colors ${
+            className={`md:hidden rounded-lg p-2 transition-colors shrink-0 ${
               isLight
                 ? "text-[#667085] hover:bg-[#F2F4F7] hover:text-[#111827]"
                 : "text-slate-400 hover:bg-slate-900 hover:text-slate-100"
             }`}
+            aria-label="Menüyü Aç"
           >
             <Menu className="w-5 h-5" />
           </button>
         )}
 
-        {/* Live booking link chip */}
+        {/* Desktop Live booking link chip */}
         <div
           className={`hidden sm:flex items-center gap-2 rounded-full px-3 py-1.5 text-xs transition-colors ${
             isLight
@@ -118,9 +119,35 @@ export function DashboardHeader({
             {copied ? <Check className="w-3.5 h-3.5 text-[#00C98D]" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
         </div>
+
+        {/* Mobile Live booking link chip */}
+        <div
+          className={`flex sm:hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-colors border ${
+            isLight
+              ? "border-[#E4E7EC] bg-[#F8F9FC] text-[#344054]"
+              : "border-slate-800 bg-slate-900/80 text-slate-300"
+          }`}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-[#00C98D] animate-pulse shrink-0" />
+          <Link
+            href={`/${business.slug}`}
+            target="_blank"
+            className="font-bold text-[#6246EA] truncate max-w-[100px]"
+            title="Rezervasyon Sayfası"
+          >
+            /{business.slug}
+          </Link>
+          <button
+            onClick={handleCopyLink}
+            className="p-0.5 text-slate-400 hover:text-slate-200"
+            title="Kopyala"
+          >
+            {copied ? <Check className="w-3 h-3 text-[#00C98D]" /> : <Copy className="w-3 h-3" />}
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {/* Theme Toggle (Light / Dark) */}
         {onToggleTheme && (
           <button
@@ -162,7 +189,7 @@ export function DashboardHeader({
 
           {showNotifications && (
             <div
-              className={`absolute right-0 mt-2 w-80 rounded-2xl p-4 shadow-xl z-50 transition-all ${
+              className={`absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl p-4 shadow-xl z-50 transition-all ${
                 isLight
                   ? "border border-[#E4E7EC] bg-white text-[#111827]"
                   : "border border-slate-800 bg-slate-900/95 text-slate-100 backdrop-blur-xl shadow-2xl"

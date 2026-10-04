@@ -13,6 +13,11 @@ export default async function AppointmentsPage() {
       employee: true,
       customer: true,
       review: true,
+      table: {
+        include: {
+          area: true,
+        },
+      },
     },
     orderBy: [{ date: "desc" }, { startTime: "asc" }],
   });

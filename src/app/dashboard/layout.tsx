@@ -15,7 +15,13 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const role = user.role?.toUpperCase();
+  const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN" || role === "SUPERADMIN";
+
   if (!user.business) {
+    if (isAdmin) {
+      redirect("/admin");
+    }
     redirect("/register");
   }
 

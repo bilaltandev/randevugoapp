@@ -43,6 +43,7 @@ export async function PUT(req: Request) {
       logo,
       coverImage,
       sector,
+      enableStaffSelection,
       workingHours,
     } = body;
 
@@ -58,6 +59,7 @@ export async function PUT(req: Request) {
         ...(logo !== undefined ? { logo } : {}),
         ...(coverImage !== undefined ? { coverImage } : {}),
         ...(sector ? { sector } : {}),
+        ...(enableStaffSelection !== undefined ? { enableStaffSelection: Boolean(enableStaffSelection) } : {}),
       },
     });
 

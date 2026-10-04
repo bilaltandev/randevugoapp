@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import confetti from "canvas-confetti";
 import {
   Calendar,
@@ -17,8 +17,15 @@ import {
   AlertCircle,
   Car,
   Utensils,
+  UtensilsCrossed,
+  LayoutGrid,
+  Layers,
+  Check,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getDefaultStaffSelection } from "@/lib/utils";
+import { RestaurantTable, RestaurantArea } from "./restaurant/types";
+import { FloorPlanCanvas } from "./restaurant/FloorPlanCanvas";
+import { TableCardPreview } from "./restaurant/TableCardPreview";
 
 interface Service {
   id: string;
@@ -34,6 +41,7 @@ interface Employee {
   name: string;
   specialty: string;
   photo?: string | null;
+  employeeServices?: { serviceId: string }[];
 }
 
 /** Minimal subset of theme colors needed by the wizard */
@@ -60,6 +68,7 @@ interface BookingWizardProps {
     sector: string;
     phone: string;
     whatsappNumber?: string | null;
+    enableStaffSelection?: boolean;
     subscription?: {
       status: string;
       trialEndDate?: string;
@@ -133,7 +142,16 @@ export function BookingWizard({
   const [customerEmail, setCustomerEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
+  const isRestaurant = business.sector === "RESTORAN" || business.sector === "RESTAURANT";
   const [guestCount, setGuestCount] = useState("2");
+
+  // Restaurant Table Management States
+  const [restaurantTables, setRestaurantTables] = useState<RestaurantTable[]>([]);
+  const [restaurantAreas, setRestaurantAreas] = useState<RestaurantArea[]>([]);
+  const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
+  const [loadingTables, setLoadingTables] = useState(false);
+  const [tableCardMode, setTableCardMode] = useState<"cards" | "canvas">("canvas");
+  const [activeTableAreaId, setActiveTableAreaId] = useState<string>("ALL");
 
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -142,6 +160,48 @@ export function BookingWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [bookingResult, setBookingResult] = useState<any>(null);
+
+  // Business staff selection configuration (Sector default fallback, owner setting takes precedence)
+  const staffSelectionEnabled =
+    business.enableStaffSelection !== undefined
+      ? Boolean(business.enableStaffSelection)
+      : getDefaultStaffSelection(business.sector);
+
+  // Eligible employees for the currently selected service
+  const eligibleEmployees = useMemo(() => {
+    if (!selectedService) return employees;
+    const hasAssignments = employees.some(
+      (e) => Array.isArray(e.employeeServices) && e.employeeServices.length > 0
+    );
+    if (!hasAssignments) return employees;
+    return employees.filter(
+      (e) =>
+        !e.employeeServices ||
+        e.employeeServices.length === 0 ||
+        e.employeeServices.some((es) => es.serviceId === selectedService.id)
+    );
+  }, [employees, selectedService]);
+
+  // Keep selected employee valid if service changes
+  useEffect(() => {
+    if (selectedEmployee !== "any" && !eligibleEmployees.some((e) => e.id === selectedEmployee)) {
+      setSelectedEmployee("any");
+    }
+  }, [eligibleEmployees, selectedEmployee]);
+
+  // Step definitions based on staffSelectionEnabled
+  const stepsList = staffSelectionEnabled
+    ? [
+        { id: 1, label: "Hizmet" },
+        { id: 2, label: "Uzman" },
+        { id: 3, label: isRestaurant ? "Masa & Saat" : "Tarih & Saat" },
+        { id: 4, label: "İletişim" },
+      ]
+    : [
+        { id: 1, label: "Hizmet" },
+        { id: 3, label: isRestaurant ? "Masa & Saat" : "Tarih & Saat" },
+        { id: 4, label: "İletişim" },
+      ];
 
   useEffect(() => {
     const today = new Date();
@@ -181,12 +241,81 @@ export function BookingWizard({
     fetchSlots();
   }, [selectedDate, selectedEmployee, selectedService, business.id]);
 
+  // Fetch restaurant areas and tables when date, time, or guest count changes
+  useEffect(() => {
+    if (!isRestaurant || !business.id || !selectedDate || !selectedTime) return;
+
+    async function fetchTablesAndAreas() {
+      setLoadingTables(true);
+      try {
+        // Fetch areas
+        const areasRes = await fetch(`/api/restaurant/areas?businessId=${business.id}`);
+        const areasData = await areasRes.json();
+        if (areasData.areas) {
+          setRestaurantAreas(areasData.areas);
+        }
+
+        // Fetch tables with computed status
+        const query = new URLSearchParams({
+          businessId: business.id,
+          date: selectedDate,
+          startTime: selectedTime,
+          durationMinutes: String(selectedService?.durationMinutes || 90),
+          guestCount: String(guestCount || "2"),
+        });
+        const tablesRes = await fetch(`/api/restaurant/tables?${query.toString()}`);
+        const tablesData = await tablesRes.json();
+        if (tablesData.tables) {
+          setRestaurantTables(tablesData.tables);
+          // If selected table is no longer available, deselect it
+          if (selectedTable) {
+            const found = tablesData.tables.find((t: RestaurantTable) => t.id === selectedTable.id);
+            if (!found || !found.isAvailable) {
+              setSelectedTable(null);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Fetch tables error:", err);
+      } finally {
+        setLoadingTables(false);
+      }
+    }
+
+    fetchTablesAndAreas();
+  }, [isRestaurant, business.id, selectedDate, selectedTime, guestCount, selectedService]);
+
   const handleNextStep = () => {
-    if (step === 1 && !selectedService) return;
-    if (step === 3 && (!selectedDate || !selectedTime)) return;
+    if (step === 1) {
+      if (!selectedService) return;
+      if (!staffSelectionEnabled) {
+        setStep(3); // Skip specialist step entirely
+        return;
+      }
+      setStep(2);
+      return;
+    }
+    if (step === 2) {
+      setStep(3);
+      return;
+    }
+    if (step === 3) {
+      if (!selectedDate || !selectedTime) return;
+      setStep(4);
+      return;
+    }
     setStep(step + 1);
   };
-  const handlePrevStep = () => { if (step > 1) setStep(step - 1); };
+
+  const handlePrevStep = () => {
+    if (step === 3 && !staffSelectionEnabled) {
+      setStep(1); // Jump back to step 1
+      return;
+    }
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
 
   const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,9 +326,16 @@ export function BookingWizard({
     setIsSubmitting(true);
     setSubmitError("");
     try {
-      const sectorData: Record<string, string> = {};
+      const sectorData: Record<string, any> = {};
       if (business.sector === "OTO_SERVIS" && plateNumber) sectorData.plateNumber = plateNumber;
-      if (business.sector === "RESTORAN" && guestCount) sectorData.guestCount = guestCount;
+      if (isRestaurant) {
+        if (guestCount) sectorData.guestCount = guestCount;
+        if (selectedTable) {
+          sectorData.tableId = selectedTable.id;
+          sectorData.tableName = selectedTable.name;
+          if (selectedTable.area?.name) sectorData.areaName = selectedTable.area.name;
+        }
+      }
 
       const res = await fetch("/api/appointments", {
         method: "POST",
@@ -210,6 +346,7 @@ export function BookingWizard({
           employeeId: selectedEmployee,
           date: selectedDate,
           startTime: selectedTime,
+          tableId: selectedTable?.id || null,
           customerName,
           customerPhone,
           customerEmail,
@@ -622,6 +759,361 @@ export function BookingWizard({
               )}
             </div>
 
+            {/* Kişi Sayısı & Masa Seçimi for Restaurant */}
+            {isRestaurant && (
+              <div className="mt-8 pt-6 border-t" style={{ borderColor: c.border }}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h4 className="font-bold text-sm flex items-center gap-2" style={{ color: c.text }}>
+                      <UtensilsCrossed className="w-4 h-4" style={{ color: c.primary }} />
+                      <span>Kişi Sayısı & Masa Seçimi</span>
+                    </h4>
+                    <p className="text-xs" style={{ color: c.mutedText }}>
+                      {selectedTime
+                        ? "Kişi sayısını belirleyin ve oturmak istediğiniz masayı seçin."
+                        : "Uygun masaları listelemek için lütfen yukarıdan bir randevu saati seçin."}
+                    </p>
+                  </div>
+
+                  {/* Guest Count Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold" style={{ color: c.mutedText }}>
+                      Kişi:
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 4, 6, 8].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setGuestCount(String(n))}
+                          className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all ${
+                            guestCount === String(n) ? "shadow-sm" : ""
+                          }`}
+                          style={
+                            guestCount === String(n)
+                              ? { backgroundColor: c.primary, color: c.primaryText, borderColor: c.primary }
+                              : { backgroundColor: c.surfaceHover, color: c.text, borderColor: c.border }
+                          }
+                        >
+                          {n} Kişi
+                        </button>
+                      ))}
+                      <select
+                        value={["1", "2", "4", "6", "8"].includes(guestCount) ? "" : guestCount}
+                        onChange={(e) => {
+                          if (e.target.value) setGuestCount(e.target.value);
+                        }}
+                        className="px-2 py-1 text-xs font-bold rounded-lg border focus:outline-none"
+                        style={{ backgroundColor: c.surfaceHover, color: c.text, borderColor: c.border }}
+                      >
+                        <option value="" disabled>
+                          Diğer
+                        </option>
+                        {[3, 5, 7, 9, 10, 12, 16, 20].map((n) => (
+                          <option key={n} value={String(n)}>
+                            {n} Kişi
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Table Selection Area */}
+                {selectedTime ? (
+                  loadingTables ? (
+                    <div className="p-8 text-center text-xs" style={{ color: c.mutedText }}>
+                      <div
+                        className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2"
+                        style={{ borderColor: `${c.primary} transparent transparent transparent` }}
+                      />
+                      Masalar ve doluluk durumu kontrol ediliyor...
+                    </div>
+                  ) : restaurantTables.length === 0 ? (
+                    <div
+                      className={`p-5 text-center text-xs border ${r.card}`}
+                      style={{ backgroundColor: c.surfaceHover, borderColor: c.border, color: c.mutedText }}
+                    >
+                      Bu işletmede henüz tanımlanmış masa bulunmuyor. Rezervasyonunuzu masa seçmeden tamamlayabilirsiniz.
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5">
+                      {/* Controls: Area Tabs and View Switcher */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                          <button
+                            type="button"
+                            onClick={() => setActiveTableAreaId("ALL")}
+                            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                              activeTableAreaId === "ALL" ? "shadow-sm" : ""
+                            }`}
+                            style={
+                              activeTableAreaId === "ALL"
+                                ? { backgroundColor: c.primary, color: c.primaryText, borderColor: c.primary }
+                                : { backgroundColor: c.surfaceHover, color: c.mutedText, borderColor: c.border }
+                            }
+                          >
+                            Tüm Masalar ({restaurantTables.filter((t) => t.isActive && !t.insufficientCapacity).length})
+                          </button>
+                          {restaurantAreas.map((area) => {
+                            const count = restaurantTables.filter(
+                              (t) => t.areaId === area.id && t.isActive && !t.insufficientCapacity
+                            ).length;
+                            const isAreaActive = activeTableAreaId === area.id;
+                            return (
+                              <button
+                                key={area.id}
+                                type="button"
+                                onClick={() => setActiveTableAreaId(area.id)}
+                                className="px-3 py-1 rounded-lg text-xs font-semibold border transition-all"
+                                style={
+                                  isAreaActive
+                                    ? { backgroundColor: c.primary, color: c.primaryText, borderColor: c.primary }
+                                    : { backgroundColor: c.surfaceHover, color: c.mutedText, borderColor: c.border }
+                                }
+                              >
+                                {area.name} ({count})
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* View Mode Toggle: Cards vs Floor Plan */}
+                        <div
+                          className="flex items-center rounded-lg border p-0.5 self-end sm:self-auto"
+                          style={{ borderColor: c.border, backgroundColor: c.surfaceHover }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setTableCardMode("cards")}
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
+                              tableCardMode === "cards" ? "shadow-sm" : ""
+                            }`}
+                            style={
+                              tableCardMode === "cards"
+                                ? { backgroundColor: c.primary, color: c.primaryText }
+                                : { color: c.mutedText }
+                            }
+                          >
+                            <LayoutGrid className="w-3 h-3" />
+                            <span>Kartlar</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setTableCardMode("canvas")}
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
+                              tableCardMode === "canvas" ? "shadow-sm" : ""
+                            }`}
+                            style={
+                              tableCardMode === "canvas"
+                                ? { backgroundColor: c.primary, color: c.primaryText }
+                                : { color: c.mutedText }
+                            }
+                          >
+                            <UtensilsCrossed className="w-3 h-3" />
+                            <span>Masa Planı</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Selected Table Alert Banner */}
+                      {selectedTable && (
+                        <div
+                          className="p-3.5 rounded-2xl border flex items-center justify-between gap-3 animate-in fade-in"
+                          style={{
+                            backgroundColor: "rgba(16,185,129,0.12)",
+                            borderColor: "rgba(16,185,129,0.35)",
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold">
+                              <Check className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-emerald-400">
+                                Seçilen Masa: {selectedTable.name} ({selectedTable.area?.name || "Restoran"})
+                              </div>
+                              <div className="text-[11px] text-emerald-300/80">
+                                Kapasite: {selectedTable.capacity} Kişilik
+                                {selectedTable.description ? ` • ${selectedTable.description}` : ""}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTable(null)}
+                            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 underline"
+                          >
+                            Değiştir
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Floor Plan Canvas or Card Grid */}
+                      {tableCardMode === "canvas" ? (
+                        <FloorPlanCanvas
+                          tables={restaurantTables}
+                          areas={restaurantAreas}
+                          activeAreaId={activeTableAreaId}
+                          mode="booking"
+                          selectedTableId={selectedTable?.id}
+                          onSelectTable={(tbl) => {
+                            if (tbl.isAvailable) setSelectedTable(tbl);
+                          }}
+                          readOnly={true}
+                        />
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1">
+                          {restaurantTables
+                            .filter((t) => {
+                              if (activeTableAreaId !== "ALL" && t.areaId !== activeTableAreaId) return false;
+                              // Filter out insufficient capacity
+                              if (t.insufficientCapacity) return false;
+                              return t.isActive;
+                            })
+                            .map((tbl) => {
+                              const isSelected = selectedTable?.id === tbl.id;
+                              const isAvailable = tbl.isAvailable;
+                              const isReserved =
+                                tbl.computedStatus === "RESERVED" || tbl.computedStatus === "OCCUPIED";
+
+                              return (
+                                <div
+                                  key={tbl.id}
+                                  onClick={() => {
+                                    if (isAvailable) setSelectedTable(tbl);
+                                  }}
+                                  className={`group relative rounded-2xl border transition-all overflow-hidden flex flex-col justify-between ${
+                                    isAvailable ? "cursor-pointer hover:shadow-lg" : "cursor-not-allowed opacity-60"
+                                  } ${r.card}`}
+                                  style={{
+                                    backgroundColor: isSelected ? c.badgeBg : c.surfaceHover,
+                                    borderColor: isSelected
+                                      ? "#10B981"
+                                      : isReserved
+                                      ? "rgba(244,63,94,0.4)"
+                                      : c.border,
+                                    boxShadow: isSelected
+                                      ? "0 0 0 2px #10B981, 0 4px 16px rgba(16,185,129,0.3)"
+                                      : undefined,
+                                  }}
+                                >
+                                  {/* Photo if available */}
+                                  {tbl.imageUrl ? (
+                                    <div className="relative h-28 w-full overflow-hidden bg-slate-800">
+                                      <img
+                                        src={tbl.imageUrl}
+                                        alt={tbl.name}
+                                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                      />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                      {tbl.area?.name && (
+                                        <span className="absolute top-2 left-2 rounded-full bg-black/60 backdrop-blur-md px-2 py-0.5 text-[10px] font-medium text-white">
+                                          {tbl.area.name}
+                                        </span>
+                                      )}
+                                      <span
+                                        className={`absolute top-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                          isReserved
+                                            ? "bg-rose-500/80 text-white"
+                                            : "bg-emerald-500/80 text-white"
+                                        }`}
+                                      >
+                                        {isReserved ? "Dolu" : "Müsait"}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="p-3 pb-1 flex items-center justify-between border-b"
+                                      style={{ borderColor: c.border }}
+                                    >
+                                      <span className="text-[11px] font-semibold" style={{ color: c.mutedText }}>
+                                        {tbl.area?.name || "Restoran"}
+                                      </span>
+                                      <span
+                                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                          isReserved
+                                            ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                                            : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                        }`}
+                                      >
+                                        {isReserved ? "Dolu" : "Müsait"}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Card Content */}
+                                  <div className="p-3 space-y-1.5 flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-bold text-sm" style={{ color: c.text }}>
+                                        {tbl.name}
+                                      </h4>
+                                      <span
+                                        className="text-xs font-semibold px-2 py-0.5 rounded-md"
+                                        style={{ backgroundColor: c.badgeBg, color: c.primary }}
+                                      >
+                                        {tbl.capacity} Kişilik
+                                      </span>
+                                    </div>
+                                    {tbl.description && (
+                                      <p className="text-[11px] line-clamp-2" style={{ color: c.mutedText }}>
+                                        {tbl.description}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Select Action Button */}
+                                  <div className="p-3 pt-0">
+                                    <button
+                                      type="button"
+                                      disabled={!isAvailable}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isAvailable) setSelectedTable(tbl);
+                                      }}
+                                      className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                        isSelected
+                                          ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                                          : isAvailable
+                                          ? "text-white"
+                                          : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                      }`}
+                                      style={
+                                        !isSelected && isAvailable
+                                          ? { backgroundColor: c.primary, color: c.primaryText }
+                                          : undefined
+                                      }
+                                    >
+                                      {isSelected ? (
+                                        <>
+                                          <Check className="w-3.5 h-3.5" />
+                                          <span>Seçildi</span>
+                                        </>
+                                      ) : isAvailable ? (
+                                        <span>Masayı Seç</span>
+                                      ) : (
+                                        <span>Bu Saatte Dolu</span>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <div
+                    className={`p-5 text-center text-xs border ${r.card}`}
+                    style={{ backgroundColor: c.surfaceHover, borderColor: c.border, color: c.mutedText }}
+                  >
+                    Müsait masaları ve yerleşim planını görüntülemek için lütfen yukarıdan bir randevu saati seçiniz.
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mt-8 flex justify-between items-center">
               <button
                 onClick={handlePrevStep}
@@ -693,6 +1185,30 @@ export function BookingWizard({
                     {selectedService?.price === 0 ? "Ücretsiz" : formatCurrency(selectedService?.price || 0)}
                   </span>
                 </div>
+                {isRestaurant && selectedTable && (
+                  <div
+                    className="col-span-2 sm:col-span-4 pt-2.5 mt-1 border-t flex flex-wrap items-center justify-between gap-2"
+                    style={{ borderColor: c.borderLight || c.border }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold" style={{ color: c.mutedText }}>Seçilen Masa:</span>
+                      <span className="font-bold text-emerald-400">
+                        {selectedTable.name} ({selectedTable.area?.name || "Restoran"})
+                      </span>
+                      {selectedTable.description && (
+                        <span className="text-[11px]" style={{ color: c.mutedText }}>
+                          • {selectedTable.description}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className="px-2 py-0.5 rounded-md font-bold text-xs"
+                      style={{ backgroundColor: c.surface, color: c.primary }}
+                    >
+                      {guestCount} Kişi
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -937,6 +1453,14 @@ export function BookingWizard({
                   {customerName} ({customerPhone})
                 </span>
               </div>
+              {selectedTable && (
+                <div className="flex justify-between pt-1 border-t" style={{ borderColor: c.border }}>
+                  <span style={{ color: c.mutedText }}>Masanız:</span>
+                  <span className="font-bold text-emerald-400">
+                    {selectedTable.name} ({selectedTable.area?.name || "Restoran"} - {guestCount} Kişi)
+                  </span>
+                </div>
+              )}
             </div>
 
             {bookingResult.whatsappUrl && (

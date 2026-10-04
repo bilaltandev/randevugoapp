@@ -23,6 +23,8 @@ import {
   Sparkles,
   ShieldCheck,
   Camera,
+  UtensilsCrossed,
+  X,
 } from "lucide-react";
 import { SectorBadge } from "./SectorBadge";
 
@@ -36,20 +38,29 @@ interface DashboardSidebarProps {
   };
   subscriptionStatus?: string;
   userRole?: string;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export function DashboardSidebar({
   business,
   subscriptionStatus = "trial",
   userRole = "BUSINESS_OWNER",
+  mobileOpen = false,
+  onCloseMobile,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  const isRestaurant = business.sector === "RESTORAN" || business.sector === "RESTAURANT";
 
   const navigation = [
     { name: "Ana Sayfa", href: "/dashboard", icon: LayoutDashboard },
     { name: "Takvim", href: "/dashboard/calendar", icon: CalendarDays },
     { name: "Rezervasyonlar", href: "/dashboard/appointments", icon: CalendarCheck2 },
+    ...(isRestaurant
+      ? [{ name: "Masa Planı", href: "/dashboard/tables", icon: UtensilsCrossed }]
+      : []),
     { name: "Hizmetler", href: "/dashboard/services", icon: Scissors },
     { name: "Çalışanlar", href: "/dashboard/employees", icon: Users2 },
     { name: "Müşteriler", href: "/dashboard/customers", icon: Contact2 },
@@ -72,13 +83,19 @@ export function DashboardSidebar({
 
   return (
     <aside
-      className={`relative flex flex-col border-r border-[#151B2E] bg-[#080D1B] backdrop-blur-xl transition-all duration-300 z-30 shrink-0 text-slate-100 ${
-        collapsed ? "w-20" : "w-64"
-      }`}
+      className={`fixed md:relative inset-y-0 left-0 z-50 md:z-30 flex flex-col border-r border-[#151B2E] bg-[#080D1B] backdrop-blur-xl transition-all duration-300 shrink-0 text-slate-100 ${
+        mobileOpen
+          ? "translate-x-0 w-72 max-w-[85vw] shadow-2xl"
+          : "-translate-x-full md:translate-x-0"
+      } ${collapsed ? "md:w-20" : "md:w-64"}`}
     >
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-[#151B2E]">
-        <Link href="/dashboard" className="flex items-center gap-2.5 overflow-hidden">
+        <Link
+          href="/dashboard"
+          onClick={() => onCloseMobile?.()}
+          className="flex items-center gap-2.5 overflow-hidden"
+        >
           <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-black shrink-0">
             <Image
               src="/brand/mascot-logo.png"
@@ -89,7 +106,7 @@ export function DashboardSidebar({
               unoptimized
             />
           </div>
-          {!collapsed && (
+          {(!collapsed || mobileOpen) && (
             <div className="flex flex-col min-w-0">
               <Image
                 src="/brand/randevugo-text-logo.png"
@@ -105,6 +122,8 @@ export function DashboardSidebar({
             </div>
           )}
         </Link>
+
+        {/* Desktop Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg border border-[#1E2742] bg-[#0E1528] text-slate-400 hover:text-white transition-colors"
@@ -112,6 +131,17 @@ export function DashboardSidebar({
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
+
+        {/* Mobile Close Button */}
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E2742] bg-[#0E1528] text-slate-400 hover:text-white transition-colors"
+            aria-label="Menüyü Kapat"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Business Info Card */}
@@ -158,13 +188,17 @@ export function DashboardSidebar({
       {/* Navigation Links */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
         {navigation.map((item) => {
-          const isActive = pathname === item.href || (item.name === "Sayfa & Tema Düzenleyici" && pathname.startsWith("/dashboard/page-builder"));
+          const isActive =
+            pathname === item.href ||
+            (item.name === "Sayfa Düzenleyici" && pathname.startsWith("/dashboard/page-builder")) ||
+            (item.name === "Masa Planı" && pathname.startsWith("/dashboard/tables"));
           const Icon = item.icon;
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium transition-all ${
+              onClick={() => onCloseMobile?.()}
+              className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-xs sm:text-sm font-medium transition-all ${
                 isActive
                   ? "bg-[#6246EA] text-white shadow-md shadow-[#6246EA]/30 font-semibold"
                   : "text-[#94A3B8] hover:bg-[#0E1528] hover:text-white"
@@ -176,8 +210,8 @@ export function DashboardSidebar({
                   isActive ? "text-white" : "text-[#94A3B8] group-hover:text-white"
                 }`}
               />
-              {!collapsed && <span className="truncate">{item.name}</span>}
-              {!collapsed && item.name === "Abonelik" && subscriptionStatus === "trial" && (
+              {(!collapsed || mobileOpen) && <span className="truncate">{item.name}</span>}
+              {(!collapsed || mobileOpen) && item.name === "Abonelik" && subscriptionStatus === "trial" && (
                 <span className="ml-auto rounded-full bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
                   Deneme
                 </span>
@@ -186,14 +220,15 @@ export function DashboardSidebar({
           );
         })}
 
-        {userRole === "ADMIN" && (
+        {(userRole === "ADMIN" || userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN") && (
           <Link
             href="/admin"
-            className="group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-medium text-amber-400 hover:bg-amber-500/10 transition-colors border border-amber-500/20"
+            onClick={() => onCloseMobile?.()}
+            className="group flex items-center gap-3 rounded-xl px-3.5 py-3 text-xs sm:text-sm font-medium text-amber-400 hover:bg-amber-500/10 transition-colors border border-amber-500/20"
             title="Süper Yönetici Paneli"
           >
             <ShieldCheck className="w-4.5 h-4.5 shrink-0 text-amber-400" />
-            {!collapsed && <span className="truncate">Sistem Admin</span>}
+            {(!collapsed || mobileOpen) && <span className="truncate">Sistem Admin</span>}
           </Link>
         )}
       </nav>

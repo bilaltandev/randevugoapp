@@ -64,3 +64,24 @@ export const SECTORS = [
 ] as const;
 
 export type SectorType = (typeof SECTORS)[number]["id"];
+
+/**
+ * Determines sector default for staff selection in bookings.
+ * Berber, Kuaför, Güzellik, Klinik, Psikolog, Avukat -> true (ON)
+ * Restoran, Kafe, Oto Servis -> false (OFF)
+ */
+export function getDefaultStaffSelection(sector?: string | null): boolean {
+  if (!sector) return true;
+  const s = sector.toUpperCase().trim();
+  if (
+    s === "RESTORAN" ||
+    s === "RESTAURANT" ||
+    s === "OTO_SERVIS" ||
+    s === "CAFE" ||
+    s === "KAFE"
+  ) {
+    return false;
+  }
+  return true;
+}
+

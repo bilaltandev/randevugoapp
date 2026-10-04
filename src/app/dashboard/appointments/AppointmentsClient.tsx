@@ -13,6 +13,8 @@ import {
   Plus,
   Scissors,
   Star,
+  UtensilsCrossed,
+  Phone,
 } from "lucide-react";
 import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
 import { Modal } from "@/components/Modal";
@@ -127,9 +129,9 @@ export default function AppointmentsClient({
       </div>
 
       {/* Tabs and Search Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur-xl">
-        {/* Status Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-3.5 sm:p-4 backdrop-blur-xl">
+        {/* Status Tabs (Smooth Horizontal Scroll on Mobile) */}
+        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-none flex-nowrap">
           {[
             { id: "ALL", label: "Tümü", count: appointments.length },
             { id: "PENDING", label: "Bekleyen", count: appointments.filter((a) => a.status === "PENDING").length },
@@ -140,7 +142,7 @@ export default function AppointmentsClient({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all shrink-0 ${
                 activeTab === tab.id
                   ? "bg-indigo-600 text-white shadow-sm"
                   : "bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-slate-800"
@@ -165,7 +167,7 @@ export default function AppointmentsClient({
         </div>
       </div>
 
-      {/* Appointments List / Table */}
+      {/* Appointments List (Cards on Mobile, Table on Desktop) */}
       <div className="rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-xl">
         {filtered.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">
@@ -173,120 +175,260 @@ export default function AppointmentsClient({
             Kriterlere uygun rezervasyon kaydı bulunamadı.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-800 bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
-                <tr>
-                  <th className="py-3.5 px-4">Tarih & Saat</th>
-                  <th className="py-3.5 px-4">Müşteri</th>
-                  <th className="py-3.5 px-4">Hizmet & Tutar</th>
-                  <th className="py-3.5 px-4">Uzman</th>
-                  <th className="py-3.5 px-4">Durum</th>
-                  <th className="py-3.5 px-4 text-right">İşlemler</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/80">
-                {filtered.map((appt) => (
-                  <tr
-                    key={appt.id}
-                    className="hover:bg-slate-850/50 transition-colors"
-                  >
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="font-semibold text-slate-100">{appt.date}</div>
-                      <div className="text-indigo-400 font-medium">{appt.startTime} - {appt.endTime}</div>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-100 flex items-center gap-1.5">
+          <>
+            {/* ── MOBILE CARD VIEW (< md) ── */}
+            <div className="block md:hidden divide-y divide-slate-800/80 p-2 sm:p-3 space-y-2.5">
+              {filtered.map((appt) => (
+                <div
+                  key={appt.id}
+                  className="rounded-2xl border border-slate-800/90 bg-slate-950/50 p-4 space-y-3 transition-colors"
+                >
+                  {/* Card Header: Customer & Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-bold text-slate-100 text-sm">
                         {appt.customerName}
+                      </h4>
+                      <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                        <Phone className="w-3 h-3 text-slate-500" />
+                        <span>{formatPhoneNumber(appt.customerPhone)}</span>
                       </div>
-                      <div className="text-slate-400">{formatPhoneNumber(appt.customerPhone)}</div>
-                      {appt.notes && (
-                        <div className="text-[11px] text-slate-500 truncate max-w-[200px] mt-0.5">
-                          "{appt.notes}"
-                        </div>
-                      )}
-                    </td>
+                    </div>
 
-                    <td className="py-3.5 px-4">
-                      <div className="font-medium text-slate-200">{appt.service?.name}</div>
-                      <div className="font-semibold text-emerald-400">{formatCurrency(appt.price)}</div>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-slate-300">
-                      {appt.employee?.name}
-                    </td>
-
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <div>
                       {appt.status === "CONFIRMED" && (
-                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-medium">
+                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
                           Onaylandı
                         </span>
                       )}
                       {appt.status === "PENDING" && (
-                        <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">
+                        <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
                           Bekliyor
                         </span>
                       )}
                       {appt.status === "COMPLETED" && (
-                        <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full font-medium">
+                        <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
                           Tamamlandı
                         </span>
                       )}
                       {appt.status === "CANCELLED" && (
-                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full font-medium">
+                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
                           İptal Edildi
                         </span>
                       )}
-                    </td>
+                    </div>
+                  </div>
 
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* WhatsApp */}
-                        <a
-                          href={`https://wa.me/${appt.customerPhone.replace(/\D/g, "")}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-colors"
-                          title="WhatsApp'tan Yaz"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </a>
+                  {/* Date, Time & Service Details */}
+                  <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/60 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Tarih & Saat:</span>
+                      <span className="font-semibold text-slate-200">
+                        {appt.date} • {appt.startTime}
+                      </span>
+                    </div>
 
-                        {appt.status === "PENDING" && (
-                          <button
-                            onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}
-                            className="rounded-lg bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-500"
-                          >
-                            Onayla
-                          </button>
-                        )}
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Tutar:</span>
+                      <span className="font-bold text-emerald-400">
+                        {formatCurrency(appt.price)}
+                      </span>
+                    </div>
 
-                        {appt.status === "CONFIRMED" && (
-                          <button
-                            onClick={() => handleUpdateStatus(appt.id, "COMPLETED")}
-                            className="rounded-lg bg-indigo-600 px-2.5 py-1 font-semibold text-white hover:bg-indigo-500"
-                          >
-                            Tamamla
-                          </button>
-                        )}
+                    <div className="col-span-2 pt-1 border-t border-slate-800/50 flex flex-wrap items-center justify-between gap-1">
+                      <span className="text-slate-300 font-medium">
+                        {appt.service?.name}
+                      </span>
+                      {appt.employee?.name && (
+                        <span className="text-[11px] text-slate-400">
+                          Uzman: {appt.employee.name}
+                        </span>
+                      )}
+                    </div>
 
-                        {appt.status !== "CANCELLED" && (
-                          <button
-                            onClick={() => handleUpdateStatus(appt.id, "CANCELLED")}
-                            className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 font-medium text-rose-400 hover:bg-rose-500/20"
-                            title="İptal Et"
-                          >
-                            İptal
-                          </button>
-                        )}
+                    {appt.table && (
+                      <div className="col-span-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-semibold">
+                          <UtensilsCrossed className="w-3 h-3" />
+                          <span>{appt.table.name} {appt.table.area?.name ? `(${appt.table.area.name})` : ""}</span>
+                        </span>
                       </div>
-                    </td>
+                    )}
+                  </div>
+
+                  {appt.notes && (
+                    <p className="text-[11px] text-slate-400 bg-slate-900/30 p-2 rounded-lg italic">
+                      "{appt.notes}"
+                    </p>
+                  )}
+
+                  {/* Mobile Actions Toolbar */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <a
+                      href={`https://wa.me/${appt.customerPhone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900 text-xs font-semibold text-slate-300 hover:text-emerald-400 transition-colors"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>WhatsApp</span>
+                    </a>
+
+                    <div className="flex items-center gap-1.5">
+                      {appt.status === "PENDING" && (
+                        <button
+                          onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}
+                          className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 shadow-sm"
+                        >
+                          Onayla
+                        </button>
+                      )}
+
+                      {appt.status === "CONFIRMED" && (
+                        <button
+                          onClick={() => handleUpdateStatus(appt.id, "COMPLETED")}
+                          className="rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 shadow-sm"
+                        >
+                          Tamamla
+                        </button>
+                      )}
+
+                      {appt.status !== "CANCELLED" && (
+                        <button
+                          onClick={() => handleUpdateStatus(appt.id, "CANCELLED")}
+                          className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/20"
+                        >
+                          İptal
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── DESKTOP TABLE VIEW (md:table) ── */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-slate-800 bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
+                  <tr>
+                    <th className="py-3.5 px-4">Tarih & Saat</th>
+                    <th className="py-3.5 px-4">Müşteri</th>
+                    <th className="py-3.5 px-4">Hizmet & Tutar</th>
+                    <th className="py-3.5 px-4">Uzman</th>
+                    <th className="py-3.5 px-4">Durum</th>
+                    <th className="py-3.5 px-4 text-right">İşlemler</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80">
+                  {filtered.map((appt) => (
+                    <tr
+                      key={appt.id}
+                      className="hover:bg-slate-850/50 transition-colors"
+                    >
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="font-semibold text-slate-100">{appt.date}</div>
+                        <div className="text-indigo-400 font-medium">{appt.startTime} - {appt.endTime}</div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="font-semibold text-slate-100 flex items-center gap-1.5">
+                          {appt.customerName}
+                        </div>
+                        <div className="text-slate-400">{formatPhoneNumber(appt.customerPhone)}</div>
+                        {appt.notes && (
+                          <div className="text-[11px] text-slate-500 truncate max-w-[200px] mt-0.5">
+                            "{appt.notes}"
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="font-medium text-slate-200">{appt.service?.name}</div>
+                        {appt.table && (
+                          <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-semibold">
+                            <UtensilsCrossed className="w-3 h-3" />
+                            <span>{appt.table.name} {appt.table.area?.name ? `(${appt.table.area.name})` : ""}</span>
+                          </div>
+                        )}
+                        <div className="font-semibold text-emerald-400">{formatCurrency(appt.price)}</div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-slate-300">
+                        {appt.employee?.name}
+                      </td>
+
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {appt.status === "CONFIRMED" && (
+                          <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-medium">
+                            Onaylandı
+                          </span>
+                        )}
+                        {appt.status === "PENDING" && (
+                          <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">
+                            Bekliyor
+                          </span>
+                        )}
+                        {appt.status === "COMPLETED" && (
+                          <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full font-medium">
+                            Tamamlandı
+                          </span>
+                        )}
+                        {appt.status === "CANCELLED" && (
+                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full font-medium">
+                            İptal Edildi
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* WhatsApp */}
+                          <a
+                            href={`https://wa.me/${appt.customerPhone.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-colors"
+                            title="WhatsApp'tan Yaz"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                          </a>
+
+                          {appt.status === "PENDING" && (
+                            <button
+                              onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}
+                              className="rounded-lg bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-500"
+                            >
+                              Onayla
+                            </button>
+                          )}
+
+                          {appt.status === "CONFIRMED" && (
+                            <button
+                              onClick={() => handleUpdateStatus(appt.id, "COMPLETED")}
+                              className="rounded-lg bg-indigo-600 px-2.5 py-1 font-semibold text-white hover:bg-indigo-500"
+                            >
+                              Tamamla
+                            </button>
+                          )}
+
+                          {appt.status !== "CANCELLED" && (
+                            <button
+                              onClick={() => handleUpdateStatus(appt.id, "CANCELLED")}
+                              className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 font-medium text-rose-400 hover:bg-rose-500/20"
+                              title="İptal Et"
+                            >
+                              İptal
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

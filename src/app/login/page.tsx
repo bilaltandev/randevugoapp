@@ -32,12 +32,12 @@ export default function LoginPage() {
       if (!res.ok) {
         setError(data.error || "Giriş yapılamadı.");
       } else {
-        if (data.user?.role === "ADMIN") {
-          router.push("/admin");
+        const role = data.user?.role?.toUpperCase();
+        if (role === "ADMIN" || role === "SUPER_ADMIN" || role === "SUPERADMIN") {
+          window.location.href = "/admin";
         } else {
-          router.push("/dashboard");
+          window.location.href = "/dashboard";
         }
-        router.refresh();
       }
     } catch (err) {
       setError("Bağlantı hatası oluştu.");

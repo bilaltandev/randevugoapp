@@ -42,6 +42,11 @@ export async function GET(req: Request) {
         employee: true,
         customer: true,
         review: true,
+        table: {
+          include: {
+            area: true,
+          },
+        },
       },
       orderBy: [
         { date: "desc" },
@@ -71,6 +76,7 @@ export async function POST(req: Request) {
       customerEmail,
       notes,
       sectorData,
+      tableId,
       isBlockedSlot = false,
     } = body;
 
@@ -163,6 +169,45 @@ export async function POST(req: Request) {
       });
     }
 
+    // Handle table validation for restaurant
+    let validatedTableId: string | null = null;
+    let selectedTable: any = null;
+    if (tableId) {
+      selectedTable = await prisma.restaurantTable.findFirst({
+        where: { id: tableId, businessId },
+        include: { area: true },
+      });
+      if (!selectedTable) {
+        return NextResponse.json({ error: "Seçilen masa bulunamadı." }, { status: 404 });
+      }
+
+      // Check for overlapping active appointments on this table
+      const existingTableAppointments = await prisma.appointment.findMany({
+        where: {
+          businessId,
+          tableId,
+          date,
+          status: { in: ["PENDING", "CONFIRMED"] },
+        },
+      });
+
+      for (const app of existingTableAppointments) {
+        if (startTime < app.endTime && endTime > app.startTime) {
+          return NextResponse.json(
+            { error: `Seçtiğiniz ${selectedTable.name} bu saat aralığında maalesef doludur. Lütfen başka bir masa veya saat seçiniz.` },
+            { status: 400 }
+          );
+        }
+      }
+
+      validatedTableId = selectedTable.id;
+    }
+
+    const mergedSectorData = {
+      ...(typeof sectorData === "object" && sectorData !== null ? sectorData : {}),
+      ...(selectedTable ? { tableId: selectedTable.id, tableName: selectedTable.name, areaName: selectedTable.area?.name } : {}),
+    };
+
     // Create Appointment
     const appointment = await prisma.appointment.create({
       data: {
@@ -170,6 +215,7 @@ export async function POST(req: Request) {
         customerId: customer.id,
         employeeId: assignedEmployeeId,
         serviceId,
+        tableId: validatedTableId,
         date,
         startTime,
         endTime,
@@ -179,21 +225,27 @@ export async function POST(req: Request) {
         customerEmail: customerEmail || null,
         notes: notes || null,
         price: service.price,
-        sectorData: sectorData ? JSON.stringify(sectorData) : null,
+        sectorData: Object.keys(mergedSectorData).length > 0 ? JSON.stringify(mergedSectorData) : null,
         isBlockedSlot,
       },
       include: {
         service: true,
         employee: true,
+        table: {
+          include: {
+            area: true,
+          },
+        },
       },
     });
 
     // Create notification for business
+    const tableInfo = selectedTable ? ` (${selectedTable.name})` : "";
     await prisma.notification.create({
       data: {
         businessId,
         title: isBlockedSlot ? "Saat Kapatıldı" : "Yeni Rezervasyon!",
-        message: `${customerName} - ${service.name} (${date} ${startTime})`,
+        message: `${customerName} - ${service.name}${tableInfo} (${date} ${startTime})`,
         type: "APPOINTMENT",
         link: "/dashboard/appointments",
       },

@@ -34,9 +34,11 @@ model Business {
   city            String         @default("İstanbul")
   whatsappNumber  String?
   isVerified      Boolean        @default(true)
+  isActive        Boolean        @default(true)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-  themeId         String?        @default("premium-dark")
+  themeId              String?        @default("premium-dark")
+  enableStaffSelection Boolean        @default(true)
 
   services        Service[]
   employees       Employee[]
@@ -49,6 +51,8 @@ model Business {
   notifications   Notification[]
   gallery         Gallery?
   galleryItems    GalleryItem[]
+  restaurantAreas RestaurantArea[]
+  restaurantTables RestaurantTable[]
 }
 
 model Category {
@@ -136,6 +140,8 @@ model Appointment {
   employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   serviceId     String
   service       Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  tableId       String?
+  table         RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
   
   date          String    // YYYY-MM-DD
   startTime     String    // HH:mm
@@ -304,4 +310,59 @@ model FeatureFlag {
   updatedAt           DateTime @updatedAt
 }
 
+model RestaurantArea {
+  id          String            @id @default(uuid())
+  businessId  String
+  business    Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String            // e.g. "İç Mekan", "Teras", "Bahçe", "VIP Salon"
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
+  tables      RestaurantTable[]
+
+  @@index([businessId])
+}
+
+model RestaurantTable {
+  id          String          @id @default(uuid())
+  businessId  String
+  business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  areaId      String?
+  area        RestaurantArea? @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  name        String          // e.g. "Masa 1", "Masa 2"
+  capacity    Int             @default(2)
+  shape       String          @default("ROUND") // "ROUND" | "SQUARE" | "RECTANGLE"
+  positionX   Float           @default(100)
+  positionY   Float           @default(100)
+  width       Float           @default(90)
+  height      Float           @default(90)
+  imageUrl    String?
+  description String?         // e.g. "Deniz Manzaralı", "Bahçe", "Teras", "Salon", "Pencere Kenarı"
+  isActive    Boolean         @default(true)
+  status      String          @default("AVAILABLE") // "AVAILABLE" | "RESERVED" | "OCCUPIED" | "OUT_OF_SERVICE"
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  appointments Appointment[]
+
+  @@index([businessId])
+  @@index([areaId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  adminEmail String
+  adminName  String?
+  action     String   // "STATUS_CHANGE" | "TRIAL_EXTEND" | "SUBSCRIPTION_CHANGE" | "FEATURE_TOGGLE" | "SECTOR_CHANGE" | "PRICE_CHANGE"
+  target     String   // Business name or system target
+  targetId   String?  // Business ID
+  oldValue   String?
+  newValue   String?
+  details    String?
+  createdAt  DateTime @default(now())
+
+  @@index([action])
+  @@index([targetId])
+  @@index([createdAt])
+}

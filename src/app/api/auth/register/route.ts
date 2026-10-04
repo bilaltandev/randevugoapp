@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword, setSessionCookie } from "@/lib/auth";
+import { getDefaultStaffSelection } from "@/lib/utils";
 
 function slugify(text: string): string {
   const trMap: Record<string, string> = {
@@ -112,6 +113,7 @@ export async function POST(req: Request) {
             name: businessName,
             slug,
             sector,
+            enableStaffSelection: getDefaultStaffSelection(sector),
             description: `${businessName} olarak kaliteli hizmet anlayışımızla yanınızdayız. Randevunuzu hemen online oluşturabilirsiniz.`,
             phone: phone || "0850 000 00 00",
             address: address || "Merkez Mah. No: 1",

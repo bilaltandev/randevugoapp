@@ -44,6 +44,9 @@ export default async function BusinessPublicPage({
       employees: {
         where: { isActive: true },
         orderBy: { createdAt: "asc" },
+        include: {
+          employeeServices: true,
+        },
       },
       reviews: {
         where: { isApproved: true },
