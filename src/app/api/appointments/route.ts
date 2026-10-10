@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getWhatsAppBookingUrl } from "@/lib/utils";
+import { APPOINTMENT_STATUS } from "@/lib/appointmentStatus";
+
+const APPOINTMENT_STATUSES = Object.keys(APPOINTMENT_STATUS);
 
 // GET: List appointments
 export async function GET(req: Request) {
@@ -87,8 +90,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // Only a literal `true` asks for a blocked slot; the request is then authorized by the owner session,
+    // never by the flag itself. Anything else is handled as a regular public booking.
+    const blocking = isBlockedSlot === true;
+
     // Closing a time slot is an owner action; the public booking form must not be able to do it.
-    if (isBlockedSlot) {
+    if (blocking) {
       const owner = await getCurrentUser();
       if (!owner || owner.business?.id !== businessId) {
         return NextResponse.json({ error: "Saat kapatmak için işletme hesabıyla giriş yapmalısınız." }, { status: 403 });
@@ -115,8 +122,12 @@ export async function POST(req: Request) {
       }
     }
 
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    // Every referenced record must belong to the business being booked. Customers may only book
+    // active services and staff; an owner closing a slot may reference inactive ones.
+    const activeOnly = blocking ? {} : { isActive: true };
+
+    const service = await prisma.service.findFirst({
+      where: { id: serviceId, businessId, ...activeOnly },
     });
 
     if (!service) {
@@ -142,14 +153,18 @@ export async function POST(req: Request) {
       assignedEmployeeId = employees[0].id;
     }
 
-    const employee = await prisma.employee.findUnique({
-      where: { id: assignedEmployeeId },
+    const employee = await prisma.employee.findFirst({
+      where: { id: assignedEmployeeId, businessId, ...activeOnly },
     });
+
+    if (!employee) {
+      return NextResponse.json({ error: "Seçilen çalışan bulunamadı." }, { status: 400 });
+    }
 
     // Upsert Customer CRM record. A blocked slot ("Saat kapat") is not a booking:
     // it gets no customer record and adds nothing to anyone's spend.
     let customer: { id: string } | null = null;
-    if (!isBlockedSlot) {
+    if (!blocking) {
       const existing = await prisma.customer.findFirst({
         where: {
           businessId,
@@ -231,14 +246,14 @@ export async function POST(req: Request) {
         date,
         startTime,
         endTime,
-        status: isBlockedSlot ? "CONFIRMED" : "PENDING",
+        status: blocking ? "CONFIRMED" : "PENDING",
         customerName,
         customerPhone,
         customerEmail: customerEmail || null,
         notes: notes || null,
-        price: isBlockedSlot ? 0 : service.price,
+        price: blocking ? 0 : service.price,
         sectorData: Object.keys(mergedSectorData).length > 0 ? JSON.stringify(mergedSectorData) : null,
-        isBlockedSlot,
+        isBlockedSlot: blocking,
       },
       include: {
         service: true,
@@ -256,7 +271,7 @@ export async function POST(req: Request) {
     await prisma.notification.create({
       data: {
         businessId,
-        title: isBlockedSlot ? "Saat Kapatıldı" : "Yeni Rezervasyon!",
+        title: blocking ? "Saat Kapatıldı" : "Yeni Rezervasyon!",
         message: `${customerName} - ${service.name}${tableInfo} (${date} ${startTime})`,
         type: "APPOINTMENT",
         link: "/dashboard/appointments",
@@ -299,6 +314,12 @@ export async function PATCH(req: Request) {
 
     if (!id) {
       return NextResponse.json({ error: "Rezervasyon ID'si gereklidir." }, { status: 400 });
+    }
+
+    // Any of the four statuses may follow any other (the calendar can e.g. re-confirm a cancelled one),
+    // so only the value itself is validated.
+    if (status && !APPOINTMENT_STATUSES.includes(status)) {
+      return NextResponse.json({ error: "Geçersiz rezervasyon durumu." }, { status: 400 });
     }
 
     const updated = await prisma.appointment.update({

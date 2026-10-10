@@ -3,8 +3,19 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import prisma from "./prisma";
 
-const JWT_SECRET = process.env.JWT_SECRET || "randevugo_saas_production_secret_key_2026_xyz";
 export const SESSION_COOKIE_NAME = "randevugo_session";
+
+const JWT_ALGORITHM = "HS256";
+const MIN_JWT_SECRET_LENGTH = 32;
+
+// Read lazily so `next build` doesn't need the secret; fail loudly (never with a fallback) at first use.
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < MIN_JWT_SECRET_LENGTH) {
+    throw new Error(`JWT_SECRET is missing or shorter than ${MIN_JWT_SECRET_LENGTH} characters.`);
+  }
+  return secret;
+}
 
 export interface SessionPayload {
   userId: string;
@@ -24,12 +35,14 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function signToken(payload: SessionPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
+  return jwt.sign(payload, getJwtSecret(), { algorithm: JWT_ALGORITHM, expiresIn: "30d" });
 }
 
 export function verifyToken(token: string): SessionPayload | null {
+  // Outside the try: a misconfigured secret must surface as an error, not as a silent logout.
+  const secret = getJwtSecret();
   try {
-    return jwt.verify(token, JWT_SECRET) as SessionPayload;
+    return jwt.verify(token, secret, { algorithms: [JWT_ALGORITHM] }) as SessionPayload;
   } catch {
     return null;
   }
@@ -54,7 +67,8 @@ export async function getCurrentUser() {
     },
   });
 
-  if (!user) return null;
+  // A deactivated account loses every existing session immediately, not when its token expires.
+  if (!user || !user.isActive) return null;
 
   const activeBusiness = user.businesses[0] || null;
 

@@ -39,6 +39,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Checked after the password so this message never reveals that an account exists.
+    if (!user.isActive) {
+      return NextResponse.json(
+        { error: "Hesabınız pasif durumda. Lütfen yöneticinizle iletişime geçin." },
+        { status: 403 }
+      );
+    }
+
     const activeBusiness = user.businesses[0] || null;
 
     await setSessionCookie({
