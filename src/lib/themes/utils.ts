@@ -76,6 +76,21 @@ export function checkContrastSafety(
   };
 }
 
+/** Colors the old page builder saved automatically on any edit — not a deliberate choice. */
+const LEGACY_PRESET_ACCENTS: Record<string, string> = { purple: "#6246ea", green: "#00c98d" };
+
+/**
+ * The owner's deliberate accent color, or null when the theme's own accent should be used.
+ * Legacy preset values (auto-saved purple/green) are ignored so theme changes take effect.
+ */
+export function getCustomAccent(overrides?: ThemeOverrides | null): string | null {
+  const color = overrides?.primaryColor;
+  if (!color) return null;
+  const preset = overrides?.ctaColor ? LEGACY_PRESET_ACCENTS[overrides.ctaColor] : undefined;
+  if (preset && preset === color.toLowerCase()) return null;
+  return color;
+}
+
 /**
  * Merge theme configuration with business owner overrides
  */

@@ -2,13 +2,11 @@
 
 import React, { useState } from "react";
 import {
-  Sparkles,
   Palette,
   CheckCircle2,
   RotateCcw,
   Eye,
   Sliders,
-  Layers,
   ArrowUp,
   ArrowDown,
   Lock,
@@ -16,11 +14,19 @@ import {
   AlertCircle,
   Check,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Segmented";
+import { inputClasses } from "@/components/ui/Field";
+import { choiceClasses } from "@/components/ui/choice";
 import { ThemeConfig, ThemeOverrides, SectorType } from "@/lib/themes/types";
 import { THEME_REGISTRY, getThemeConfig, getSectorRecommendations } from "@/lib/themes/registry";
-import { checkContrastSafety, mergeThemeWithOverrides } from "@/lib/themes/utils";
+import { checkContrastSafety, getCustomAccent } from "@/lib/themes/utils";
 import { ThemeCard } from "./ThemeCard";
 import { ThemeLivePreviewModal } from "./ThemeLivePreviewModal";
+import { LayoutPicker } from "./LayoutPicker";
+import { getLayoutId, LAYOUTS, type LayoutId } from "@/lib/themes/layouts";
 
 interface ThemePickerTabProps {
   business: any;
@@ -86,13 +92,26 @@ export function ThemePickerTab({
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [previewTheme, setPreviewTheme] = useState<ThemeConfig | null>(null);
   const [isApplyingId, setIsApplyingId] = useState<string | null>(null);
-  const [customPrimaryColor, setCustomPrimaryColor] = useState(
-    themeOverrides?.primaryColor || ""
-  );
+  // Read from the saved overrides so it resets when a new theme is applied.
+  const customPrimaryColor = getCustomAccent(themeOverrides) || "";
   const [isSavingCustomizer, setIsSavingCustomizer] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   const currentTheme = getThemeConfig(activeThemeId);
+  const activeLayout = getLayoutId(themeOverrides?.layoutId);
+  const [savingLayout, setSavingLayout] = useState<LayoutId | null>(null);
+
+  const handleSelectLayout = async (layoutId: LayoutId) => {
+    if (layoutId === activeLayout) return;
+    setSavingLayout(layoutId);
+    try {
+      await onUpdateOverrides({ ...(themeOverrides || {}), layoutId });
+      setSavedMessage(`"${LAYOUTS.find((l) => l.id === layoutId)?.name}" düzeni uygulandı.`);
+      setTimeout(() => setSavedMessage(null), 3000);
+    } finally {
+      setSavingLayout(null);
+    }
+  };
   const recommendedIds = getSectorRecommendations(business.sector);
 
   // Filter themes
@@ -128,10 +147,10 @@ export function ThemePickerTab({
   const handleSaveAccent = async (colorHex: string) => {
     setIsSavingCustomizer(true);
     try {
-      setCustomPrimaryColor(colorHex);
       await onUpdateOverrides({
         ...(themeOverrides || {}),
         primaryColor: colorHex,
+        ctaColor: "custom",
       });
       setSavedMessage("Tema vurgu rengi güncellendi!");
       setTimeout(() => setSavedMessage(null), 3000);
@@ -163,71 +182,64 @@ export function ThemePickerTab({
     await onUpdateSections(newOrder, hiddenSections);
   };
 
+  const sectorLabel = FILTER_TAGS.find((t) => t.id === business.sector)?.label ?? business.sector;
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Sub-header navigation (Catalog vs Customizer) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-3xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-lg font-bold text-slate-100">Hazır Tema Sistemi</h2>
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
-              Aktif: {currentTheme.name}
-            </span>
-          </div>
-          <p className="text-xs text-slate-400">
-            Sektörünüze özel hazırlanmış profesyonel temalardan birini seçin. Mevcut randevu ve hizmet verileriniz korunur.
+          <p className="text-sm text-ink-2">
+            Düzen: <span className="font-medium text-ink">{LAYOUTS.find((l) => l.id === activeLayout)?.name}</span>
+            <span className="text-ink-3">, </span>
+            renk paleti: <span className="font-medium text-ink">{currentTheme.name}</span>
+          </p>
+          <p className="text-sm text-ink-3">
+            Tema değiştirmek randevu, hizmet ve müşteri verilerinizi etkilemez.
           </p>
         </div>
-
-        <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 self-start sm:self-auto">
-          <button
-            onClick={() => setSubTab("catalog")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-              subTab === "catalog"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span>Hazır Temalar ({allThemes.length})</span>
-          </button>
-
-          <button
-            onClick={() => setSubTab("customize")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-              subTab === "customize"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Özelleştir & Sırala</span>
-          </button>
-        </div>
+        <Segmented
+          aria-label="Tema görünümü"
+          value={subTab}
+          onChange={setSubTab}
+          options={[
+            { value: "catalog", label: "Düzen ve renkler", icon: Palette },
+            { value: "customize", label: "Özelleştir ve sırala", icon: Sliders },
+          ]}
+        />
       </div>
 
       {savedMessage && (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-300 flex items-center gap-2 animate-fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{savedMessage}</span>
+        <div
+          role="status"
+          className="flex items-center gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink"
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {savedMessage}
         </div>
       )}
 
       {/* ────────────────── CATALOG VIEW ────────────────── */}
       {subTab === "catalog" && (
-        <div className="space-y-10">
-          {/* Size Önerilen Temalar Banner */}
-          {recommendedThemes.length > 0 && activeFilter === "ALL" && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
-                  Size Önerilen Temalar ({business.sector} Sektörü)
-                </h3>
-              </div>
+        <div className="space-y-8">
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Sayfa düzeni</h3>
+              <p className="text-sm text-ink-3">
+                Sayfanızın yapısı. Renk paletinden bağımsızdır; düzeni değiştirince renkleriniz korunur.
+              </p>
+            </div>
+            <LayoutPicker
+              activeLayout={activeLayout}
+              accent={customPrimaryColor || currentTheme.colors.primary}
+              savingId={savingLayout}
+              onSelect={handleSelectLayout}
+            />
+          </section>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {recommendedThemes.length > 0 && activeFilter === "ALL" && (
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-ink">{sectorLabel} için önerilen renk paletleri</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {recommendedThemes.map((theme) => (
                   <ThemeCard
                     key={theme.id}
@@ -241,29 +253,28 @@ export function ThemePickerTab({
                   />
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Filter Pills */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-4">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-ink">Renk paletleri ({allThemes.length})</h3>
+            </div>
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 sm:flex-wrap">
               {FILTER_TAGS.map((tag) => (
                 <button
                   key={tag.id}
+                  type="button"
+                  aria-pressed={activeFilter === tag.id}
                   onClick={() => setActiveFilter(tag.id)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                    activeFilter === tag.id
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                      : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
-                  }`}
+                  className={choiceClasses(activeFilter === tag.id, "h-8 shrink-0 px-3 text-xs font-medium")}
                 >
                   {tag.label}
                 </button>
               ))}
             </div>
 
-            {/* Themes Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredThemes.map((theme) => (
                 <ThemeCard
                   key={theme.id}
@@ -277,219 +288,179 @@ export function ThemePickerTab({
                 />
               ))}
             </div>
-          </div>
+          </section>
         </div>
       )}
 
       {/* ────────────────── CUSTOMIZE & REORDER VIEW ────────────────── */}
       {subTab === "customize" && (
-        <div className="space-y-8">
-          {/* Accent Color Customizer */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-              <div>
-                <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-indigo-400" />
-                  <span>İşletmeye Özel Vurgu Rengi ({currentTheme.name})</span>
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Seçili temanın buton, rozet ve vurgu rengini işletmenizin kurumsal rengiyle değiştirin.
-                </p>
-              </div>
-
-              {/* Reset to Default Button */}
-              <button
+        <div className="space-y-5">
+          <Panel
+            title="Vurgu rengi"
+            description={`${currentTheme.name} temasının buton, rozet ve vurgu rengini kurumsal renginizle değiştirin.`}
+            action={
+              <Button
+                size="sm"
+                variant="ghost"
+                title="İçerikler silinmez, yalnızca tema varsayılanına döner"
                 onClick={async () => {
-                  setCustomPrimaryColor("");
                   await onResetToDefault();
-                  setSavedMessage("Tema ayarları ve renkler varsayılana sıfırlandı!");
+                  setSavedMessage("Tema ayarları ve renkler varsayılana döndürüldü.");
                   setTimeout(() => setSavedMessage(null), 3000);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors self-start sm:self-auto"
-                title="İçerikler silinmez, sadece tema varsayılanına döner"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Temayı Varsayılana Döndür</span>
-              </button>
-            </div>
-
-            {/* Suggested Theme Accents */}
-            <div>
-              <span className="text-xs font-semibold text-slate-300 block mb-3">
-                Bu Tema İçin Tavsiye Edilen Palet:
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {currentTheme.suggestedAccents.map((acc) => {
-                  const isSelected = (customPrimaryColor || currentTheme.colors.primary) === acc.hex;
-                  return (
-                    <button
-                      key={acc.hex}
-                      onClick={() => handleSaveAccent(acc.hex)}
-                      className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition-all ${
-                        isSelected
-                          ? "border-indigo-500 bg-slate-800/80 ring-2 ring-indigo-500/30"
-                          : "border-slate-800 bg-slate-950/50 hover:border-slate-700"
-                      }`}
-                    >
-                      <span
-                        className="w-5 h-5 rounded-full border border-white/20 shrink-0 shadow-sm"
-                        style={{ backgroundColor: acc.hex }}
-                      />
-                      <div className="truncate">
-                        <span className="text-xs font-bold text-slate-200 block truncate">
-                          {acc.name}
+                <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+                Varsayılana dön
+              </Button>
+            }
+          >
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium text-ink-2">Bu tema için önerilen renkler</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {currentTheme.suggestedAccents.map((acc) => {
+                    const isSelected = (customPrimaryColor || currentTheme.colors.primary) === acc.hex;
+                    return (
+                      <button
+                        key={acc.hex}
+                        type="button"
+                        aria-pressed={isSelected}
+                        disabled={isSavingCustomizer}
+                        onClick={() => handleSaveAccent(acc.hex)}
+                        className={choiceClasses(isSelected, "flex items-center gap-2.5 p-2.5 text-left")}
+                      >
+                        <span
+                          className="h-5 w-5 shrink-0 rounded-full border border-black/10"
+                          style={{ backgroundColor: acc.hex }}
+                          aria-hidden="true"
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-ink">{acc.name}</span>
+                          <span className="block truncate text-xs text-ink-3">{acc.label}</span>
                         </span>
-                        <span className="text-[10px] text-slate-400">{acc.label}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Custom Hex Input & Contrast Checker */}
-            <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-semibold text-slate-300">Özel Renk Kodu:</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={customPrimaryColor || currentTheme.colors.primary}
-                    onChange={(e) => handleSaveAccent(e.target.value)}
-                    className="w-9 h-9 rounded-xl bg-transparent border border-slate-700 cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={customPrimaryColor || currentTheme.colors.primary}
-                    onChange={(e) => handleSaveAccent(e.target.value)}
-                    className="w-24 rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
-                    placeholder="#00C98D"
-                  />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Contrast feedback badge */}
-              <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs ${
-                  contrastResult.isSafe
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                    : "border-amber-500/30 bg-amber-500/10 text-amber-300"
-                }`}
-              >
-                {contrastResult.isSafe ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-                )}
-                <span>{contrastResult.message}</span>
+              <div className="flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="accent-hex" className="text-sm font-medium text-ink-2">
+                    Özel renk
+                  </label>
+                  <input
+                    type="color"
+                    aria-label="Renk seçici"
+                    value={customPrimaryColor || currentTheme.colors.primary}
+                    onChange={(e) => handleSaveAccent(e.target.value)}
+                    className="h-9 w-9 cursor-pointer rounded-control border border-line-strong bg-surface p-0.5"
+                  />
+                  <input
+                    id="accent-hex"
+                    type="text"
+                    value={customPrimaryColor || currentTheme.colors.primary}
+                    onChange={(e) => handleSaveAccent(e.target.value)}
+                    className={inputClasses("w-28 font-mono")}
+                    placeholder="#00C98D"
+                  />
+                </div>
+
+                <p
+                  className={cn(
+                    "flex items-center gap-1.5 text-sm",
+                    contrastResult.isSafe ? "text-brand-ink" : "text-pending"
+                  )}
+                >
+                  {contrastResult.isSafe ? (
+                    <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  )}
+                  {contrastResult.message}
+                </p>
               </div>
             </div>
-          </div>
+          </Panel>
 
-          {/* Section Visibility and Order */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-base font-bold text-slate-100">
-                  Sayfa Bölümlerinin Görünürlüğü ve Sıralaması
-                </h3>
-              </div>
-              <span className="text-xs text-slate-400">
-                Sürükleme ve butonlarla sırayı değiştirin, istenmeyen bölümleri gizleyin.
-              </span>
-            </div>
-
-            <div className="space-y-3">
+          <Panel
+            title="Bölümlerin görünürlüğü ve sırası"
+            description="Sırayı değiştirin, istemediğiniz bölümleri gizleyin."
+            flush
+          >
+            <ol className="divide-y divide-line">
               {sectionOrder.map((secId, idx) => {
                 const sectionDef = AVAILABLE_SECTIONS.find((s) => s.id === secId) || {
                   id: secId,
                   name: secId,
                   isCritical: false,
-                  desc: "Sayfa Bölümü",
+                  desc: "Sayfa bölümü",
                 };
                 const isHidden = hiddenSections.includes(secId);
 
                 return (
-                  <div
-                    key={secId}
-                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
-                      isHidden
-                        ? "border-slate-800/40 bg-slate-950/30 opacity-60"
-                        : "border-slate-800 bg-slate-950/80 hover:border-slate-700"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 font-bold text-xs border border-indigo-500/20">
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-100 text-sm">
-                            {sectionDef.name}
+                  <li key={secId} className="flex items-center gap-3 px-4 py-3 sm:px-5">
+                    <span className="w-5 shrink-0 text-right text-sm tabular-nums text-ink-3">{idx + 1}</span>
+                    <div className={cn("min-w-0 flex-1", isHidden && "opacity-60")}>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span className="text-sm font-medium text-ink">{sectionDef.name}</span>
+                        {sectionDef.isCritical && (
+                          <span className="inline-flex items-center gap-1 text-xs text-ink-3">
+                            <Lock className="h-3 w-3" aria-hidden="true" />
+                            Zorunlu
                           </span>
-                          {sectionDef.isCritical && (
-                            <span className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-amber-300 font-medium">
-                              <Lock className="w-2.5 h-2.5" />
-                              <span>Zorunlu</span>
-                            </span>
-                          )}
-                          {isHidden && (
-                            <span className="rounded bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 text-[10px] text-rose-400">
-                              Gizlendi
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-0.5">{sectionDef.desc}</p>
+                        )}
+                        {isHidden && <span className="text-xs text-ink-3">· Gizli</span>}
                       </div>
+                      <p className="truncate text-sm text-ink-3">{sectionDef.desc}</p>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {/* Move Up/Down */}
-                      <button
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-8 px-0"
                         onClick={() => handleMoveSection(idx, "up")}
                         disabled={idx === 0}
-                        className="p-2 rounded-xl border border-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-20 transition-colors"
-                        title="Yukarı Taşı"
+                        title="Yukarı taşı"
+                        aria-label={`${sectionDef.name}: yukarı taşı`}
                       >
-                        <ArrowUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
+                        <ArrowUp className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-8 px-0"
                         onClick={() => handleMoveSection(idx, "down")}
                         disabled={idx === sectionOrder.length - 1}
-                        className="p-2 rounded-xl border border-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-800 disabled:opacity-20 transition-colors"
-                        title="Aşağı Taşı"
+                        title="Aşağı taşı"
+                        aria-label={`${sectionDef.name}: aşağı taşı`}
                       >
-                        <ArrowDown className="w-3.5 h-3.5" />
-                      </button>
-
-                      {/* Visibility Toggle */}
+                        <ArrowDown className="w-4 h-4" />
+                      </Button>
                       {sectionDef.isCritical ? (
-                        <div
-                          className="px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-500 flex items-center gap-1"
-                          title="Bu bölüm işletmeniz için kritik olduğu için kapatılamaz."
+                        <span
+                          className="ml-1 inline-flex w-[4.5rem] items-center justify-center text-xs text-ink-3"
+                          title="Bu bölüm kritik olduğu için gizlenemez."
                         >
-                          <Lock className="w-3 h-3 text-slate-400" />
-                          <span>Kilitli</span>
-                        </div>
+                          Kilitli
+                        </span>
                       ) : (
-                        <button
+                        <Button
+                          size="sm"
+                          className="ml-1 w-[4.5rem]"
                           onClick={() => handleToggleSectionVisibility(secId)}
-                          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
-                            isHidden
-                              ? "border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700"
-                              : "border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20"
-                          }`}
                         >
+                          {isHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                           {isHidden ? "Göster" : "Gizle"}
-                        </button>
+                        </Button>
                       )}
                     </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
-          </div>
+            </ol>
+          </Panel>
         </div>
       )}
 

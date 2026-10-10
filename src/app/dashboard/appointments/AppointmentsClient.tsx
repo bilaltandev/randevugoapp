@@ -1,23 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
-import {
-  CalendarCheck2,
-  Search,
-  Filter,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  User,
-  Plus,
-  Scissors,
-  Star,
-  UtensilsCrossed,
-  Phone,
-} from "lucide-react";
-import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
+import React, { useEffect, useState } from "react";
+import { CalendarCheck2, Search, MessageSquare, CheckCircle2, Plus } from "lucide-react";
+import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
+import { getSectorDetails } from "@/lib/appointmentStatus";
 import { Modal } from "@/components/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { Button, buttonClasses } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Segmented";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { table } from "@/components/ui/table";
 
 interface AppointmentsClientProps {
   businessId: string;
@@ -55,9 +50,7 @@ export default function AppointmentsClient({
         body: JSON.stringify({ id, status }),
       });
       if (res.ok) {
-        setAppointments((prev) =>
-          prev.map((a) => (a.id === id ? { ...a, status } : a))
-        );
+        setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
       }
     } catch (e) {
       console.error(e);
@@ -106,437 +99,362 @@ export default function AppointmentsClient({
     return matchesTab && matchesSearch;
   });
 
+  const countBy = (status: string) => appointments.filter((a) => a.status === status).length;
+
+  // "Today" comes from the visitor's clock, so grouping waits for mount (server time zone may differ).
+  const [todayKey, setTodayKey] = useState<string | null>(null);
+  useEffect(() => setTodayKey(localKey(new Date())), []);
+
+  const groups = groupByWhen(filtered, todayKey);
+
+  // Sector extras (guests, table, plate); fall back to the linked table for older bookings.
+  const extrasFor = (appt: any): string[] => {
+    const details = getSectorDetails(appt.sectorData);
+    if (details.length === 0 && appt.table) {
+      details.push(appt.table.area?.name ? `${appt.table.area.name} · ${appt.table.name}` : appt.table.name);
+    }
+    return details;
+  };
+
+  const whatsappHref = (phone: string) => `https://wa.me/${phone.replace(/\D/g, "")}`;
+
+  const renderActions = (appt: any) => (
+    <>
+      {appt.status === "PENDING" && (
+        <Button size="sm" variant="primary" onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}>
+          Onayla
+        </Button>
+      )}
+      {appt.status === "CONFIRMED" && (
+        <Button size="sm" onClick={() => handleUpdateStatus(appt.id, "COMPLETED")}>
+          <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+          Tamamla
+        </Button>
+      )}
+      {appt.status !== "CANCELLED" && (
+        <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(appt.id, "CANCELLED")}>
+          İptal et
+        </Button>
+      )}
+    </>
+  );
+
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-            Rezervasyon Yönetimi
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Tüm geçmiş ve gelecek randevularınızı filtreleyin, onaylayın veya iptal edin.
-          </p>
-        </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Rezervasyonlar"
+        description="Geçmiş ve gelecek tüm randevuları filtreleyin, onaylayın veya iptal edin."
+        actions={
+          <Button onClick={() => setIsNewModalOpen(true)}>
+            <Plus className="w-4 h-4" aria-hidden="true" />
+            Manuel randevu ekle
+          </Button>
+        }
+      />
 
-        <button
-          onClick={() => setIsNewModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-indigo-600/30 hover:bg-indigo-500 transition-all self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Manuel Randevu Ekle</span>
-        </button>
-      </div>
-
-      {/* Tabs and Search Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-3.5 sm:p-4 backdrop-blur-xl">
-        {/* Status Tabs (Smooth Horizontal Scroll on Mobile) */}
-        <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-none flex-nowrap">
-          {[
-            { id: "ALL", label: "Tümü", count: appointments.length },
-            { id: "PENDING", label: "Bekleyen", count: appointments.filter((a) => a.status === "PENDING").length },
-            { id: "CONFIRMED", label: "Onaylanan", count: appointments.filter((a) => a.status === "CONFIRMED").length },
-            { id: "COMPLETED", label: "Tamamlanan", count: appointments.filter((a) => a.status === "COMPLETED").length },
-            { id: "CANCELLED", label: "İptal", count: appointments.filter((a) => a.status === "CANCELLED").length },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all shrink-0 ${
-                activeTab === tab.id
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-slate-800"
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span className="ml-1.5 opacity-70 text-[10px]">({tab.count})</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Search Input */}
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="İsim, telefon veya hizmet..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-10 pr-4 py-2 text-xs text-slate-200 placeholder-slate-600 focus:border-indigo-500 focus:outline-none"
+      <Panel flush>
+        {/* Filters */}
+        <div className="flex flex-col gap-3 border-b border-line p-3 sm:px-5 md:flex-row md:items-center md:justify-between">
+          <Segmented
+            aria-label="Duruma göre filtrele"
+            value={activeTab}
+            onChange={setActiveTab}
+            options={[
+              { value: "ALL", label: "Tümü", count: appointments.length },
+              { value: "PENDING", label: "Bekleyen", count: countBy("PENDING") },
+              { value: "CONFIRMED", label: "Onaylanan", count: countBy("CONFIRMED") },
+              { value: "COMPLETED", label: "Tamamlanan", count: countBy("COMPLETED") },
+              { value: "CANCELLED", label: "İptal", count: countBy("CANCELLED") },
+            ]}
           />
-        </div>
-      </div>
 
-      {/* Appointments List (Cards on Mobile, Table on Desktop) */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-xl">
-        {filtered.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 text-xs">
-            <CalendarCheck2 className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            Kriterlere uygun rezervasyon kaydı bulunamadı.
+          <div className="relative w-full md:w-64">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+            <Input
+              type="search"
+              placeholder="İsim, telefon veya hizmet..."
+              aria-label="Rezervasyon ara"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={CalendarCheck2}
+            title="Kayıt bulunamadı"
+            description="Seçili filtreye veya aramaya uygun rezervasyon yok."
+          />
         ) : (
           <>
-            {/* ── MOBILE CARD VIEW (< md) ── */}
-            <div className="block md:hidden divide-y divide-slate-800/80 p-2 sm:p-3 space-y-2.5">
-              {filtered.map((appt) => (
-                <div
-                  key={appt.id}
-                  className="rounded-2xl border border-slate-800/90 bg-slate-950/50 p-4 space-y-3 transition-colors"
-                >
-                  {/* Card Header: Customer & Status */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h4 className="font-bold text-slate-100 text-sm">
-                        {appt.customerName}
-                      </h4>
-                      <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-                        <Phone className="w-3 h-3 text-slate-500" />
-                        <span>{formatPhoneNumber(appt.customerPhone)}</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      {appt.status === "CONFIRMED" && (
-                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
-                          Onaylandı
-                        </span>
-                      )}
-                      {appt.status === "PENDING" && (
-                        <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
-                          Bekliyor
-                        </span>
-                      )}
-                      {appt.status === "COMPLETED" && (
-                        <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
-                          Tamamlandı
-                        </span>
-                      )}
-                      {appt.status === "CANCELLED" && (
-                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
-                          İptal Edildi
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Date, Time & Service Details */}
-                  <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/60 text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Tarih & Saat:</span>
-                      <span className="font-semibold text-slate-200">
-                        {appt.date} • {appt.startTime}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 block">Tutar:</span>
-                      <span className="font-bold text-emerald-400">
-                        {formatCurrency(appt.price)}
-                      </span>
-                    </div>
-
-                    <div className="col-span-2 pt-1 border-t border-slate-800/50 flex flex-wrap items-center justify-between gap-1">
-                      <span className="text-slate-300 font-medium">
-                        {appt.service?.name}
-                      </span>
-                      {appt.employee?.name && (
-                        <span className="text-[11px] text-slate-400">
-                          Uzman: {appt.employee.name}
-                        </span>
-                      )}
-                    </div>
-
-                    {appt.table && (
-                      <div className="col-span-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-semibold">
-                          <UtensilsCrossed className="w-3 h-3" />
-                          <span>{appt.table.name} {appt.table.area?.name ? `(${appt.table.area.name})` : ""}</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {appt.notes && (
-                    <p className="text-[11px] text-slate-400 bg-slate-900/30 p-2 rounded-lg italic">
-                      "{appt.notes}"
-                    </p>
+            {/* Mobile: list rows */}
+            <div className="md:hidden">
+              {groups.map((group) => (
+                <section key={group.label} aria-label={group.label}>
+                  {group.label && (
+                    <h3 className="sticky top-0 z-[1] flex items-center gap-2 border-b border-line bg-surface-muted/95 px-4 py-2 text-xs font-semibold text-ink-2 backdrop-blur-sm">
+                      {group.label}
+                      <span className="font-medium text-ink-3 tabular-nums">{group.items.length}</span>
+                    </h3>
                   )}
+                  <ul className="divide-y divide-line border-b border-line last:border-b-0">
+                    {group.items.map((appt) => {
+                      const extras = extrasFor(appt);
+                      const cancelled = appt.status === "CANCELLED";
+                      return (
+                        <li key={appt.id} className={cn("space-y-2.5 px-4 py-3", appt.isBlockedSlot && "slot-blocked")}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p
+                                className={cn(
+                                  "truncate text-sm font-medium text-ink",
+                                  cancelled && "text-ink-3 line-through",
+                                )}
+                              >
+                                {appt.customerName}
+                              </p>
+                              <p className="text-sm text-ink-3 tabular-nums">
+                                {formatDay(appt.date)}, {appt.startTime}
+                                {appt.endTime ? `–${appt.endTime}` : ""}
+                              </p>
+                            </div>
+                            <StatusBadge status={appt.status} blocked={appt.isBlockedSlot} />
+                          </div>
 
-                  {/* Mobile Actions Toolbar */}
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <a
-                      href={`https://wa.me/${appt.customerPhone.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900 text-xs font-semibold text-slate-300 hover:text-emerald-400 transition-colors"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>WhatsApp</span>
-                    </a>
+                          <p className="text-sm text-ink-2">
+                            {[appt.service?.name, appt.employee?.name, ...extras].filter(Boolean).join(" · ")}
+                            {appt.price > 0 && <span className="tabular-nums"> · {formatCurrency(appt.price)}</span>}
+                          </p>
 
-                    <div className="flex items-center gap-1.5">
-                      {appt.status === "PENDING" && (
-                        <button
-                          onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}
-                          className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 shadow-sm"
-                        >
-                          Onayla
-                        </button>
-                      )}
+                          {appt.notes && <p className="text-sm text-ink-3">“{appt.notes}”</p>}
 
-                      {appt.status === "CONFIRMED" && (
-                        <button
-                          onClick={() => handleUpdateStatus(appt.id, "COMPLETED")}
-                          className="rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 shadow-sm"
-                        >
-                          Tamamla
-                        </button>
-                      )}
-
-                      {appt.status !== "CANCELLED" && (
-                        <button
-                          onClick={() => handleUpdateStatus(appt.id, "CANCELLED")}
-                          className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/20"
-                        >
-                          İptal
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                          {!appt.isBlockedSlot && (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <a
+                                href={whatsappHref(appt.customerPhone)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={buttonClasses("secondary", "sm")}
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                                WhatsApp
+                              </a>
+                              <span className="flex-1" />
+                              {renderActions(appt)}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
               ))}
             </div>
 
-            {/* ── DESKTOP TABLE VIEW (md:table) ── */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-800 bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
+            {/* Desktop: table */}
+            <div className={cn(table.wrapper, "hidden md:block")}>
+              <table className={table.table}>
+                <thead className={table.head}>
                   <tr>
-                    <th className="py-3.5 px-4">Tarih & Saat</th>
-                    <th className="py-3.5 px-4">Müşteri</th>
-                    <th className="py-3.5 px-4">Hizmet & Tutar</th>
-                    <th className="py-3.5 px-4">Uzman</th>
-                    <th className="py-3.5 px-4">Durum</th>
-                    <th className="py-3.5 px-4 text-right">İşlemler</th>
+                    <th className={table.th}>Tarih ve saat</th>
+                    <th className={table.th}>Müşteri</th>
+                    <th className={table.th}>Hizmet</th>
+                    <th className={table.th}>Uzman</th>
+                    <th className={table.th}>Durum</th>
+                    <th className={cn(table.th, "text-right")}>İşlemler</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80">
-                  {filtered.map((appt) => (
-                    <tr
-                      key={appt.id}
-                      className="hover:bg-slate-850/50 transition-colors"
-                    >
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="font-semibold text-slate-100">{appt.date}</div>
-                        <div className="text-indigo-400 font-medium">{appt.startTime} - {appt.endTime}</div>
-                      </td>
+                {groups.map((group) => (
+                  <tbody key={group.label} className={cn(table.body, "border-b border-line last:border-b-0")}>
+                    {group.label && (
+                      <tr>
+                        <th
+                          colSpan={6}
+                          scope="colgroup"
+                          className="bg-surface-muted/60 px-4 py-2 text-left text-xs font-semibold text-ink-2 sm:px-5"
+                        >
+                          {group.label}
+                          <span className="ml-2 font-medium text-ink-3 tabular-nums">{group.items.length}</span>
+                        </th>
+                      </tr>
+                    )}
+                    {group.items.map((appt) => {
+                      const extras = extrasFor(appt);
+                      const cancelled = appt.status === "CANCELLED";
+                      return (
+                        <tr key={appt.id} className={cn(table.row, appt.isBlockedSlot && "slot-blocked")}>
+                          <td className={cn(table.td, "whitespace-nowrap tabular-nums")}>
+                            <div className="font-medium text-ink">{formatDay(appt.date)}</div>
+                            <div className="text-ink-3">
+                              {appt.startTime}
+                              {appt.endTime ? `–${appt.endTime}` : ""}
+                            </div>
+                          </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-100 flex items-center gap-1.5">
-                          {appt.customerName}
-                        </div>
-                        <div className="text-slate-400">{formatPhoneNumber(appt.customerPhone)}</div>
-                        {appt.notes && (
-                          <div className="text-[11px] text-slate-500 truncate max-w-[200px] mt-0.5">
-                            "{appt.notes}"
-                          </div>
-                        )}
-                      </td>
+                          <td className={table.td}>
+                            <div className={cn("font-medium text-ink", cancelled && "text-ink-3 line-through")}>
+                              {appt.customerName}
+                            </div>
+                            {!appt.isBlockedSlot && (
+                              <div className="text-ink-3 tabular-nums">{formatPhoneNumber(appt.customerPhone)}</div>
+                            )}
+                            {appt.notes && (
+                              <div className="mt-0.5 max-w-[220px] truncate text-xs text-ink-3">“{appt.notes}”</div>
+                            )}
+                          </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-slate-200">{appt.service?.name}</div>
-                        {appt.table && (
-                          <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-semibold">
-                            <UtensilsCrossed className="w-3 h-3" />
-                            <span>{appt.table.name} {appt.table.area?.name ? `(${appt.table.area.name})` : ""}</span>
-                          </div>
-                        )}
-                        <div className="font-semibold text-emerald-400">{formatCurrency(appt.price)}</div>
-                      </td>
+                          <td className={table.td}>
+                            <div className="text-ink">{appt.service?.name}</div>
+                            <div className="text-ink-3">
+                              {[...extras, appt.price > 0 ? formatCurrency(appt.price) : null]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </div>
+                          </td>
 
-                      <td className="py-3.5 px-4 text-slate-300">
-                        {appt.employee?.name}
-                      </td>
+                          <td className={cn(table.td, "text-ink-2")}>{appt.employee?.name || "—"}</td>
 
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {appt.status === "CONFIRMED" && (
-                          <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-medium">
-                            Onaylandı
-                          </span>
-                        )}
-                        {appt.status === "PENDING" && (
-                          <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">
-                            Bekliyor
-                          </span>
-                        )}
-                        {appt.status === "COMPLETED" && (
-                          <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full font-medium">
-                            Tamamlandı
-                          </span>
-                        )}
-                        {appt.status === "CANCELLED" && (
-                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full font-medium">
-                            İptal Edildi
-                          </span>
-                        )}
-                      </td>
+                          <td className={cn(table.td, "whitespace-nowrap")}>
+                            <StatusBadge status={appt.status} blocked={appt.isBlockedSlot} />
+                          </td>
 
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* WhatsApp */}
-                          <a
-                            href={`https://wa.me/${appt.customerPhone.replace(/\D/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-colors"
-                            title="WhatsApp'tan Yaz"
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </a>
-
-                          {appt.status === "PENDING" && (
-                            <button
-                              onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}
-                              className="rounded-lg bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-500"
-                            >
-                              Onayla
-                            </button>
-                          )}
-
-                          {appt.status === "CONFIRMED" && (
-                            <button
-                              onClick={() => handleUpdateStatus(appt.id, "COMPLETED")}
-                              className="rounded-lg bg-indigo-600 px-2.5 py-1 font-semibold text-white hover:bg-indigo-500"
-                            >
-                              Tamamla
-                            </button>
-                          )}
-
-                          {appt.status !== "CANCELLED" && (
-                            <button
-                              onClick={() => handleUpdateStatus(appt.id, "CANCELLED")}
-                              className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 font-medium text-rose-400 hover:bg-rose-500/20"
-                              title="İptal Et"
-                            >
-                              İptal
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                          <td className={cn(table.td, "whitespace-nowrap text-right")}>
+                            {!appt.isBlockedSlot && (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <a
+                                  href={whatsappHref(appt.customerPhone)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={buttonClasses("ghost", "sm", "w-8 px-0")}
+                                  title="WhatsApp'tan yaz"
+                                  aria-label={`${appt.customerName} ile WhatsApp'tan yazış`}
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </a>
+                                {renderActions(appt)}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                ))}
               </table>
             </div>
           </>
         )}
-      </div>
+      </Panel>
 
       {/* Manual Appointment Modal */}
-      <Modal
-        isOpen={isNewModalOpen}
-        onClose={() => setIsNewModalOpen(false)}
-        title="Manuel Rezervasyon Oluştur"
-      >
-        <form onSubmit={handleCreateAppointment} className="space-y-4 text-xs">
-          <div>
-            <label className="block font-semibold text-slate-300 mb-1">Müşteri Ad Soyad *</label>
-            <input
+      <Modal isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} title="Manuel rezervasyon">
+        <form onSubmit={handleCreateAppointment} className="space-y-4">
+          <Field label="Müşteri ad soyad *" htmlFor="appt-name">
+            <Input
+              id="appt-name"
               type="text"
               required
               placeholder="Can Yılmaz"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-semibold text-slate-300 mb-1">Telefon Numarası *</label>
-            <input
+          <Field label="Telefon numarası *" htmlFor="appt-phone">
+            <Input
+              id="appt-phone"
               type="tel"
               required
               placeholder="0532 111 22 33"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
             />
-          </div>
+          </Field>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">Hizmet</label>
-              <select
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
-              >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Hizmet" htmlFor="appt-service">
+              <Select id="appt-service" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
                 {services.map((s) => (
-                  <option key={s.id} value={s.id} className="bg-slate-900">
+                  <option key={s.id} value={s.id}>
                     {s.name} ({formatCurrency(s.price)})
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
 
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">Uzman</label>
-              <select
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
-              >
+            <Field label="Uzman" htmlFor="appt-employee">
+              <Select id="appt-employee" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
                 {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id} className="bg-slate-900">
+                  <option key={emp.id} value={emp.id}>
                     {emp.name}
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">Tarih</label>
-              <input
-                type="date"
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">Saat</label>
-              <input
-                type="time"
-                required
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
+            <Field label="Tarih" htmlFor="appt-date">
+              <Input id="appt-date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
+            <Field label="Saat" htmlFor="appt-time">
+              <Input id="appt-time" type="time" required value={time} onChange={(e) => setTime(e.target.value)} />
+            </Field>
           </div>
 
-          <div>
-            <label className="block font-semibold text-slate-300 mb-1">Not</label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
+          <Field label="Not" htmlFor="appt-notes">
+            <Textarea id="appt-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </Field>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 transition-all"
-          >
-            {submitting ? "Oluşturuluyor..." : "Rezervasyonu Kaydet"}
-          </button>
+          <Button type="submit" variant="primary" disabled={submitting} className="w-full">
+            {submitting ? "Oluşturuluyor..." : "Rezervasyonu kaydet"}
+          </Button>
         </form>
       </Modal>
     </div>
   );
+}
+
+function localKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** "14 Eki Çar" from a stored "YYYY-MM-DD". */
+function formatDay(date: string) {
+  const d = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return date;
+  return `${d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })} ${d.toLocaleDateString("tr-TR", { weekday: "short" })}`;
+}
+
+const byStart = (a: any, b: any) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`);
+
+/**
+ * Upcoming first (nearest on top), then the past (most recent on top).
+ * Before the client knows "today", everything stays in one unlabeled group.
+ */
+function groupByWhen(list: any[], todayKey: string | null): { label: string; items: any[] }[] {
+  if (!todayKey) return [{ label: "", items: list }];
+  const shift = (days: number) => {
+    const d = new Date(`${todayKey}T00:00:00`);
+    d.setDate(d.getDate() + days);
+    return localKey(d);
+  };
+  const tomorrow = shift(1);
+  const weekEnd = shift(7);
+  const buckets: Record<string, any[]> = { Bugün: [], Yarın: [], "Önümüzdeki 7 gün": [], "Daha ileri": [], Geçmiş: [] };
+  for (const a of list) {
+    if (a.date === todayKey) buckets["Bugün"].push(a);
+    else if (a.date === tomorrow) buckets["Yarın"].push(a);
+    else if (a.date > tomorrow && a.date <= weekEnd) buckets["Önümüzdeki 7 gün"].push(a);
+    else if (a.date > weekEnd) buckets["Daha ileri"].push(a);
+    else buckets["Geçmiş"].push(a);
+  }
+  return Object.entries(buckets)
+    .filter(([, items]) => items.length > 0)
+    .map(([label, items]) => ({
+      label,
+      items: label === "Geçmiş" ? [...items].sort(byStart).reverse() : [...items].sort(byStart),
+    }));
 }

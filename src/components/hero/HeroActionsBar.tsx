@@ -9,10 +9,10 @@ import {
   Scissors,
   UtensilsCrossed,
   Clock,
-  Sparkles,
+  CalendarClock,
   ExternalLink,
-  ChevronRight,
 } from "lucide-react";
+import { getButtonTextColor } from "@/lib/themes/utils";
 import { HeroActionItem, HeroActionItemId, DEFAULT_HERO_ACTION_ITEMS } from "@/lib/hero/types";
 import { HeroRealtimeStats } from "@/lib/hero/stats";
 
@@ -126,32 +126,39 @@ export function HeroActionsBar({
   const primaryActions = activeItems.filter((i) => actionIds.includes(i.id));
   const statusChips = activeItems.filter((i) => statusIds.includes(i.id));
 
-  // Determine button text color based on primary brightness
-  const radius = theme?.radius?.button || "rounded-2xl";
+  const radius = theme?.radius?.button || "rounded-xl";
   const badgeRadius = theme?.radius?.badge || "rounded-full";
+
+  const colors = {
+    primary: theme?.colors?.primary || "#00C98D",
+    surface: theme?.colors?.surface || "#0E1528",
+    border: theme?.colors?.border || "#1E2742",
+    text: theme?.colors?.text || "#F1F5F9",
+    muted: theme?.colors?.mutedText || "#94A3B8",
+  };
+  const onPrimary = getButtonTextColor(colors.primary);
+
+  const secondaryStyle = { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text };
+  const chipStyle = { backgroundColor: colors.surface, borderColor: colors.border, color: colors.muted };
+  const secondaryCls = `inline-flex h-11 items-center justify-center gap-2 border px-4 text-sm font-medium transition-opacity hover:opacity-80 shrink-0 ${radius}`;
+  const chipCls = `inline-flex h-8 items-center gap-1.5 border px-3 text-xs font-medium shrink-0 ${badgeRadius}`;
 
   const renderSingleItem = (item: HeroActionItem) => {
     switch (item.id) {
-      // 1. Primary Booking CTA
       case "booking_cta":
         return (
           <button
             key="booking_cta"
+            type="button"
             onClick={scrollToBooking}
-            className={`inline-flex items-center justify-center gap-2.5 px-7 py-3.5 text-sm sm:text-base font-bold shadow-xl transition-all active:scale-95 group shrink-0 ${radius}`}
-            style={{
-              backgroundColor: theme?.colors?.primary || "#00C98D",
-              color: "#FFFFFF",
-              boxShadow: `0 8px 24px ${theme?.colors?.accentGlow || "rgba(0,201,141,0.25)"}`,
-            }}
+            className={`inline-flex h-11 items-center justify-center gap-2 px-5 text-sm font-semibold transition-opacity hover:opacity-90 shrink-0 ${radius}`}
+            style={{ backgroundColor: colors.primary, color: onPrimary }}
           >
-            <CalendarCheck className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-110" />
-            <span>{item.customLabel || customCtaText || "Hemen Randevu Al"}</span>
-            <ChevronRight className="w-4 h-4 opacity-70 group-hover:translate-x-0.5 transition-transform" />
+            <CalendarCheck className="h-4 w-4" aria-hidden="true" />
+            {item.customLabel || customCtaText || "Randevu al"}
           </button>
         );
 
-      // 2. WhatsApp Button
       case "whatsapp":
         return (
           <a
@@ -161,162 +168,74 @@ export function HeroActionsBar({
             )}`}
             target="_blank"
             rel="noopener noreferrer"
-            className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold border transition-all hover:scale-[1.02] active:scale-95 shrink-0 ${radius}`}
-            style={{
-              backgroundColor: theme?.colors?.surface || "#0E1528",
-              borderColor: theme?.colors?.border || "#1E2742",
-              color: theme?.colors?.text || "#F1F5F9",
-            }}
+            className={secondaryCls}
+            style={secondaryStyle}
           >
-            <MessageSquare className="w-4 h-4 text-emerald-400" />
-            <span>WhatsApp</span>
+            <MessageSquare className="h-4 w-4" aria-hidden="true" />
+            WhatsApp
           </a>
         );
 
-      // 3. Call Button
       case "call":
         return (
-          <a
-            key="call"
-            href={`tel:${cleanPhone}`}
-            className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold border transition-all hover:scale-[1.02] active:scale-95 shrink-0 ${radius}`}
-            style={{
-              backgroundColor: theme?.colors?.surface || "#0E1528",
-              borderColor: theme?.colors?.border || "#1E2742",
-              color: theme?.colors?.text || "#F1F5F9",
-            }}
-          >
-            <Phone className="w-4 h-4 text-sky-400" />
-            <span>Hemen Ara</span>
+          <a key="call" href={`tel:${cleanPhone}`} className={secondaryCls} style={secondaryStyle}>
+            <Phone className="h-4 w-4" aria-hidden="true" />
+            Ara
           </a>
         );
 
-      // 4. Services Button
       case "services":
         return (
-          <button
-            key="services"
-            onClick={scrollToServices}
-            className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold border transition-all hover:scale-[1.02] active:scale-95 shrink-0 ${radius}`}
-            style={{
-              backgroundColor: theme?.colors?.surface || "#0E1528",
-              borderColor: theme?.colors?.border || "#1E2742",
-              color: theme?.colors?.text || "#F1F5F9",
-            }}
-          >
-            <Scissors className="w-4 h-4 text-indigo-400" />
-            <span>Hizmetleri Gör</span>
+          <button key="services" type="button" onClick={scrollToServices} className={secondaryCls} style={secondaryStyle}>
+            <Scissors className="h-4 w-4" aria-hidden="true" />
+            Hizmetler
           </button>
         );
 
-      // 5. Restaurant Menu Button
       case "menu":
         return (
-          <button
-            key="menu"
-            onClick={scrollToServices}
-            className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold border transition-all hover:scale-[1.02] active:scale-95 shrink-0 ${radius}`}
-            style={{
-              backgroundColor: theme?.colors?.surface || "#0E1528",
-              borderColor: theme?.colors?.border || "#1E2742",
-              color: theme?.colors?.text || "#F1F5F9",
-            }}
-          >
-            <UtensilsCrossed className="w-4 h-4 text-amber-400" />
-            <span>Menüye Git</span>
+          <button key="menu" type="button" onClick={scrollToServices} className={secondaryCls} style={secondaryStyle}>
+            <UtensilsCrossed className="h-4 w-4" aria-hidden="true" />
+            Menü
           </button>
         );
 
-      // 6. Open / Closed Status Badge
       case "open_status":
         return (
-          <div
-            key="open_status"
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border transition-all shrink-0 ${badgeRadius}`}
-            style={{
-              backgroundColor: stats.isOpenNow
-                ? "rgba(0, 201, 141, 0.12)"
-                : "rgba(239, 68, 68, 0.12)",
-              borderColor: stats.isOpenNow
-                ? "rgba(0, 201, 141, 0.3)"
-                : "rgba(239, 68, 68, 0.3)",
-              color: stats.isOpenNow ? "#00C98D" : "#F87171",
-            }}
-          >
+          <span key="open_status" className={chipCls} style={chipStyle}>
             <span
-              className={`h-2 w-2 rounded-full ${
-                stats.isOpenNow ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
-              }`}
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: stats.isOpenNow ? "#22C55E" : "#EF4444" }}
+              aria-hidden="true"
             />
-            <span>{stats.openStatusText}</span>
-          </div>
+            <span style={{ color: colors.text }}>{stats.openStatusText}</span>
+          </span>
         );
 
-      // 7. Remaining Slots Badge
       case "remaining_slots":
         return (
-          <div
-            key="remaining_slots"
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border transition-all shrink-0 ${badgeRadius}`}
-            style={{
-              backgroundColor:
-                stats.remainingSlotsCount > 0
-                  ? "rgba(98, 70, 234, 0.12)"
-                  : "rgba(100, 116, 139, 0.15)",
-              borderColor:
-                stats.remainingSlotsCount > 0
-                  ? "rgba(98, 70, 234, 0.3)"
-                  : "rgba(100, 116, 139, 0.3)",
-              color:
-                stats.remainingSlotsCount > 0
-                  ? theme?.colors?.primary || "#6246EA"
-                  : "#94A3B8",
-            }}
-          >
-            <Clock className="w-3.5 h-3.5 text-indigo-400" />
-            <span>{stats.remainingSlotsText}</span>
-          </div>
+          <span key="remaining_slots" className={chipCls} style={chipStyle}>
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+            {stats.remainingSlotsText}
+          </span>
         );
 
-      // 8. First Available Time
       case "first_available":
         return (
-          <div
-            key="first_available"
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border transition-all shrink-0 ${badgeRadius}`}
-            style={{
-              backgroundColor: stats.firstAvailableTime
-                ? "rgba(245, 158, 11, 0.12)"
-                : "rgba(100, 116, 139, 0.15)",
-              borderColor: stats.firstAvailableTime
-                ? "rgba(245, 158, 11, 0.3)"
-                : "rgba(100, 116, 139, 0.3)",
-              color: stats.firstAvailableTime ? "#F59E0B" : "#94A3B8",
-            }}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>{stats.firstAvailableText}</span>
-          </div>
+          <span key="first_available" className={chipCls} style={chipStyle}>
+            <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
+            {stats.firstAvailableText}
+          </span>
         );
 
-      // 9. Today's Working Hours
       case "working_hours":
         return (
-          <div
-            key="working_hours"
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium border transition-all shrink-0 ${badgeRadius}`}
-            style={{
-              backgroundColor: theme?.colors?.surface || "#0E1528",
-              borderColor: theme?.colors?.border || "#1E2742",
-              color: theme?.colors?.mutedText || "#94A3B8",
-            }}
-          >
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span>{stats.todayWorkingHoursText}</span>
-          </div>
+          <span key="working_hours" className={chipCls} style={chipStyle}>
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+            {stats.todayWorkingHoursText}
+          </span>
         );
 
-      // 10. Location Link
       case "location":
         return (
           <a
@@ -324,21 +243,16 @@ export function HeroActionsBar({
             href={mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border transition-all hover:opacity-90 shrink-0 ${badgeRadius}`}
-            style={{
-              backgroundColor: theme?.colors?.surface || "#0E1528",
-              borderColor: theme?.colors?.border || "#1E2742",
-              color: theme?.colors?.text || "#F1F5F9",
-            }}
-            title="Google Haritalar'da Aç"
+            className={`${chipCls} transition-opacity hover:opacity-80`}
+            style={chipStyle}
+            title="Google Haritalar'da aç"
           >
-            <MapPin className="w-3.5 h-3.5 text-rose-400" />
-            <span>Konum & Yol Tarifi</span>
-            <ExternalLink className="w-3 h-3 text-slate-400" />
+            <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+            Yol tarifi
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
           </a>
         );
 
-      // 11. Instagram Link
       case "instagram":
         return (
           <a
@@ -346,17 +260,13 @@ export function HeroActionsBar({
             href={instaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border transition-all hover:opacity-90 shrink-0 ${badgeRadius}`}
-            style={{
-              backgroundColor: theme?.colors?.surface || "#0E1528",
-              borderColor: theme?.colors?.border || "#1E2742",
-              color: theme?.colors?.text || "#F1F5F9",
-            }}
-            title="Instagram Profilini Ziyaret Et"
+            className={`${chipCls} transition-opacity hover:opacity-80`}
+            style={chipStyle}
+            title="Instagram profilini aç"
           >
-            <InstagramIcon className="w-3.5 h-3.5 text-pink-400" />
-            <span>Instagram</span>
-            <ExternalLink className="w-3 h-3 text-slate-400" />
+            <InstagramIcon className="h-3.5 w-3.5" />
+            Instagram
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
           </a>
         );
 
@@ -368,23 +278,13 @@ export function HeroActionsBar({
   const justifyClass = align === "left" ? "justify-start" : "justify-center";
 
   return (
-    <div className="space-y-4 pt-2 w-full">
-      {/* Primary Action Buttons Row */}
+    <div className="w-full space-y-3">
       {primaryActions.length > 0 && (
-        <div
-          className={`flex flex-wrap items-center gap-3 sm:gap-4 ${justifyClass}`}
-        >
-          {primaryActions.map(renderSingleItem)}
-        </div>
+        <div className={`flex flex-wrap items-center gap-2 ${justifyClass}`}>{primaryActions.map(renderSingleItem)}</div>
       )}
 
-      {/* Real-time Status and Info Chips Bar (Wrapped & mobile-friendly horizontal scroll if needed) */}
       {statusChips.length > 0 && (
-        <div
-          className={`flex flex-wrap items-center gap-2 sm:gap-2.5 max-w-full overflow-x-auto no-scrollbar py-1 ${justifyClass}`}
-        >
-          {statusChips.map(renderSingleItem)}
-        </div>
+        <div className={`flex flex-wrap items-center gap-1.5 ${justifyClass}`}>{statusChips.map(renderSingleItem)}</div>
       )}
     </div>
   );

@@ -7,6 +7,12 @@ export type ThemeId =
   | "restaurant-dark"
   | "bold-business"
   | "minimal"
+  | "gece-safiri"
+  | "sampanya"
+  | "obsidyen-bakir"
+  | "adacayi"
+  | "bordo-kadife"
+  | "nordik"
   | string;
 
 export type SectorType =
@@ -87,6 +93,8 @@ export interface ThemeConfig {
 }
 
 export interface ThemeOverrides {
+  /** Page architecture (lib/themes/layouts.ts); colors still come from the theme. */
+  layoutId?: import("./layouts").LayoutId;
   primaryColor?: string;
   heroLayout?: "centered" | "split" | "banner" | "minimal";
   fontFamily?: string;
@@ -108,7 +116,8 @@ export interface ThemeOverrides {
   showLogo?: boolean;
   showSlogan?: boolean;
   sloganText?: string;
-  ctaColor?: "purple" | "green" | "custom";
+  /** "theme" = follow the theme's accent. "purple"/"green" are legacy page-builder presets. */
+  ctaColor?: "theme" | "custom" | "purple" | "green";
 }
 
 export interface PageSectionOrder {

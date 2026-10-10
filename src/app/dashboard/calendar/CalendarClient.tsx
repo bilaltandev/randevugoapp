@@ -1,22 +1,23 @@
 "use client";
 
 import React, { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Plus,
-  Clock,
-  User,
-  Phone,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   Lock,
-  Scissors,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { Modal } from "@/components/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Segmented";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Field, Input, Select, Textarea } from "@/components/ui/Field";
+import { TimeGrid, localDateKey } from "./TimeGrid";
 
 interface CalendarClientProps {
   businessId: string;
@@ -38,6 +39,16 @@ export default function CalendarClient({
   // Modals
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+
+  // "Yeni randevu" shortcuts link here with ?new=1 to open the create dialog directly.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const openedFromLink = searchParams.get("new") === "1";
+  const closeNewModal = () => {
+    setIsNewModalOpen(false);
+    if (openedFromLink) router.replace(pathname, { scroll: false });
+  };
   const [selectedAppt, setSelectedAppt] = useState<any>(null);
 
   // New appointment form state
@@ -55,7 +66,6 @@ export default function CalendarClient({
   const [blockTime, setBlockTime] = useState("12:00");
   const [blockReason, setBlockReason] = useState("Öğle Molası / Kişisel İş");
 
-  const todayStr = currentDate.toISOString().split("T")[0];
 
   // Navigation handlers
   const handlePrev = () => {
@@ -100,7 +110,7 @@ export default function CalendarClient({
       const data = await res.json();
       if (data.appointment) {
         setAppointments((prev) => [data.appointment, ...prev]);
-        setIsNewModalOpen(false);
+        closeNewModal();
         setNewCustName("");
         setNewCustPhone("");
       }
@@ -186,553 +196,322 @@ export default function CalendarClient({
 
   const weekDays = getDaysOfWeek(currentDate);
 
-  const hoursList = [
-    "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
-    "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
-  ];
+  const todayKey = localDateKey(new Date());
+
+  // Click on an empty spot in the grid: open "Yeni rezervasyon" prefilled with that day and time.
+  const handleCreateAt = (dateKey: string, time: string) => {
+    setNewDate(dateKey);
+    setNewStartTime(time);
+    setIsNewModalOpen(true);
+  };
+
+  // Month grid: Monday-first, padded so day 1 sits under its weekday.
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const leadingBlanks = (new Date(year, month, 1).getDay() + 6) % 7;
+
+  const weekStart = weekDays[0];
+  const weekEnd = weekDays[6];
+  const rangeLabel =
+    viewMode === "week"
+      ? weekStart.getMonth() === weekEnd.getMonth()
+        ? `${weekStart.getDate()}–${weekEnd.getDate()} ${weekEnd.toLocaleDateString("tr-TR", { month: "long", year: "numeric" })}`
+        : `${weekStart.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })} – ${weekEnd.toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}`
+      : viewMode === "day"
+      ? `${currentDate.toLocaleDateString("tr-TR", { weekday: "long" })}, ${currentDate.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" })}`
+      : currentDate.toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
 
   return (
-    <div className="space-y-6">
-      {/* Top Controls Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3.5 sm:p-4 shadow-sm">
-        {/* View Mode Switch & Today */}
-        <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-          <div className="flex items-center bg-[#F8F9FC] dark:bg-slate-950 p-1 rounded-xl border border-[#E4E7EC] dark:border-slate-800 text-xs">
+    <div className="space-y-5">
+      <PageHeader
+        title="Takvim"
+        description="Randevuları gün, hafta veya ay görünümünde takip edin."
+        actions={
+          <>
+            <Button onClick={() => setIsBlockModalOpen(true)}>
+              <Lock className="w-4 h-4" aria-hidden="true" />
+              Saat kapat
+            </Button>
+          </>
+        }
+      />
+
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-control border border-line-strong bg-surface shadow-[0_1px_2px_rgba(13,17,23,0.05)]">
             <button
-              onClick={() => setViewMode("day")}
-              className={`rounded-lg px-2.5 sm:px-3 py-1.5 font-medium transition-all ${
-                viewMode === "day"
-                  ? "bg-[#6246EA] text-white font-semibold shadow-xs"
-                  : "text-[#667085] dark:text-slate-400 hover:text-[#111827] dark:hover:text-slate-200"
-              }`}
+              type="button"
+              onClick={handlePrev}
+              className="flex h-9 w-9 items-center justify-center text-ink-2 hover:bg-surface-muted hover:text-ink rounded-l-control"
+              aria-label="Önceki"
             >
-              Günlük
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setViewMode("week")}
-              className={`rounded-lg px-2.5 sm:px-3 py-1.5 font-medium transition-all ${
-                viewMode === "week"
-                  ? "bg-[#6246EA] text-white font-semibold shadow-xs"
-                  : "text-[#667085] dark:text-slate-400 hover:text-[#111827] dark:hover:text-slate-200"
-              }`}
+              type="button"
+              onClick={handleToday}
+              className="h-9 border-x border-line px-3 text-sm font-medium text-ink hover:bg-surface-muted"
             >
-              Haftalık
+              Bugün
             </button>
             <button
-              onClick={() => setViewMode("month")}
-              className={`rounded-lg px-2.5 sm:px-3 py-1.5 font-medium transition-all ${
-                viewMode === "month"
-                  ? "bg-[#6246EA] text-white font-semibold shadow-xs"
-                  : "text-[#667085] dark:text-slate-400 hover:text-[#111827] dark:hover:text-slate-200"
-              }`}
+              type="button"
+              onClick={handleNext}
+              className="flex h-9 w-9 items-center justify-center text-ink-2 hover:bg-surface-muted hover:text-ink rounded-r-control"
+              aria-label="Sonraki"
             >
-              Aylık
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-
-          <button
-            onClick={handleToday}
-            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950 px-3 sm:px-3.5 py-2 text-xs font-semibold text-[#344054] dark:text-slate-300 hover:bg-[#F8F9FC] transition-colors shadow-xs"
-          >
-            Bugün
-          </button>
+          <h2 className="ml-1 font-display text-lg font-bold tracking-[-0.02em] text-ink first-letter:uppercase sm:text-xl" aria-live="polite">
+            {rangeLabel}
+          </h2>
         </div>
 
-        {/* Date Navigator */}
-        <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-3 w-full sm:w-auto py-1.5 sm:py-0 border-y sm:border-y-0 border-[#F2F4F7] dark:border-slate-850">
-          <button
-            onClick={handlePrev}
-            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/80 p-2 text-[#667085] dark:text-slate-400 hover:bg-[#F8F9FC] hover:text-[#111827] transition-colors shadow-xs shrink-0"
-            aria-label="Önceki"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-xs sm:text-sm font-bold text-[#111827] dark:text-slate-200 min-w-[130px] sm:min-w-[160px] text-center">
-            {currentDate.toLocaleDateString("tr-TR", {
-              month: "long",
-              year: "numeric",
-              ...(viewMode === "day" ? { day: "numeric" } : {}),
-            })}
-          </span>
-          <button
-            onClick={handleNext}
-            className="rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/80 p-2 text-[#667085] dark:text-slate-400 hover:bg-[#F8F9FC] hover:text-[#111827] transition-colors shadow-xs shrink-0"
-            aria-label="Sonraki"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => setIsBlockModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E4E7EC] dark:border-slate-700 bg-white dark:bg-slate-800/80 px-3 sm:px-3.5 py-2 text-xs font-semibold text-[#344054] dark:text-slate-300 hover:bg-[#F8F9FC] transition-colors shadow-xs"
-          >
-            <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span>Saat Kapat</span>
-          </button>
-          <button
-            onClick={() => setIsNewModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#6246EA] hover:bg-[#5136D6] px-3.5 sm:px-4 py-2 text-xs font-bold text-white shadow-md shadow-[#6246EA]/25 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4 shrink-0" />
-            <span>Yeni Randevu</span>
-          </button>
-        </div>
+        <Segmented
+          aria-label="Görünüm"
+          value={viewMode}
+          onChange={setViewMode}
+          options={[
+            { value: "day", label: "Gün" },
+            { value: "week", label: "Hafta" },
+            { value: "month", label: "Ay" },
+          ]}
+        />
       </div>
 
-      {/* VIEW: WEEKLY */}
-      {viewMode === "week" && (
-        <div className="rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto scrollbar-thin">
-            <div className="min-w-[700px]">
-              {/* Weekday headers */}
-              <div className="grid grid-cols-7 border-b border-[#E4E7EC] dark:border-slate-800 bg-[#F8F9FC] dark:bg-slate-950/60 text-center text-xs">
-                {weekDays.map((d, i) => {
-                  const isToday =
-                    d.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
-                  return (
-                    <div
-                      key={i}
-                      className={`py-3 sm:py-3.5 px-1 border-r border-[#E4E7EC] dark:border-slate-800/80 last:border-r-0 transition-colors ${
-                        isToday
-                          ? "bg-[#ECE8FF] text-[#6246EA] font-bold"
-                          : "text-[#667085] dark:text-slate-400"
-                      }`}
-                    >
-                      <span className="block text-[11px] uppercase tracking-wider font-semibold">
-                        {d.toLocaleDateString("tr-TR", { weekday: "short" })}
-                      </span>
-                      <span
-                        className={`text-base font-bold mt-0.5 block ${
-                          isToday ? "text-[#6246EA]" : "text-[#111827] dark:text-slate-200"
-                        }`}
-                      >
-                        {d.getDate()}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Grid of days */}
-              <div className="grid grid-cols-7 min-h-[520px] divide-x divide-[#E4E7EC] dark:divide-slate-800/80 bg-white dark:bg-slate-950/20">
-                {weekDays.map((d, idx) => {
-                  const dateKey = d.toISOString().split("T")[0];
-                  const dayAppts = appointments.filter((a) => a.date === dateKey);
-
-                  return (
-                    <div key={idx} className="p-2 space-y-2">
-                      {dayAppts.length === 0 ? (
-                        <div className="text-[11px] text-[#98A2B3] dark:text-slate-600 text-center pt-8 font-medium">
-                          Boş
-                        </div>
-                      ) : (
-                        dayAppts.map((appt) => (
-                          <div
-                            key={appt.id}
-                            onClick={() => setSelectedAppt(appt)}
-                            className={`cursor-pointer rounded-2xl p-2.5 text-xs transition-all hover:scale-[1.02] shadow-xs ${
-                              appt.isBlockedSlot
-                                ? "bg-slate-100 border border-slate-300 text-slate-700 dark:bg-slate-800/80 dark:border-amber-500/30 dark:text-amber-300"
-                                : appt.status === "CONFIRMED"
-                                ? "bg-emerald-50 border border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-200 hover:border-emerald-400"
-                                : appt.status === "COMPLETED"
-                                ? "bg-[#F4F3FF] border border-[#DDD6FE] text-[#312E81] dark:bg-indigo-950/40 dark:border-indigo-500/30 dark:text-indigo-200 hover:border-[#6246EA]"
-                                : appt.status === "CANCELLED"
-                                ? "bg-rose-50/80 border border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-500/20 dark:text-rose-300 opacity-75"
-                                : "bg-amber-50 border border-amber-200 text-amber-900 dark:bg-amber-950/30 dark:border-amber-500/25 dark:text-amber-200 hover:border-amber-400"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between font-bold text-[11px]">
-                              <span>{appt.startTime}</span>
-                              <span
-                                className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-md ${
-                                  appt.status === "CONFIRMED"
-                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300"
-                                    : appt.status === "COMPLETED"
-                                    ? "bg-[#ECE8FF] text-[#6246EA] dark:bg-indigo-900/50 dark:text-indigo-300"
-                                    : appt.status === "CANCELLED"
-                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300"
-                                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
-                                }`}
-                              >
-                                {appt.status === "CONFIRMED"
-                                  ? "Onaylı"
-                                  : appt.status === "COMPLETED"
-                                  ? "Tamamlandı"
-                                  : appt.status === "CANCELLED"
-                                  ? "İptal"
-                                  : "Bekliyor"}
-                              </span>
-                            </div>
-                            <div
-                              className={`font-bold truncate mt-1 text-xs ${
-                                appt.status === "CANCELLED"
-                                  ? "line-through text-rose-900 dark:text-rose-300"
-                                  : "text-[#111827] dark:text-white"
-                              }`}
-                            >
-                              {appt.customerName}
-                            </div>
-                            <div
-                              className={`text-[10px] truncate mt-0.5 ${
-                                appt.status === "CANCELLED"
-                                  ? "line-through text-rose-600/70"
-                                  : "text-[#667085] dark:text-slate-300"
-                              }`}
-                            >
-                              {appt.service?.name}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW: DAILY */}
-      {viewMode === "day" && (
-        <div className="rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-6 shadow-sm">
-          <h3 className="text-base sm:text-lg font-bold text-[#111827] dark:text-slate-100 mb-4">
-            {currentDate.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" })} Randevuları
-          </h3>
-
-          <div className="space-y-3">
-            {appointments.filter((a) => a.date === todayStr).length === 0 ? (
-              <div className="p-8 text-center text-[#667085] dark:text-slate-400 text-xs border border-dashed border-[#E4E7EC] dark:border-slate-800 rounded-2xl">
-                Bu gün için kayıtlı randevu bulunmuyor.
-              </div>
-            ) : (
-              appointments
-                .filter((a) => a.date === todayStr)
-                .map((appt) => (
-                  <div
-                    key={appt.id}
-                    onClick={() => setSelectedAppt(appt)}
-                    className="cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-[#F8F9FC] dark:bg-slate-950/60 border border-[#E4E7EC] dark:border-slate-800 hover:border-[#6246EA]/30 transition-colors shadow-xs"
-                  >
-                    <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-                      <div className="px-2.5 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-center font-bold text-[#6246EA] text-sm shrink-0">
-                        {appt.startTime}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-bold text-[#111827] dark:text-slate-100 block text-sm truncate">
-                          {appt.customerName}
-                        </span>
-                        <span className="text-xs text-[#667085] dark:text-slate-400 block truncate">
-                          {appt.service?.name} {appt.employee?.name ? `• Uzman: ${appt.employee?.name}` : ""}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E4E7EC] dark:border-slate-800">
-                      <span className="text-xs text-[#667085] dark:text-slate-400 font-semibold">{appt.status}</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
-                        {formatCurrency(appt.price)}
-                      </span>
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
+      {/* VIEW: WEEK / DAY (time grid) */}
+      {(viewMode === "week" || viewMode === "day") && (
+        <Panel flush className="overflow-hidden">
+          <TimeGrid
+            days={viewMode === "week" ? weekDays : [currentDate]}
+            appointments={appointments}
+            onSelect={setSelectedAppt}
+            onCreateAt={handleCreateAt}
+          />
+        </Panel>
       )}
 
       {/* VIEW: MONTHLY */}
       {viewMode === "month" && (
-        <div className="rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-6 shadow-sm overflow-x-auto scrollbar-thin">
-          <div className="min-w-[500px]">
-            <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-[#667085] dark:text-slate-400 mb-3">
+        <Panel className="overflow-x-auto">
+          <div className="min-w-[520px]">
+            <div className="mb-2 grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-ink-3">
               {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((day) => (
-                <div key={day} className="py-1">
-                  {day}
-                </div>
+                <div key={day}>{day}</div>
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-2">
-              {[...Array(30)].map((_, i) => {
+            <div className="grid grid-cols-7 gap-1.5">
+              {Array.from({ length: leadingBlanks }).map((_, i) => (
+                <div key={`blank-${i}`} aria-hidden="true" />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
                 const dayNum = i + 1;
-                const dateKey = `${currentDate.getFullYear()}-${String(
-                  currentDate.getMonth() + 1
-                ).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-                const count = appointments.filter((a) => a.date === dateKey).length;
+                const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+                const dayList = appointments
+                  .filter((a) => a.date === dateKey && !a.isBlockedSlot && a.status !== "CANCELLED")
+                  .sort((a, b) => a.startTime.localeCompare(b.startTime));
+                const isToday = dateKey === todayKey;
 
                 return (
-                  <div
-                    key={i}
-                    className={`min-h-[70px] rounded-xl border p-2 text-left transition-colors ${
-                      count > 0
-                        ? "border-[#D9D6FE] bg-[#F4F3FF] dark:border-indigo-500/30 dark:bg-indigo-950/20"
-                        : "border-[#E4E7EC] bg-white dark:border-slate-800/80 dark:bg-slate-950/40"
-                    }`}
+                  <button
+                    key={dateKey}
+                    type="button"
+                    onClick={() => {
+                      setCurrentDate(new Date(year, month, dayNum, 12));
+                      setViewMode("day");
+                    }}
+                    className="flex min-h-[104px] flex-col gap-1 rounded-control border border-line bg-surface p-1.5 text-left transition-colors hover:border-line-strong hover:bg-surface-muted"
                   >
-                    <span className="text-xs font-bold text-[#111827] dark:text-slate-300">{dayNum}</span>
-                    {count > 0 && (
-                      <span className="mt-1 block text-[10px] text-[#6246EA] font-bold bg-[#ECE8FF] px-1.5 py-0.5 rounded-md border border-[#D9D6FE] w-max">
-                        {count} randevu
+                    <span
+                      className={cn(
+                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium tabular-nums",
+                        isToday ? "bg-brand text-on-brand" : "text-ink"
+                      )}
+                    >
+                      {dayNum}
+                    </span>
+                    {dayList.slice(0, 3).map((a) => (
+                      <span
+                        key={a.id}
+                        className={cn(
+                          "block truncate rounded-[5px] px-1.5 py-0.5 text-[11px] font-medium",
+                          a.status === "PENDING" ? "bg-pending-soft text-pending" : "bg-brand-soft text-brand-ink"
+                        )}
+                      >
+                        <span className="tabular-nums">{a.startTime}</span> {a.customerName}
                       </span>
-                    )}
-                  </div>
+                    ))}
+                    {dayList.length > 3 && <span className="px-1.5 text-[11px] text-ink-3">+{dayList.length - 3} daha</span>}
+                  </button>
                 );
               })}
             </div>
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* MODAL: New Appointment */}
-      <Modal
-        isOpen={isNewModalOpen}
-        onClose={() => setIsNewModalOpen(false)}
-        title="Yeni Rezervasyon Oluştur"
-      >
+      <Modal isOpen={isNewModalOpen || openedFromLink} onClose={closeNewModal} title="Yeni rezervasyon">
         <form onSubmit={handleCreateAppointment} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Müşteri Adı Soyadı *
-            </label>
-            <input
+          <Field label="Müşteri adı soyadı *" htmlFor="cal-name">
+            <Input
+              id="cal-name"
               type="text"
               required
               placeholder="Mehmet Can"
               value={newCustName}
               onChange={(e) => setNewCustName(e.target.value)}
-              className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Telefon Numarası *
-            </label>
-            <input
+          <Field label="Telefon numarası *" htmlFor="cal-phone">
+            <Input
+              id="cal-phone"
               type="tel"
               required
               placeholder="0532 111 22 33"
               value={newCustPhone}
               onChange={(e) => setNewCustPhone(e.target.value)}
-              className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
             />
-          </div>
+          </Field>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Hizmet
-              </label>
-              <select
-                value={newServiceId}
-                onChange={(e) => setNewServiceId(e.target.value)}
-                className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
-              >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Hizmet" htmlFor="cal-service">
+              <Select id="cal-service" value={newServiceId} onChange={(e) => setNewServiceId(e.target.value)}>
                 {services.map((s) => (
-                  <option key={s.id} value={s.id} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+                  <option key={s.id} value={s.id}>
                     {s.name} ({s.durationMinutes} dk - {formatCurrency(s.price)})
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Uzman
-              </label>
-              <select
-                value={newEmployeeId}
-                onChange={(e) => setNewEmployeeId(e.target.value)}
-                className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
-              >
+            <Field label="Uzman" htmlFor="cal-employee">
+              <Select id="cal-employee" value={newEmployeeId} onChange={(e) => setNewEmployeeId(e.target.value)}>
                 {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+                  <option key={emp.id} value={emp.id}>
                     {emp.name}
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Tarih
-              </label>
-              <input
-                type="date"
-                required
-                value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-                className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Saat
-              </label>
-              <input
+            <Field label="Tarih" htmlFor="cal-date">
+              <Input id="cal-date" type="date" required value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+            </Field>
+            <Field label="Saat" htmlFor="cal-time">
+              <Input
+                id="cal-time"
                 type="time"
                 required
                 value={newStartTime}
                 onChange={(e) => setNewStartTime(e.target.value)}
-                className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
               />
-            </div>
+            </Field>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Not / Açıklama
-            </label>
-            <textarea
-              rows={2}
-              value={newNotes}
-              onChange={(e) => setNewNotes(e.target.value)}
-              className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
-            />
-          </div>
+          <Field label="Not / açıklama" htmlFor="cal-notes">
+            <Textarea id="cal-notes" rows={2} value={newNotes} onChange={(e) => setNewNotes(e.target.value)} />
+          </Field>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-[#6246EA] py-3 text-sm font-semibold text-white shadow-lg shadow-[#6246EA]/25 hover:bg-[#5235D9] transition-all"
-          >
-            {submitting ? "Ekleniyor..." : "Rezervasyonu Kaydet"}
-          </button>
+          <Button type="submit" variant="primary" disabled={submitting} className="w-full">
+            {submitting ? "Ekleniyor..." : "Rezervasyonu kaydet"}
+          </Button>
         </form>
       </Modal>
 
       {/* MODAL: Block Slot (Saat Kapat) */}
-      <Modal
-        isOpen={isBlockModalOpen}
-        onClose={() => setIsBlockModalOpen(false)}
-        title="Saat Kapat / Mola Ekle"
-      >
+      <Modal isOpen={isBlockModalOpen} onClose={() => setIsBlockModalOpen(false)} title="Saat kapat / mola ekle">
         <form onSubmit={handleBlockSlot} className="space-y-4">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Kapatılan saat aralığında müşteriler online randevu alamaz.
-          </p>
+          <p className="text-sm text-ink-3">Kapatılan saat aralığında müşteriler online randevu alamaz.</p>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Tarih
-              </label>
-              <input
-                type="date"
-                required
-                value={blockDate}
-                onChange={(e) => setBlockDate(e.target.value)}
-                className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Saat
-              </label>
-              <input
-                type="time"
-                required
-                value={blockTime}
-                onChange={(e) => setBlockTime(e.target.value)}
-                className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
-              />
-            </div>
+            <Field label="Tarih" htmlFor="block-date">
+              <Input id="block-date" type="date" required value={blockDate} onChange={(e) => setBlockDate(e.target.value)} />
+            </Field>
+            <Field label="Saat" htmlFor="block-time">
+              <Input id="block-time" type="time" required value={blockTime} onChange={(e) => setBlockTime(e.target.value)} />
+            </Field>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Kapatma Sebebi
-            </label>
-            <input
+          <Field label="Kapatma sebebi" htmlFor="block-reason">
+            <Input
+              id="block-reason"
               type="text"
               required
               value={blockReason}
               onChange={(e) => setBlockReason(e.target.value)}
-              className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
             />
-          </div>
+          </Field>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-amber-600 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-600/30 hover:bg-amber-500 transition-all"
-          >
-            {submitting ? "Kapatılıyor..." : "Bu Saati Kapat"}
-          </button>
+          <Button type="submit" variant="primary" disabled={submitting} className="w-full">
+            <Lock className="w-4 h-4" aria-hidden="true" />
+            {submitting ? "Kapatılıyor..." : "Bu saati kapat"}
+          </Button>
         </form>
       </Modal>
 
       {/* MODAL: Appointment Detail */}
       {selectedAppt && (
-        <Modal
-          isOpen={!!selectedAppt}
-          onClose={() => setSelectedAppt(null)}
-          title="Rezervasyon Detayı"
-        >
-          <div className="space-y-4 text-xs">
-            <div className="p-4 rounded-2xl bg-[#F8F9FC] dark:bg-slate-950/60 border border-[#E4E7EC] dark:border-slate-800 space-y-2.5">
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Müşteri:</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{selectedAppt.customerName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Telefon:</span>
-                <span className="text-slate-800 dark:text-slate-200">{selectedAppt.customerPhone}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Hizmet:</span>
-                <span className="text-[#6246EA] dark:text-indigo-400 font-semibold">{selectedAppt.service?.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Uzman:</span>
-                <span className="text-slate-800 dark:text-slate-200">{selectedAppt.employee?.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Tarih & Saat:</span>
-                <span className="text-slate-900 dark:text-slate-100 font-semibold">{selectedAppt.date} • {selectedAppt.startTime}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 dark:text-slate-400">Tutar:</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatCurrency(selectedAppt.price)}</span>
-              </div>
-              {selectedAppt.notes && (
-                <div className="pt-2 border-t border-[#E4E7EC] dark:border-slate-800">
-                  <span className="text-slate-500 dark:text-slate-400 block mb-1">Müşteri Notu:</span>
-                  <p className="text-slate-700 dark:text-slate-300 italic">{selectedAppt.notes}</p>
-                </div>
-              )}
+        <Modal isOpen={!!selectedAppt} onClose={() => setSelectedAppt(null)} title="Rezervasyon detayı">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-ink">{selectedAppt.customerName}</p>
+              <StatusBadge status={selectedAppt.status} blocked={selectedAppt.isBlockedSlot} />
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <dl className="divide-y divide-line rounded-control border border-line text-sm">
+              {[
+                ["Telefon", selectedAppt.customerPhone],
+                ["Hizmet", selectedAppt.service?.name],
+                ["Uzman", selectedAppt.employee?.name],
+                ["Tarih ve saat", `${selectedAppt.date} · ${selectedAppt.startTime}`],
+                ["Tutar", formatCurrency(selectedAppt.price)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4 px-3 py-2">
+                  <dt className="text-ink-3">{label}</dt>
+                  <dd className="text-right font-medium text-ink tabular-nums">{value || "—"}</dd>
+                </div>
+              ))}
+              {selectedAppt.notes && (
+                <div className="px-3 py-2">
+                  <dt className="text-ink-3">Müşteri notu</dt>
+                  <dd className="mt-1 text-ink-2">{selectedAppt.notes}</dd>
+                </div>
+              )}
+            </dl>
+
+            <div className="flex flex-wrap gap-2">
               {selectedAppt.status !== "CONFIRMED" && (
-                <button
+                <Button
+                  variant="primary"
+                  className="flex-1"
                   onClick={() => handleStatusChange(selectedAppt.id, "CONFIRMED")}
-                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white hover:bg-emerald-500 shadow-sm"
                 >
+                  <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
                   Onayla
-                </button>
+                </Button>
               )}
               {selectedAppt.status !== "COMPLETED" && (
-                <button
-                  onClick={() => handleStatusChange(selectedAppt.id, "COMPLETED")}
-                  className="flex-1 rounded-xl bg-[#6246EA] py-2.5 text-xs font-semibold text-white hover:bg-[#5235D9] shadow-sm"
-                >
+                <Button className="flex-1" onClick={() => handleStatusChange(selectedAppt.id, "COMPLETED")}>
                   Tamamla
-                </button>
+                </Button>
               )}
               {selectedAppt.status !== "CANCELLED" && (
-                <button
+                <Button
+                  variant="danger"
+                  className="flex-1"
                   onClick={() => handleStatusChange(selectedAppt.id, "CANCELLED")}
-                  className="flex-1 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 py-2.5 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20"
                 >
-                  İptal Et
-                </button>
+                  <XCircle className="w-4 h-4" aria-hidden="true" />
+                  İptal et
+                </Button>
               )}
             </div>
           </div>

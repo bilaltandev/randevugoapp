@@ -1,18 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  BarChart3,
-  TrendingUp,
-  Sparkles,
-  Users2,
-  Clock,
-  CalendarCheck,
-  Zap,
-  ArrowUpRight,
-  CheckCircle2,
-} from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { Sparkles, CheckCircle2 } from "lucide-react";
+import { formatCurrency, cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
+import { StatStrip } from "@/components/ui/StatStrip";
 
 interface AnalyticsClientProps {
   business: any;
@@ -87,159 +81,124 @@ export default function AnalyticsClient({
     }
   };
 
+  const repeatRate =
+    customers.length > 0
+      ? Math.round((customers.filter((c) => c.totalAppointments > 1).length / customers.length) * 100)
+      : 0;
+
+  const tips: string[] = aiReport?.actionableTips || [
+    "Hafta ortası sabahları (10:00 - 13:00) için 'Erken Saat Bakım Kampanyası' tanımlayarak boş koltukları doldurun.",
+    "En popüler hizmetinizin yanına hızlı bir tamamlayıcı bakım ekleyerek sepet tutarınızı %25 artırabilirsiniz.",
+    "WhatsApp ile randevudan 2 saat önce hatırlatma göndererek randevuya gelmeme (no-show) oranını sıfıra yaklaştırın.",
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-            İstatistikler & Yapay Zeka Analizi
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            İşletmenizin performans metrikleri, yoğun saat dağılımı ve yapay zeka büyüme önerileri.
-          </p>
-        </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="İstatistikler"
+        description="Performans metrikleri, yoğun gün ve saat dağılımı, büyüme önerileri."
+        actions={
+          <Button onClick={handleGenerateAiReport} disabled={loadingAi}>
+            <Sparkles className="w-4 h-4" aria-hidden="true" />
+            {loadingAi ? "Analiz ediliyor..." : "Yapay zeka analizi"}
+          </Button>
+        }
+      />
 
-        <button
-          onClick={handleGenerateAiReport}
-          disabled={loadingAi}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 hover:opacity-95 transition-all self-start sm:self-auto"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>{loadingAi ? "AI İnceliyor..." : "Yapay Zeka Analizini Çalıştır"}</span>
-        </button>
+      <StatStrip
+        stats={[
+          { label: "Toplam gelir", value: formatCurrency(totalRevenue), hint: "Onaylanan ve tamamlanan" },
+          { label: "Ortalama randevu tutarı", value: formatCurrency(avgTicket), hint: "Randevu başına" },
+          { label: "Toplam randevu", value: appointments.length, hint: `${completed.length} onaylı/tamamlanan` },
+          { label: "Tekrar gelen müşteri", value: `%${repeatRate}`, hint: `${customers.length} müşteri içinde` },
+        ]}
+      />
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* Days of week: horizontal bars, single series */}
+        <Panel title="Haftalık talep dağılımı" description="Güne göre randevu sayısı">
+          <ul className="space-y-2.5">
+            {Object.entries(dayCounts).map(([day, count]) => {
+              const pct = (count / maxDayCount) * 100;
+              return (
+                <li key={day} className="grid grid-cols-[5.5rem_1fr_2.5rem] items-center gap-3 text-sm" title={`${day}: ${count} randevu`}>
+                  <span className="text-ink-2">{day}</span>
+                  <span className="h-2 overflow-hidden rounded-full bg-surface-muted">
+                    <span
+                      className="block h-full rounded-full bg-brand"
+                      style={{ width: count > 0 ? `${Math.max(2, pct)}%` : 0 }}
+                    />
+                  </span>
+                  <span className="text-right tabular-nums text-ink">{count}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </Panel>
+
+        {/* Hours: column chart, peak labelled */}
+        <Panel title="Saatlere göre yoğunluk" description="Başlangıç saatine göre randevu sayısı">
+          <div className="flex h-44 items-end gap-1.5" role="list">
+            {Object.entries(hourCounts).map(([hour, count]) => {
+              const isPeak = count >= maxHourCount && count > 0;
+              const pct = (count / maxHourCount) * 100;
+              return (
+                <div
+                  key={hour}
+                  role="listitem"
+                  className="group flex h-full flex-1 flex-col items-center justify-end gap-1"
+                  title={`${hour}: ${count} randevu`}
+                >
+                  <span className={cn("text-xs tabular-nums", isPeak ? "font-medium text-ink" : "text-ink-3")}>
+                    {count > 0 ? count : ""}
+                  </span>
+                  <span
+                    className={cn(
+                      "w-full rounded-t-[4px] transition-colors",
+                      count > 0 ? (isPeak ? "bg-brand" : "bg-brand/45 group-hover:bg-brand/70") : "bg-surface-muted"
+                    )}
+                    style={{ height: count > 0 ? `${Math.max(4, pct * 0.8)}%` : "2px" }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex gap-1.5 border-t border-line pt-2">
+            {Object.keys(hourCounts).map((hour) => (
+              <span key={hour} className="flex-1 text-center text-[10px] tabular-nums text-ink-3 sm:text-xs">
+                {hour.slice(0, 2)}
+              </span>
+            ))}
+          </div>
+        </Panel>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-xl">
-          <span className="text-xs text-slate-400 font-medium">Toplam Randevu Geliri</span>
-          <div className="text-2xl font-extrabold text-emerald-400 mt-2">
-            {formatCurrency(totalRevenue)}
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Tamamlanan randevulardan</p>
-        </div>
-
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-xl">
-          <span className="text-xs text-slate-400 font-medium">Ortalama Randevu Tutarı (AOV)</span>
-          <div className="text-2xl font-extrabold text-indigo-400 mt-2">
-            {formatCurrency(avgTicket)}
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Müşteri sepet büyüklüğü</p>
-        </div>
-
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-xl">
-          <span className="text-xs text-slate-400 font-medium">Tekrar Eden Müşteri Oranı</span>
-          <div className="text-2xl font-extrabold text-amber-400 mt-2">
-            %{customers.length > 0 ? Math.round((customers.filter((c) => c.totalAppointments > 1).length / customers.length) * 100) : 0}
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Müşteri sadakat seviyesi</p>
-        </div>
-      </div>
-
-      {/* AI Intelligence Report Card */}
-      <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 to-slate-900/80 p-6 backdrop-blur-xl">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="rounded-xl bg-indigo-500/20 p-2 text-indigo-400 border border-indigo-500/30">
-            <Zap className="w-5 h-5" />
-          </div>
+      {/* Growth insights */}
+      <Panel
+        title="Büyüme önerileri"
+        description={aiReport ? "Yapay zeka analizinden" : "Genel öneriler · kişisel analiz için “Yapay zeka analizi”ni çalıştırın"}
+      >
+        <div className="space-y-4">
           <div>
-            <h3 className="text-base font-bold text-slate-100">RandevuGo AI Büyüme Analizi</h3>
-            <span className="text-xs text-indigo-300">Yapay zeka optimizasyon modeli</span>
-          </div>
-        </div>
-
-        <div className="space-y-4 text-xs mt-4">
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-            <span className="font-semibold text-slate-200 block mb-1">
-              📊 Yoğun Saatler & Talep Tespiti:
-            </span>
-            <p className="text-slate-300 leading-relaxed">
+            <h3 className="text-sm font-medium text-ink">Yoğun saatler ve talep</h3>
+            <p className="mt-1 text-sm leading-relaxed text-ink-2">
               {aiReport?.peakHoursAnalysis ||
                 "Hafta sonu Cumartesi 13:00 - 18:00 ve hafta içi 17:30 sonrası randevu talebiniz %85'e çıkıyor. Pazartesi ve Salı sabahları ise doluluk %30 seviyesinde kalıyor."}
             </p>
           </div>
-
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2">
-            <span className="font-semibold text-slate-200 block mb-1">
-              🎯 Aksiyon Alınabilir İpuçları:
-            </span>
-            {(
-              aiReport?.actionableTips || [
-                "Hafta ortası sabahları (10:00 - 13:00) için 'Erken Saat Bakım Kampanyası' tanımlayarak boş koltukları doldurun.",
-                "En popüler hizmetinizin yanına hızlı bir tamamlayıcı bakım ekleyerek sepet tutarınızı %25 artırabilirsiniz.",
-                "WhatsApp ile randevudan 2 saat önce hatırlatma göndererek randevuya gelmeme (no-show) oranını sıfıra yaklaştırın.",
-              ]
-            ).map((tip: string, idx: number) => (
-              <div key={idx} className="flex items-start gap-2 text-slate-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>{tip}</span>
-              </div>
-            ))}
+          <div>
+            <h3 className="text-sm font-medium text-ink">Uygulanabilir öneriler</h3>
+            <ul className="mt-2 space-y-2">
+              {tips.map((tip, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-sm text-ink-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </div>
-
-      {/* Visual Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Days of Week Chart */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl">
-          <div className="flex items-center gap-2 mb-4">
-            <CalendarCheck className="w-4 h-4 text-indigo-400" />
-            <h3 className="text-sm font-bold text-slate-100">Haftalık Talep Dağılımı</h3>
-          </div>
-
-          <div className="space-y-3">
-            {Object.entries(dayCounts).map(([day, count]) => {
-              const pct = Math.round((count / maxDayCount) * 100);
-              return (
-                <div key={day} className="space-y-1 text-xs">
-                  <div className="flex justify-between text-slate-300">
-                    <span>{day}</span>
-                    <span className="font-semibold text-indigo-400">{count} randevu</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"
-                      style={{ width: `${Math.max(6, pct)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Peak Hours Chart */}
-        <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-4 h-4 text-indigo-400" />
-            <h3 className="text-sm font-bold text-slate-100">Günün Saatlerine Göre Yoğunluk</h3>
-          </div>
-
-          <div className="grid grid-cols-6 gap-2 text-center text-xs">
-            {Object.entries(hourCounts).map(([hour, count]) => {
-              const isPeak = count >= maxHourCount && count > 0;
-              return (
-                <div
-                  key={hour}
-                  className={`p-2.5 rounded-xl border flex flex-col justify-between h-20 transition-all ${
-                    isPeak
-                      ? "border-emerald-500/40 bg-emerald-950/20 text-emerald-300 font-bold"
-                      : "border-slate-800 bg-slate-950/40 text-slate-400"
-                  }`}
-                >
-                  <span className="text-[10px] text-slate-500">{hour}</span>
-                  <div className="my-auto font-bold text-base text-slate-200">{count}</div>
-                  <span className="text-[9px] uppercase tracking-wider opacity-75">
-                    {count === 0 ? "Sakin" : isPeak ? "En Yoğun" : "Normal"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      </Panel>
     </div>
   );
 }

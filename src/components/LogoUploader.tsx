@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { Upload, Trash2, Loader2, Image as ImageIcon, CheckCircle2, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface LogoUploaderProps {
   currentLogo?: string | null;
@@ -113,22 +114,19 @@ export function LogoUploader({
   };
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-        {/* Logo Preview Avatar */}
-        <div className="relative group shrink-0 self-start sm:self-center">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-950/80 flex items-center justify-center overflow-hidden transition-all shadow-md group-hover:border-indigo-500">
+    <div className={cn("space-y-3", className)}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        {/* Preview */}
+        <div className="relative shrink-0 self-start sm:self-center">
+          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-panel border border-line bg-surface-muted">
             {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={businessName}
-                className="w-full h-full object-contain p-1.5"
-              />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={businessName} className="h-full w-full object-contain p-1.5" />
             ) : (
-              <div className="flex flex-col items-center justify-center text-slate-500 gap-1 p-2 text-center">
-                <ImageIcon className="w-7 h-7 text-slate-600 group-hover:text-indigo-400 transition-colors" />
-                <span className="text-[10px] text-slate-500 font-medium">Logo Yok</span>
-              </div>
+              <span className="flex flex-col items-center gap-1 text-ink-3">
+                <ImageIcon className="h-6 w-6" aria-hidden="true" />
+                <span className="text-xs">Logo yok</span>
+              </span>
             )}
           </div>
 
@@ -136,76 +134,75 @@ export function LogoUploader({
             <button
               type="button"
               onClick={handleRemove}
-              title="Logoyu Kaldır"
-              className="absolute -top-2 -right-2 p-1.5 rounded-full bg-rose-500/90 text-white shadow-lg hover:bg-rose-600 transition-all active:scale-95"
+              title="Logoyu kaldır"
+              aria-label="Logoyu kaldır"
+              className="absolute -right-2 -top-2 rounded-full border border-line bg-surface p-1 text-ink-3 shadow-xs transition-colors hover:text-danger"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
 
-        {/* Upload Drop Zone / Controls */}
-        <div className="flex-1">
-          <div
-            onDragOver={(e) => {
+        {/* Drop zone */}
+        <div
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              setIsDragOver(true);
-            }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`cursor-pointer rounded-2xl border-2 border-dashed p-4 sm:p-5 text-center transition-all ${
-              isDragOver
-                ? "border-indigo-500 bg-indigo-500/10"
-                : "border-slate-800 bg-slate-950/40 hover:border-slate-700 hover:bg-slate-900/60"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              className="hidden"
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
+              fileInputRef.current?.click();
+            }
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "flex-1 cursor-pointer rounded-panel border border-dashed p-4 text-center transition-colors",
+            isDragOver ? "border-brand bg-brand-soft" : "border-line-strong hover:bg-surface-muted"
+          )}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={handleFileChange}
+            disabled={isUploading}
+          />
 
-            <div className="flex flex-col items-center justify-center gap-1.5">
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
-                  <span className="text-xs font-semibold text-slate-200">
-                    Logo yükleniyor ve kaydediliyor...
-                  </span>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400">
-                    <Upload className="w-4 h-4" />
-                    <span>Bilgisayarınızdan Logo Seçin veya Sürükleyin</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    PNG, JPG, WebP veya SVG • Maksimum 5MB • Sayfanızın başlığında görünür
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
+          {isUploading ? (
+            <span className="flex items-center justify-center gap-2 text-sm text-ink-2">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              Logo yükleniyor...
+            </span>
+          ) : (
+            <>
+              <span className="flex items-center justify-center gap-2 text-sm font-medium text-ink">
+                <Upload className="h-4 w-4 text-ink-3" aria-hidden="true" />
+                Logo seçin veya buraya sürükleyin
+              </span>
+              <span className="mt-1 block text-xs text-ink-3">PNG, JPG, WebP veya SVG · en fazla 5 MB</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Notifications */}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl bg-rose-500/10 border border-rose-500/30 p-2.5 text-xs text-rose-300">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{error}</span>
-        </div>
+        <p role="alert" className="flex items-center gap-2 rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
+          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {error}
+        </p>
       )}
 
       {success && (
-        <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-2.5 text-xs text-emerald-300">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{success}</span>
-        </div>
+        <p role="status" className="flex items-center gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {success}
+        </p>
       )}
     </div>
   );

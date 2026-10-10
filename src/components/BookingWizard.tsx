@@ -1,28 +1,23 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import confetti from "canvas-confetti";
 import {
-  Calendar,
   Clock,
-  User,
   Phone,
-  Mail,
   CheckCircle2,
   ChevronRight,
   ChevronLeft,
-  Scissors,
-  Sparkles,
   MessageSquare,
   AlertCircle,
   Car,
-  Utensils,
   UtensilsCrossed,
   LayoutGrid,
-  Layers,
   Check,
+  Loader2,
+  Users,
 } from "lucide-react";
 import { formatCurrency, getDefaultStaffSelection } from "@/lib/utils";
+import { publicThemeVars, pt, toDateKey, formatDateKey, useTodayKey } from "@/components/themes/publicTheme";
 import { RestaurantTable, RestaurantArea } from "./restaurant/types";
 import { FloorPlanCanvas } from "./restaurant/FloorPlanCanvas";
 import { TableCardPreview } from "./restaurant/TableCardPreview";
@@ -80,6 +75,8 @@ interface BookingWizardProps {
   themeColors?: BookingThemeColors | null;
   /** Optional: border radius preset */
   themeRadius?: "none" | "small" | "medium" | "large" | "full";
+  /** Preselects a service picked elsewhere on the page; bump `nonce` to repeat the same pick. */
+  requestedService?: { id: string; nonce: number } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,8 +102,8 @@ const RADIUS: Record<string, { card: string; button: string; badge: string; inpu
   none:   { card: "rounded-none",  button: "rounded-none",  badge: "rounded-none",  input: "rounded-none"  },
   small:  { card: "rounded-lg",    button: "rounded-md",    badge: "rounded-md",    input: "rounded-md"    },
   medium: { card: "rounded-2xl",   button: "rounded-xl",    badge: "rounded-lg",    input: "rounded-xl"    },
-  large:  { card: "rounded-3xl",   button: "rounded-2xl",   badge: "rounded-xl",    input: "rounded-xl"    },
-  full:   { card: "rounded-3xl",   button: "rounded-full",  badge: "rounded-full",  input: "rounded-2xl"   },
+  large:  { card: "rounded-2xl",   button: "rounded-xl",    badge: "rounded-xl",    input: "rounded-xl"    },
+  full:   { card: "rounded-2xl",   button: "rounded-full",  badge: "rounded-full",  input: "rounded-xl"    },
 };
 
 function isLightColor(colorStr?: string): boolean {
@@ -126,6 +123,7 @@ export function BookingWizard({
   employees,
   themeColors,
   themeRadius = "large",
+  requestedService = null,
 }: BookingWizardProps) {
   const c = themeColors ?? DEFAULT_COLORS;
   const r = RADIUS[themeRadius] ?? RADIUS.large;
@@ -362,7 +360,6 @@ export function BookingWizard({
       }
       setBookingResult(data);
       setStep(5);
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     } catch {
       setSubmitError("Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.");
     } finally {
@@ -372,584 +369,551 @@ export function BookingWizard({
 
   const selectedStaffMember = employees.find((e) => e.id === selectedEmployee);
 
+  // A service picked from the page's service list preselects it here.
+  const [handledRequest, setHandledRequest] = useState<number | null>(null);
+  if (requestedService && requestedService.nonce !== handledRequest) {
+    setHandledRequest(requestedService.nonce);
+    const srv = services.find((s) => s.id === requestedService.id);
+    if (srv) {
+      setSelectedService(srv);
+      setSelectedTime("");
+      setBookingResult(null);
+      setStep(1);
+    }
+  }
+
+  // Next 14 days for the quick date strip (built on the client only, to match the visitor's clock).
+  const today = useTodayKey();
+  const quickDays = useMemo(() => {
+    if (!today) return [];
+    const [y, m, d] = today.split("-").map(Number);
+    return Array.from({ length: 14 }, (_, i) => new Date(y, m - 1, d + i));
+  }, [today]);
+  const dateInStrip = quickDays.some((d) => toDateKey(d) === selectedDate);
+
+  // Group slots into parts of the day for easier scanning.
+  const slotGroups = useMemo(() => {
+    const groups: { label: string; slots: string[] }[] = [
+      { label: "Sabah", slots: [] },
+      { label: "Öğleden sonra", slots: [] },
+      { label: "Akşam", slots: [] },
+    ];
+    for (const slot of availableSlots) {
+      const h = Number(slot.split(":")[0]);
+      groups[h < 12 ? 0 : h < 17 ? 1 : 2].slots.push(slot);
+    }
+    return groups.filter((g) => g.slots.length > 0);
+  }, [availableSlots]);
+
+  const vars = publicThemeVars(c, c.primaryText, isLight);
+  const priceLabel = (price: number) => (price === 0 ? "Ücretsiz" : formatCurrency(price));
+  const currentStepIndex = Math.max(0, stepsList.findIndex((s) => s.id === step));
+
   // Expired subscription guard
   if (business.subscription?.status === "expired") {
     return (
-      <div
-        className={`border p-8 text-center max-w-xl mx-auto ${r.card}`}
-        style={{
-          backgroundColor: `${c.surface}`,
-          borderColor: "rgba(239,68,68,0.3)",
-        }}
-      >
-        <AlertCircle className="w-12 h-12 mx-auto mb-3" style={{ color: "#F87171" }} />
-        <h3 className="text-xl font-bold mb-2" style={{ color: c.text }}>
-          Rezervasyon Sistemi Kapalıdır
-        </h3>
-        <p className="text-sm" style={{ color: c.mutedText }}>
-          Bu işletmenin online randevu kotası veya aboneliği şu an aktif değildir.
-          Lütfen doğrudan telefonla iletişime geçiniz:
+      <div style={vars} className={`w-full border p-6 text-center sm:p-8 ${pt.surface} ${pt.border} ${r.card}`}>
+        <AlertCircle className="mx-auto mb-3 h-8 w-8 text-(color:--t-warning)" aria-hidden="true" />
+        <h3 className={`text-lg font-semibold ${pt.text}`}>Online randevu şu an kapalı</h3>
+        <p className={`mx-auto mt-1 max-w-sm text-sm ${pt.muted}`}>
+          Bu işletme şu anda online randevu almıyor. Randevu için işletmeyi doğrudan arayabilirsiniz.
         </p>
-        <p className="font-semibold mt-3 text-lg" style={{ color: c.primary }}>
-          {business.phone}
-        </p>
+        {business.phone && (
+          <a
+            href={`tel:${business.phone}`}
+            className={`mt-4 inline-flex h-11 items-center justify-center gap-2 px-5 text-sm ${pt.primaryBtn} ${pt.focus} ${r.button}`}
+          >
+            <Phone className="h-4 w-4" aria-hidden="true" />
+            {business.phone}
+          </a>
+        )}
       </div>
     );
   }
 
-  // Shared input className
-  const inputCls = `w-full ${r.input} border px-4 py-2.5 text-sm focus:outline-none transition-colors`;
+  const backButton = (
+    <button
+      type="button"
+      onClick={handlePrevStep}
+      className={`inline-flex h-11 items-center gap-1.5 px-4 text-sm ${pt.secondaryBtn} ${pt.focus} ${r.button}`}
+    >
+      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+      Geri
+    </button>
+  );
+
+  const nextButton = (label: string, disabled = false) => (
+    <button
+      type="button"
+      onClick={handleNextStep}
+      disabled={disabled}
+      className={`inline-flex h-11 flex-1 items-center justify-center gap-2 px-5 text-sm sm:flex-none ${pt.primaryBtn} ${pt.focus} ${r.button}`}
+    >
+      {label}
+      <ChevronRight className="h-4 w-4" aria-hidden="true" />
+    </button>
+  );
+
+  const stepHeading = (title: string, hint?: string) => (
+    <div className="mb-5">
+      <h3 className={`text-lg font-semibold tracking-tight ${pt.text}`}>{title}</h3>
+      {hint && <p className={`mt-0.5 text-sm ${pt.muted}`}>{hint}</p>}
+    </div>
+  );
+
+  const radioDot = (selected: boolean) => (
+    <span
+      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+        selected ? "border-(color:--t-primary) bg-(color:--t-primary)" : pt.border2
+      }`}
+      aria-hidden="true"
+    >
+      {selected && <Check className="h-3 w-3 text-(color:--t-on-primary)" strokeWidth={3} />}
+    </span>
+  );
+
+  const notice = (tone: "warning" | "danger" | "neutral", children: React.ReactNode) => (
+    <div
+      role={tone === "danger" ? "alert" : "status"}
+      className={`flex items-start gap-2 border px-3.5 py-3 text-sm ${r.input} ${
+        tone === "warning"
+          ? "border-(color:--t-warning)/30 bg-(color:--t-warning-bg) text-(color:--t-warning)"
+          : tone === "danger"
+          ? "border-(color:--t-danger)/30 bg-(color:--t-danger-bg) text-(color:--t-danger)"
+          : `${pt.border} ${pt.surface2} ${pt.muted}`
+      }`}
+    >
+      {tone !== "neutral" && <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
+      <div>{children}</div>
+    </div>
+  );
+
+  // Running summary of what's been picked so far (from step 2 on).
+  const summaryItems = [
+    selectedService && {
+      label: "Hizmet",
+      value: `${selectedService.name} · ${selectedService.durationMinutes} dk`,
+      onEdit: () => setStep(1),
+    },
+    staffSelectionEnabled &&
+      step > 2 && {
+        label: "Uzman",
+        value: selectedStaffMember ? selectedStaffMember.name : "Fark etmez",
+        onEdit: () => setStep(2),
+      },
+    step > 3 &&
+      selectedTime && {
+        label: "Tarih",
+        value: `${formatDateKey(selectedDate, { weekday: "short", day: "numeric", month: "long" })} · ${selectedTime}`,
+        onEdit: () => setStep(3),
+      },
+  ].filter(Boolean) as { label: string; value: string; onEdit: () => void }[];
 
   return (
-    <div
-      className={`w-full max-w-3xl mx-auto shadow-2xl overflow-hidden ${r.card}`}
-      style={{
-        backgroundColor: c.surface,
-        borderWidth: 1,
-        borderStyle: "solid",
-        borderColor: c.border,
-      }}
-    >
-      {/* ── Progress Header ── */}
-      <div
-        className="border-b px-6 py-4"
-        style={{
-          backgroundColor: c.surfaceHover,
-          borderColor: c.border,
-        }}
-      >
-        <div className="flex items-center justify-between">
-          {[
-            { num: 1, label: "Hizmet" },
-            { num: 2, label: "Uzman" },
-            { num: 3, label: "Tarih & Saat" },
-            { num: 4, label: "İletişim" },
-          ].map((item) => (
-            <div key={item.num} className="flex items-center gap-2">
-              <div
-                className={`flex h-7 w-7 items-center justify-center ${r.badge} text-xs font-bold transition-all`}
-                style={
-                  step === item.num
-                    ? {
-                        backgroundColor: c.primary,
-                        color: c.primaryText,
-                        boxShadow: `0 0 0 4px ${c.accentGlow}`,
-                      }
-                    : step > item.num
-                    ? {
-                        backgroundColor: c.badgeBg,
-                        color: c.primary,
-                        border: `1px solid ${c.borderLight || c.border}`,
-                      }
-                    : {
-                        backgroundColor: c.surfaceHover,
-                        color: c.mutedText,
-                        border: `1px solid ${c.border}`,
-                      }
-                }
+    <div style={vars} className={`w-full overflow-hidden border ${pt.surface} ${pt.border} ${r.card}`}>
+      {/* ── Progress ── */}
+      {step <= 4 && (
+        <div className={`border-b px-4 pb-3 pt-4 sm:px-6 ${pt.border}`}>
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className={`font-medium ${pt.text}`}>{stepsList[currentStepIndex]?.label}</span>
+            <span className={`text-xs tabular-nums ${pt.muted}`}>
+              Adım {currentStepIndex + 1} / {stepsList.length}
+            </span>
+          </div>
+          <ol className="mt-2.5 flex gap-1.5" aria-label="Rezervasyon adımları">
+            {stepsList.map((s, i) => (
+              <li
+                key={s.id}
+                className={`h-1 flex-1 rounded-full ${i <= currentStepIndex ? "bg-(color:--t-primary)" : "bg-(color:--t-border)"}`}
+                aria-current={i === currentStepIndex ? "step" : undefined}
               >
-                {step > item.num ? <CheckCircle2 className="w-4 h-4" /> : item.num}
-              </div>
-              <span
-                className="hidden sm:inline text-xs font-medium"
-                style={{
-                  color: step === item.num ? c.primary : c.mutedText,
-                  fontWeight: step === item.num ? 700 : 500,
-                }}
-              >
-                {item.label}
-              </span>
-              {item.num < 4 && (
-                <div
-                  className="hidden sm:block w-8 h-[1px] ml-2"
-                  style={{
-                    backgroundColor: step > item.num ? c.primary : c.border,
-                    opacity: step > item.num ? 0.7 : 1,
-                  }}
-                />
-              )}
-            </div>
-          ))}
+                <span className="sr-only">{s.label}</span>
+              </li>
+            ))}
+          </ol>
+
+          {step > 1 && summaryItems.length > 0 && (
+            <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+              {summaryItems.map((item) => (
+                <div key={item.label} className="flex min-w-0 items-center gap-1.5">
+                  <dt className={pt.muted}>{item.label}:</dt>
+                  <dd className={`truncate font-medium ${pt.text}`}>{item.value}</dd>
+                  <button
+                    type="button"
+                    onClick={item.onEdit}
+                    className={`shrink-0 underline-offset-2 hover:underline ${pt.accent}`}
+                  >
+                    Değiştir
+                  </button>
+                </div>
+              ))}
+            </dl>
+          )}
         </div>
-      </div>
+      )}
 
-      <div className="p-6 sm:p-8">
-
-        {/* ── STEP 1: Select Service ── */}
+      <div className="p-4 sm:p-6">
+        {/* ── STEP 1: Service ── */}
         {step === 1 && (
           <div>
-            <h3 className="text-xl font-bold mb-1" style={{ color: c.text }}>
-              Hizmet Seçimi
-            </h3>
-            <p className="text-xs mb-6" style={{ color: c.mutedText }}>
-              Lütfen almak istediğiniz işlemi listeden belirleyin.
-            </p>
+            {stepHeading(isRestaurant ? "Rezervasyon türü" : "Hizmet seçin", "Almak istediğiniz hizmeti seçin.")}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-[380px] overflow-y-auto pr-1">
-              {services.map((srv) => {
-                const isSelected = selectedService?.id === srv.id;
-                return (
-                  <div
-                    key={srv.id}
-                    onClick={() => setSelectedService(srv)}
-                    className={`cursor-pointer border p-4 transition-all relative ${r.card}`}
-                    style={{
-                      backgroundColor: isSelected ? c.badgeBg : c.surfaceHover,
-                      borderColor: isSelected ? c.primary : c.border,
-                      boxShadow: isSelected ? `0 0 0 2px ${c.accentGlow}, 0 4px 16px ${c.accentGlow}` : undefined,
-                    }}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-semibold text-sm" style={{ color: c.text }}>
-                        {srv.name}
-                      </h4>
-                      <span
-                        className={`font-bold text-sm px-2 py-0.5 ${r.badge} border`}
-                        style={{
-                          backgroundColor: isSelected ? c.primary : c.badgeBg,
-                          color: isSelected ? c.primaryText : c.badgeText,
-                          borderColor: isSelected ? c.primary : (c.borderLight || c.border),
-                        }}
-                      >
-                        {srv.price === 0 ? "Ücretsiz" : formatCurrency(srv.price)}
+            {services.length === 0 ? (
+              notice(
+                "neutral",
+                <>
+                  Bu işletme henüz online randevuya açık bir hizmet eklememiş.
+                  {business.phone && (
+                    <>
+                      {" "}Randevu için{" "}
+                      <a href={`tel:${business.phone}`} className={`font-medium underline ${pt.text}`}>
+                        {business.phone}
+                      </a>{" "}
+                      numarasını arayabilirsiniz.
+                    </>
+                  )}
+                </>
+              )
+            ) : (
+              <div role="radiogroup" aria-label="Hizmetler" className="space-y-2">
+                {services.map((srv) => {
+                  const isSelected = selectedService?.id === srv.id;
+                  return (
+                    <button
+                      key={srv.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setSelectedService(srv)}
+                      className={`flex w-full items-start gap-3 border p-3.5 text-left transition-colors sm:p-4 ${pt.focus} ${r.input} ${
+                        isSelected ? pt.selected : `${pt.border} hover:bg-(color:--t-surface-2)`
+                      }`}
+                    >
+                      {radioDot(isSelected)}
+                      <span className="min-w-0 flex-1">
+                        <span className={`block text-sm font-medium ${pt.text}`}>{srv.name}</span>
+                        {srv.description && (
+                          <span className={`mt-0.5 line-clamp-2 block text-sm ${pt.muted}`}>{srv.description}</span>
+                        )}
+                        <span className={`mt-1 flex items-center gap-1 text-xs ${pt.muted}`}>
+                          <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                          {srv.durationMinutes} dk
+                        </span>
                       </span>
-                    </div>
-                    {srv.description && (
-                      <p className="text-xs line-clamp-2 mb-3" style={{ color: c.mutedText }}>
-                        {srv.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1.5 text-xs" style={{ color: c.mutedText }}>
-                      <Clock className="w-3.5 h-3.5" style={{ color: c.primary }} />
-                      <span>{srv.durationMinutes} dakika</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                      <span className={`shrink-0 text-sm font-semibold tabular-nums ${pt.text}`}>
+                        {priceLabel(srv.price)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-            <div className="mt-8 flex justify-end">
-              <button
-                onClick={handleNextStep}
-                disabled={!selectedService}
-                className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${r.button}`}
-                style={{
-                  backgroundColor: c.primary,
-                  color: c.primaryText,
-                  boxShadow: `0 4px 20px ${c.accentGlow}`,
-                }}
-              >
-                <span>Devam Et: Uzman Seç</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+            <div className="mt-6 flex justify-end">
+              {nextButton("Devam et", !selectedService)}
             </div>
           </div>
         )}
 
-        {/* ── STEP 2: Select Specialist ── */}
+        {/* ── STEP 2: Specialist ── */}
         {step === 2 && (
           <div>
-            <h3 className="text-xl font-bold mb-1" style={{ color: c.text }}>
-              Uzman / Çalışan Seçimi
-            </h3>
-            <p className="text-xs mb-6" style={{ color: c.mutedText }}>
-              Hizmeti kimden almak istersiniz?
-            </p>
+            {stepHeading("Uzman seçin", "Hizmeti kimden almak istersiniz?")}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-8">
-              {/* Any available */}
-              <div
+            <div role="radiogroup" aria-label="Uzmanlar" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={selectedEmployee === "any"}
                 onClick={() => setSelectedEmployee("any")}
-                className={`cursor-pointer border p-4 transition-all flex items-center gap-3.5 ${r.card}`}
-                style={{
-                  backgroundColor: selectedEmployee === "any" ? c.badgeBg : c.surfaceHover,
-                  borderColor: selectedEmployee === "any" ? c.primary : c.border,
-                  boxShadow: selectedEmployee === "any" ? `0 0 0 2px ${c.accentGlow}` : undefined,
-                }}
+                className={`flex items-center gap-3 border p-3.5 text-left transition-colors ${pt.focus} ${r.input} ${
+                  selectedEmployee === "any" ? pt.selected : `${pt.border} hover:bg-(color:--t-surface-2)`
+                }`}
               >
-                <div
-                  className={`flex h-12 w-12 items-center justify-center font-bold ${r.badge} border`}
-                  style={{
-                    backgroundColor: c.badgeBg,
-                    color: c.primary,
-                    borderColor: `${c.primary}30`,
-                  }}
-                >
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm" style={{ color: c.text }}>
-                    Fark Etmez / İlk Müsait
-                  </h4>
-                  <p className="text-xs" style={{ color: c.mutedText }}>
-                    En erken randevu saatini bulur
-                  </p>
-                </div>
-              </div>
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${pt.border} ${pt.surface2}`}>
+                  <Users className={`h-5 w-5 ${pt.muted}`} aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className={`block text-sm font-medium ${pt.text}`}>Fark etmez</span>
+                  <span className={`block text-xs ${pt.muted}`}>İlk müsait uzman</span>
+                </span>
+                {radioDot(selectedEmployee === "any")}
+              </button>
 
-              {employees.map((emp) => {
+              {eligibleEmployees.map((emp) => {
                 const isSelected = selectedEmployee === emp.id;
                 return (
-                  <div
+                  <button
                     key={emp.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
                     onClick={() => setSelectedEmployee(emp.id)}
-                    className={`cursor-pointer border p-4 transition-all flex items-center gap-3.5 ${r.card}`}
-                    style={{
-                      backgroundColor: isSelected ? c.badgeBg : c.surfaceHover,
-                      borderColor: isSelected ? c.primary : c.border,
-                      boxShadow: isSelected ? `0 0 0 2px ${c.accentGlow}` : undefined,
-                    }}
+                    className={`flex items-center gap-3 border p-3.5 text-left transition-colors ${pt.focus} ${r.input} ${
+                      isSelected ? pt.selected : `${pt.border} hover:bg-(color:--t-surface-2)`
+                    }`}
                   >
                     {emp.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={emp.photo}
-                        alt={emp.name}
-                        className={`w-12 h-12 object-cover border ${r.badge}`}
-                        style={{ borderColor: c.borderLight }}
+                        alt=""
+                        className={`h-11 w-11 shrink-0 rounded-full border object-cover ${pt.border}`}
                       />
                     ) : (
-                      <div
-                        className={`flex h-12 w-12 items-center justify-center font-bold text-base ${r.badge} border`}
-                        style={{
-                          backgroundColor: c.badgeBg,
-                          color: c.primary,
-                          borderColor: c.borderLight,
-                        }}
+                      <span
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${pt.border} ${pt.surface2} ${pt.text}`}
                       >
-                        {emp.name.slice(0, 1)}
-                      </div>
+                        {emp.name.slice(0, 1).toLocaleUpperCase("tr-TR")}
+                      </span>
                     )}
-                    <div>
-                      <h4 className="font-semibold text-sm" style={{ color: c.text }}>
-                        {emp.name}
-                      </h4>
-                      <p className="text-xs" style={{ color: c.primary }}>
-                        {emp.specialty}
-                      </p>
-                    </div>
-                  </div>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block truncate text-sm font-medium ${pt.text}`}>{emp.name}</span>
+                      {emp.specialty && <span className={`block truncate text-xs ${pt.muted}`}>{emp.specialty}</span>}
+                    </span>
+                    {radioDot(isSelected)}
+                  </button>
                 );
               })}
             </div>
 
-            <div className="flex justify-between items-center">
-              <button
-                onClick={handlePrevStep}
-                className={`inline-flex items-center gap-1.5 border px-4 py-2.5 text-xs font-medium transition-colors ${r.button}`}
-                style={{
-                  backgroundColor: c.surfaceHover,
-                  borderColor: c.border,
-                  color: c.mutedText,
-                }}
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Geri</span>
-              </button>
-              <button
-                onClick={handleNextStep}
-                className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold shadow-lg transition-all ${r.button}`}
-                style={{
-                  backgroundColor: c.primary,
-                  color: c.primaryText,
-                  boxShadow: `0 4px 20px ${c.accentGlow}`,
-                }}
-              >
-                <span>Devam Et: Tarih & Saat</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+            <div className="mt-6 flex justify-between gap-2">
+              {backButton}
+              {nextButton("Devam et")}
             </div>
           </div>
         )}
 
-        {/* ── STEP 3: Date & Slot ── */}
+        {/* ── STEP 3: Date & time ── */}
         {step === 3 && (
           <div>
-            <h3 className="text-xl font-bold mb-1" style={{ color: c.text }}>
-              Tarih & Saat Seçimi
-            </h3>
-            <p className="text-xs mb-6" style={{ color: c.mutedText }}>
-              Müsait randevu takviminden size uygun zamanı işaretleyin.
-            </p>
+            {stepHeading("Tarih ve saat", "Size uygun günü ve saati seçin.")}
 
-            <div className="mb-6">
-              <label className="block text-xs font-semibold mb-2" style={{ color: c.text }}>
-                Randevu Tarihi
+            {/* Day strip */}
+            <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6" role="radiogroup" aria-label="Gün">
+              <div className="flex gap-2">
+                {quickDays.map((d) => {
+                  const key = toDateKey(d);
+                  const isSelected = key === selectedDate;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={formatDateKey(key)}
+                      onClick={() => {
+                        setSelectedDate(key);
+                        setSelectedTime("");
+                      }}
+                      className={`flex w-14 shrink-0 flex-col items-center border py-2 transition-colors ${pt.focus} ${r.input} ${
+                        isSelected
+                          ? "border-(color:--t-primary) bg-(color:--t-primary) text-(color:--t-on-primary)"
+                          : `${pt.border} ${pt.text} hover:bg-(color:--t-surface-2)`
+                      }`}
+                    >
+                      <span className={`text-xs ${isSelected ? "" : pt.muted}`}>
+                        {key === today ? "Bugün" : d.toLocaleDateString("tr-TR", { weekday: "short" })}
+                      </span>
+                      <span className="text-lg font-semibold tabular-nums leading-tight">{d.getDate()}</span>
+                      <span className={`text-[11px] ${isSelected ? "" : pt.muted}`}>
+                        {d.toLocaleDateString("tr-TR", { month: "short" })}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <label htmlFor="booking-date" className={pt.muted}>
+                Başka bir tarih:
               </label>
               <input
+                id="booking-date"
                 type="date"
-                min={new Date().toISOString().split("T")[0]}
+                min={today || undefined}
                 value={selectedDate}
-                onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime(""); }}
-                className={`w-full sm:w-64 ${r.input} border px-4 py-2.5 text-sm focus:outline-none`}
-                style={{
-                  backgroundColor: c.surfaceHover,
-                  borderColor: c.border,
-                  color: c.text,
-                  outlineColor: c.primary,
-                  colorScheme: isLight ? "light" : "dark",
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  setSelectedTime("");
                 }}
+                className={`h-9 w-auto ${pt.input} ${r.input} ${!dateInStrip && selectedDate ? "border-(color:--t-primary)" : ""}`}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold mb-2.5" style={{ color: c.text }}>
-                Müsait Saatler ({selectedDate})
-              </label>
+            {/* Slots */}
+            <div className="mt-6">
+              <p className={`mb-2.5 text-sm font-medium ${pt.text}`}>
+                {selectedDate ? formatDateKey(selectedDate) : "Uygun saatler"}
+              </p>
 
               {loadingSlots ? (
-                <div className="p-8 text-center text-sm" style={{ color: c.mutedText }}>
-                  <div
-                    className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2"
-                    style={{ borderColor: `${c.primary} transparent transparent transparent` }}
-                  />
-                  Müsait saatler kontrol ediliyor...
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6" aria-busy="true" aria-label="Saatler yükleniyor">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <span key={i} className={`h-10 animate-pulse ${pt.surface2} ${r.input}`} />
+                  ))}
                 </div>
               ) : slotError ? (
-                <div
-                  className={`p-4 text-xs ${r.card} border`}
-                  style={{
-                    backgroundColor: "rgba(245,158,11,0.08)",
-                    borderColor: "rgba(245,158,11,0.25)",
-                    color: "#FCD34D",
-                  }}
-                >
-                  {slotError}
-                </div>
+                notice("warning", slotError)
               ) : availableSlots.length === 0 ? (
-                <div
-                  className={`p-6 text-center text-xs border ${r.card}`}
-                  style={{
-                    backgroundColor: c.surfaceHover,
-                    borderColor: c.border,
-                    color: c.mutedText,
-                  }}
-                >
-                  Bu tarihte uygun randevu saati kalmadı. Lütfen başka bir gün seçiniz.
-                </div>
+                notice("neutral", "Bu tarihte boş saat kalmadı. Lütfen başka bir gün seçin.")
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2.5 max-h-[220px] overflow-y-auto pr-1">
-                  {availableSlots.map((slot) => {
-                    const isSelected = selectedTime === slot;
-                    return (
-                      <button
-                        key={slot}
-                        type="button"
-                        onClick={() => setSelectedTime(slot)}
-                        className={`py-2 px-3 text-xs font-semibold transition-all ${r.badge} border`}
-                        style={
-                          isSelected
-                            ? {
-                                backgroundColor: c.primary,
-                                color: c.primaryText,
-                                borderColor: c.primary,
-                                boxShadow: `0 2px 12px ${c.accentGlow}`,
-                              }
-                            : {
-                                backgroundColor: c.surfaceHover,
-                                color: c.text,
-                                borderColor: c.border,
-                              }
-                        }
-                      >
-                        {slot}
-                      </button>
-                    );
-                  })}
+                <div className="space-y-4">
+                  {slotGroups.map((group) => (
+                    <div key={group.label}>
+                      <p className={`mb-1.5 text-xs ${pt.muted}`}>{group.label}</p>
+                      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6" role="radiogroup" aria-label={group.label}>
+                        {group.slots.map((slot) => {
+                          const isSelected = selectedTime === slot;
+                          return (
+                            <button
+                              key={slot}
+                              type="button"
+                              role="radio"
+                              aria-checked={isSelected}
+                              onClick={() => setSelectedTime(slot)}
+                              className={`h-10 border text-sm font-medium tabular-nums transition-colors ${pt.focus} ${r.input} ${
+                                isSelected
+                                  ? "border-(color:--t-primary) bg-(color:--t-primary) text-(color:--t-on-primary)"
+                                  : `${pt.border} ${pt.text} hover:bg-(color:--t-surface-2)`
+                              }`}
+                            >
+                              {slot}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Kişi Sayısı & Masa Seçimi for Restaurant */}
+            {/* Restaurant: guests & table */}
             {isRestaurant && (
-              <div className="mt-8 pt-6 border-t" style={{ borderColor: c.border }}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                  <div>
-                    <h4 className="font-bold text-sm flex items-center gap-2" style={{ color: c.text }}>
-                      <UtensilsCrossed className="w-4 h-4" style={{ color: c.primary }} />
-                      <span>Kişi Sayısı & Masa Seçimi</span>
-                    </h4>
-                    <p className="text-xs" style={{ color: c.mutedText }}>
-                      {selectedTime
-                        ? "Kişi sayısını belirleyin ve oturmak istediğiniz masayı seçin."
-                        : "Uygun masaları listelemek için lütfen yukarıdan bir randevu saati seçin."}
-                    </p>
-                  </div>
-
-                  {/* Guest Count Selector */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold" style={{ color: c.mutedText }}>
-                      Kişi:
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 4, 6, 8].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setGuestCount(String(n))}
-                          className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-all ${
-                            guestCount === String(n) ? "shadow-sm" : ""
-                          }`}
-                          style={
-                            guestCount === String(n)
-                              ? { backgroundColor: c.primary, color: c.primaryText, borderColor: c.primary }
-                              : { backgroundColor: c.surfaceHover, color: c.text, borderColor: c.border }
-                          }
-                        >
-                          {n} Kişi
-                        </button>
-                      ))}
-                      <select
-                        value={["1", "2", "4", "6", "8"].includes(guestCount) ? "" : guestCount}
-                        onChange={(e) => {
-                          if (e.target.value) setGuestCount(e.target.value);
-                        }}
-                        className="px-2 py-1 text-xs font-bold rounded-lg border focus:outline-none"
-                        style={{ backgroundColor: c.surfaceHover, color: c.text, borderColor: c.border }}
+              <div className={`mt-6 border-t pt-5 ${pt.border}`}>
+                <p className={`text-sm font-medium ${pt.text}`}>Kişi sayısı</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {[1, 2, 4, 6, 8].map((n) => {
+                    const isSelected = guestCount === String(n);
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => setGuestCount(String(n))}
+                        className={`h-10 min-w-11 border px-3 text-sm font-medium tabular-nums transition-colors ${pt.focus} ${r.input} ${
+                          isSelected
+                            ? "border-(color:--t-primary) bg-(color:--t-primary) text-(color:--t-on-primary)"
+                            : `${pt.border} ${pt.text} hover:bg-(color:--t-surface-2)`
+                        }`}
                       >
-                        <option value="" disabled>
-                          Diğer
-                        </option>
-                        {[3, 5, 7, 9, 10, 12, 16, 20].map((n) => (
-                          <option key={n} value={String(n)}>
-                            {n} Kişi
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                        {n}
+                      </button>
+                    );
+                  })}
+                  <select
+                    aria-label="Diğer kişi sayısı"
+                    value={["1", "2", "4", "6", "8"].includes(guestCount) ? "" : guestCount}
+                    onChange={(e) => {
+                      if (e.target.value) setGuestCount(e.target.value);
+                    }}
+                    className={`h-10 w-auto ${pt.input} ${r.input}`}
+                  >
+                    <option value="" disabled>
+                      Diğer
+                    </option>
+                    {[3, 5, 7, 9, 10, 12, 16, 20].map((n) => (
+                      <option key={n} value={String(n)}>
+                        {n} kişi
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Table Selection Area */}
-                {selectedTime ? (
-                  loadingTables ? (
-                    <div className="p-8 text-center text-xs" style={{ color: c.mutedText }}>
-                      <div
-                        className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2"
-                        style={{ borderColor: `${c.primary} transparent transparent transparent` }}
-                      />
-                      Masalar ve doluluk durumu kontrol ediliyor...
+                <p className={`mt-5 text-sm font-medium ${pt.text}`}>Masa seçimi</p>
+                <p className={`mb-3 text-sm ${pt.muted}`}>
+                  {selectedTime
+                    ? "İsterseniz oturmak istediğiniz masayı seçin."
+                    : "Uygun masaları görmek için önce bir saat seçin."}
+                </p>
+
+                {selectedTime &&
+                  (loadingTables ? (
+                    <div className={`flex items-center gap-2 text-sm ${pt.muted}`} aria-busy="true">
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      Masaların doluluk durumu kontrol ediliyor...
                     </div>
                   ) : restaurantTables.length === 0 ? (
-                    <div
-                      className={`p-5 text-center text-xs border ${r.card}`}
-                      style={{ backgroundColor: c.surfaceHover, borderColor: c.border, color: c.mutedText }}
-                    >
-                      Bu işletmede henüz tanımlanmış masa bulunmuyor. Rezervasyonunuzu masa seçmeden tamamlayabilirsiniz.
-                    </div>
+                    notice("neutral", "Bu işletmede tanımlı masa yok. Rezervasyonunuzu masa seçmeden tamamlayabilirsiniz.")
                   ) : (
-                    <div className="space-y-3.5">
-                      {/* Controls: Area Tabs and View Switcher */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                          <button
-                            type="button"
-                            onClick={() => setActiveTableAreaId("ALL")}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                              activeTableAreaId === "ALL" ? "shadow-sm" : ""
-                            }`}
-                            style={
-                              activeTableAreaId === "ALL"
-                                ? { backgroundColor: c.primary, color: c.primaryText, borderColor: c.primary }
-                                : { backgroundColor: c.surfaceHover, color: c.mutedText, borderColor: c.border }
-                            }
-                          >
-                            Tüm Masalar ({restaurantTables.filter((t) => t.isActive && !t.insufficientCapacity).length})
-                          </button>
-                          {restaurantAreas.map((area) => {
+                    <div className="space-y-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                          {[{ id: "ALL", name: "Tümü" }, ...restaurantAreas].map((area) => {
                             const count = restaurantTables.filter(
-                              (t) => t.areaId === area.id && t.isActive && !t.insufficientCapacity
+                              (t) => (area.id === "ALL" || t.areaId === area.id) && t.isActive && !t.insufficientCapacity
                             ).length;
-                            const isAreaActive = activeTableAreaId === area.id;
+                            const isActive = activeTableAreaId === area.id;
                             return (
                               <button
                                 key={area.id}
                                 type="button"
+                                aria-pressed={isActive}
                                 onClick={() => setActiveTableAreaId(area.id)}
-                                className="px-3 py-1 rounded-lg text-xs font-semibold border transition-all"
-                                style={
-                                  isAreaActive
-                                    ? { backgroundColor: c.primary, color: c.primaryText, borderColor: c.primary }
-                                    : { backgroundColor: c.surfaceHover, color: c.mutedText, borderColor: c.border }
-                                }
+                                className={`h-8 shrink-0 border px-3 text-xs font-medium transition-colors ${pt.focus} ${r.input} ${
+                                  isActive ? pt.selected + " " + pt.text : `${pt.border} ${pt.muted}`
+                                }`}
                               >
-                                {area.name} ({count})
+                                {area.name} <span className="tabular-nums opacity-70">{count}</span>
                               </button>
                             );
                           })}
                         </div>
-
-                        {/* View Mode Toggle: Cards vs Floor Plan */}
-                        <div
-                          className="flex items-center rounded-lg border p-0.5 self-end sm:self-auto"
-                          style={{ borderColor: c.border, backgroundColor: c.surfaceHover }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setTableCardMode("cards")}
-                            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
-                              tableCardMode === "cards" ? "shadow-sm" : ""
-                            }`}
-                            style={
-                              tableCardMode === "cards"
-                                ? { backgroundColor: c.primary, color: c.primaryText }
-                                : { color: c.mutedText }
-                            }
-                          >
-                            <LayoutGrid className="w-3 h-3" />
-                            <span>Kartlar</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setTableCardMode("canvas")}
-                            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1 ${
-                              tableCardMode === "canvas" ? "shadow-sm" : ""
-                            }`}
-                            style={
-                              tableCardMode === "canvas"
-                                ? { backgroundColor: c.primary, color: c.primaryText }
-                                : { color: c.mutedText }
-                            }
-                          >
-                            <UtensilsCrossed className="w-3 h-3" />
-                            <span>Masa Planı</span>
-                          </button>
+                        <div className={`flex shrink-0 self-start border p-0.5 sm:self-auto ${pt.border} ${r.input}`}>
+                          {(
+                            [
+                              { id: "cards", label: "Liste", icon: LayoutGrid },
+                              { id: "canvas", label: "Masa planı", icon: UtensilsCrossed },
+                            ] as const
+                          ).map((v) => (
+                            <button
+                              key={v.id}
+                              type="button"
+                              aria-pressed={tableCardMode === v.id}
+                              onClick={() => setTableCardMode(v.id)}
+                              className={`inline-flex h-7 items-center gap-1 px-2.5 text-xs font-medium ${r.input} ${
+                                tableCardMode === v.id ? `${pt.surface2} ${pt.text}` : pt.muted
+                              }`}
+                            >
+                              <v.icon className="h-3.5 w-3.5" aria-hidden="true" />
+                              {v.label}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
-                      {/* Selected Table Alert Banner */}
                       {selectedTable && (
                         <div
-                          className="p-3.5 rounded-2xl border flex items-center justify-between gap-3 animate-in fade-in"
-                          style={{
-                            backgroundColor: "rgba(16,185,129,0.12)",
-                            borderColor: "rgba(16,185,129,0.35)",
-                          }}
+                          className={`flex items-center justify-between gap-3 border px-3.5 py-2.5 text-sm ${pt.selected} ${r.input}`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold">
-                              <Check className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <div className="text-xs font-bold text-emerald-400">
-                                Seçilen Masa: {selectedTable.name} ({selectedTable.area?.name || "Restoran"})
-                              </div>
-                              <div className="text-[11px] text-emerald-300/80">
-                                Kapasite: {selectedTable.capacity} Kişilik
-                                {selectedTable.description ? ` • ${selectedTable.description}` : ""}
-                              </div>
-                            </div>
-                          </div>
+                          <span className={pt.text}>
+                            <span className="font-medium">{selectedTable.name}</span>
+                            <span className={pt.muted}>
+                              {" "}· {selectedTable.area?.name || "Restoran"} · {selectedTable.capacity} kişilik
+                            </span>
+                          </span>
                           <button
                             type="button"
                             onClick={() => setSelectedTable(null)}
-                            className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 underline"
+                            className={`shrink-0 text-xs font-medium underline-offset-2 hover:underline ${pt.accent}`}
                           >
-                            Değiştir
+                            Kaldır
                           </button>
                         </div>
                       )}
 
-                      {/* Floor Plan Canvas or Card Grid */}
                       {tableCardMode === "canvas" ? (
                         <FloorPlanCanvas
                           tables={restaurantTables}
@@ -963,441 +927,210 @@ export function BookingWizard({
                           readOnly={true}
                         />
                       ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1">
+                        <div className="grid max-h-[420px] grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                           {restaurantTables
                             .filter((t) => {
                               if (activeTableAreaId !== "ALL" && t.areaId !== activeTableAreaId) return false;
-                              // Filter out insufficient capacity
                               if (t.insufficientCapacity) return false;
                               return t.isActive;
                             })
                             .map((tbl) => {
                               const isSelected = selectedTable?.id === tbl.id;
                               const isAvailable = tbl.isAvailable;
-                              const isReserved =
-                                tbl.computedStatus === "RESERVED" || tbl.computedStatus === "OCCUPIED";
-
                               return (
-                                <div
+                                <button
                                   key={tbl.id}
+                                  type="button"
+                                  disabled={!isAvailable}
+                                  aria-pressed={isSelected}
                                   onClick={() => {
                                     if (isAvailable) setSelectedTable(tbl);
                                   }}
-                                  className={`group relative rounded-2xl border transition-all overflow-hidden flex flex-col justify-between ${
-                                    isAvailable ? "cursor-pointer hover:shadow-lg" : "cursor-not-allowed opacity-60"
-                                  } ${r.card}`}
-                                  style={{
-                                    backgroundColor: isSelected ? c.badgeBg : c.surfaceHover,
-                                    borderColor: isSelected
-                                      ? "#10B981"
-                                      : isReserved
-                                      ? "rgba(244,63,94,0.4)"
-                                      : c.border,
-                                    boxShadow: isSelected
-                                      ? "0 0 0 2px #10B981, 0 4px 16px rgba(16,185,129,0.3)"
-                                      : undefined,
-                                  }}
+                                  className={`flex overflow-hidden border text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${pt.focus} ${r.input} ${
+                                    isSelected ? pt.selected : `${pt.border} enabled:hover:bg-(color:--t-surface-2)`
+                                  }`}
                                 >
-                                  {/* Photo if available */}
-                                  {tbl.imageUrl ? (
-                                    <div className="relative h-28 w-full overflow-hidden bg-slate-800">
-                                      <img
-                                        src={tbl.imageUrl}
-                                        alt={tbl.name}
-                                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                      />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                                      {tbl.area?.name && (
-                                        <span className="absolute top-2 left-2 rounded-full bg-black/60 backdrop-blur-md px-2 py-0.5 text-[10px] font-medium text-white">
-                                          {tbl.area.name}
+                                  {tbl.imageUrl && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={tbl.imageUrl} alt="" className="h-auto w-20 shrink-0 object-cover" />
+                                  )}
+                                  <span className="flex min-w-0 flex-1 items-start justify-between gap-2 p-3">
+                                    <span className="min-w-0">
+                                      <span className={`block text-sm font-medium ${pt.text}`}>{tbl.name}</span>
+                                      <span className={`block text-xs ${pt.muted}`}>
+                                        {tbl.area?.name || "Restoran"} · {tbl.capacity} kişilik
+                                      </span>
+                                      {tbl.description && (
+                                        <span className={`mt-0.5 line-clamp-1 block text-xs ${pt.muted}`}>
+                                          {tbl.description}
                                         </span>
                                       )}
-                                      <span
-                                        className={`absolute top-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                          isReserved
-                                            ? "bg-rose-500/80 text-white"
-                                            : "bg-emerald-500/80 text-white"
-                                        }`}
-                                      >
-                                        {isReserved ? "Dolu" : "Müsait"}
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      className="p-3 pb-1 flex items-center justify-between border-b"
-                                      style={{ borderColor: c.border }}
-                                    >
-                                      <span className="text-[11px] font-semibold" style={{ color: c.mutedText }}>
-                                        {tbl.area?.name || "Restoran"}
-                                      </span>
-                                      <span
-                                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                          isReserved
-                                            ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
-                                            : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                                        }`}
-                                      >
-                                        {isReserved ? "Dolu" : "Müsait"}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Card Content */}
-                                  <div className="p-3 space-y-1.5 flex-1">
-                                    <div className="flex items-center justify-between">
-                                      <h4 className="font-bold text-sm" style={{ color: c.text }}>
-                                        {tbl.name}
-                                      </h4>
-                                      <span
-                                        className="text-xs font-semibold px-2 py-0.5 rounded-md"
-                                        style={{ backgroundColor: c.badgeBg, color: c.primary }}
-                                      >
-                                        {tbl.capacity} Kişilik
-                                      </span>
-                                    </div>
-                                    {tbl.description && (
-                                      <p className="text-[11px] line-clamp-2" style={{ color: c.mutedText }}>
-                                        {tbl.description}
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  {/* Select Action Button */}
-                                  <div className="p-3 pt-0">
-                                    <button
-                                      type="button"
-                                      disabled={!isAvailable}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (isAvailable) setSelectedTable(tbl);
-                                      }}
-                                      className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                        isSelected
-                                          ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
-                                          : isAvailable
-                                          ? "text-white"
-                                          : "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                    </span>
+                                    <span
+                                      className={`shrink-0 text-xs font-medium ${
+                                        isAvailable ? "text-(color:--t-success)" : "text-(color:--t-danger)"
                                       }`}
-                                      style={
-                                        !isSelected && isAvailable
-                                          ? { backgroundColor: c.primary, color: c.primaryText }
-                                          : undefined
-                                      }
                                     >
-                                      {isSelected ? (
-                                        <>
-                                          <Check className="w-3.5 h-3.5" />
-                                          <span>Seçildi</span>
-                                        </>
-                                      ) : isAvailable ? (
-                                        <span>Masayı Seç</span>
-                                      ) : (
-                                        <span>Bu Saatte Dolu</span>
-                                      )}
-                                    </button>
-                                  </div>
-                                </div>
+                                      {isSelected ? "Seçildi" : isAvailable ? "Müsait" : "Dolu"}
+                                    </span>
+                                  </span>
+                                </button>
                               );
                             })}
                         </div>
                       )}
                     </div>
-                  )
-                ) : (
-                  <div
-                    className={`p-5 text-center text-xs border ${r.card}`}
-                    style={{ backgroundColor: c.surfaceHover, borderColor: c.border, color: c.mutedText }}
-                  >
-                    Müsait masaları ve yerleşim planını görüntülemek için lütfen yukarıdan bir randevu saati seçiniz.
-                  </div>
-                )}
+                  ))}
               </div>
             )}
 
-            <div className="mt-8 flex justify-between items-center">
-              <button
-                onClick={handlePrevStep}
-                className={`inline-flex items-center gap-1.5 border px-4 py-2.5 text-xs font-medium transition-colors ${r.button}`}
-                style={{
-                  backgroundColor: c.surfaceHover,
-                  borderColor: c.border,
-                  color: c.mutedText,
-                }}
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Geri</span>
-              </button>
-              <button
-                onClick={handleNextStep}
-                disabled={!selectedTime}
-                className={`inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${r.button}`}
-                style={{
-                  backgroundColor: c.primary,
-                  color: c.primaryText,
-                  boxShadow: `0 4px 20px ${c.accentGlow}`,
-                }}
-              >
-                <span>Devam Et: Bilgileriniz</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
+            <div className="mt-6 flex justify-between gap-2">
+              {backButton}
+              {nextButton("Devam et", !selectedTime)}
             </div>
           </div>
         )}
 
-        {/* ── STEP 4: Customer Details ── */}
+        {/* ── STEP 4: Contact & confirm ── */}
         {step === 4 && (
           <form onSubmit={handleSubmitBooking}>
-            <h3 className="text-xl font-bold mb-1" style={{ color: c.text }}>
-              İletişim & Onay
-            </h3>
-            <p className="text-xs mb-6" style={{ color: c.mutedText }}>
-              Rezervasyon teyidi ve WhatsApp bilgilendirmesi için bilgilerinizi giriniz.
-            </p>
+            {stepHeading("Bilgileriniz", "Randevunuzla ilgili size ulaşabilmemiz için.")}
 
-            {/* Summary Card */}
-            <div
-              className={`mb-6 border p-4 ${r.card}`}
-              style={{
-                backgroundColor: c.badgeBg,
-                borderColor: c.borderLight || c.border,
-              }}
-            >
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <span className="block mb-0.5" style={{ color: c.mutedText }}>Hizmet</span>
-                  <span className="font-semibold" style={{ color: c.text }}>{selectedService?.name}</span>
-                </div>
-                <div>
-                  <span className="block mb-0.5" style={{ color: c.mutedText }}>Uzman</span>
-                  <span className="font-semibold" style={{ color: c.text }}>
-                    {selectedStaffMember ? selectedStaffMember.name : "İlk Müsait Uzman"}
-                  </span>
-                </div>
-                <div>
-                  <span className="block mb-0.5" style={{ color: c.mutedText }}>Tarih & Saat</span>
-                  <span className="font-semibold" style={{ color: c.primary }}>
-                    {selectedDate} • {selectedTime}
-                  </span>
-                </div>
-                <div>
-                  <span className="block mb-0.5" style={{ color: c.mutedText }}>Tutar</span>
-                  <span className="font-semibold" style={{ color: c.text }}>
-                    {selectedService?.price === 0 ? "Ücretsiz" : formatCurrency(selectedService?.price || 0)}
-                  </span>
-                </div>
-                {isRestaurant && selectedTable && (
-                  <div
-                    className="col-span-2 sm:col-span-4 pt-2.5 mt-1 border-t flex flex-wrap items-center justify-between gap-2"
-                    style={{ borderColor: c.borderLight || c.border }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold" style={{ color: c.mutedText }}>Seçilen Masa:</span>
-                      <span className="font-bold text-emerald-400">
-                        {selectedTable.name} ({selectedTable.area?.name || "Restoran"})
-                      </span>
-                      {selectedTable.description && (
-                        <span className="text-[11px]" style={{ color: c.mutedText }}>
-                          • {selectedTable.description}
-                        </span>
-                      )}
-                    </div>
-                    <span
-                      className="px-2 py-0.5 rounded-md font-bold text-xs"
-                      style={{ backgroundColor: c.surface, color: c.primary }}
-                    >
-                      {guestCount} Kişi
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {submitError && (
-              <div
-                className={`mb-4 border p-3 text-xs ${r.card}`}
-                style={{
-                  backgroundColor: "rgba(239,68,68,0.08)",
-                  borderColor: "rgba(239,68,68,0.25)",
-                  color: "#FCA5A5",
-                }}
-              >
-                {submitError}
-              </div>
-            )}
-
-            <div className="space-y-4 mb-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Name */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: c.text }}>
-                    Adınız Soyadınız *
+                  <label htmlFor="bk-name" className={`mb-1.5 block text-sm font-medium ${pt.text}`}>
+                    Ad soyad *
                   </label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-3 w-4 h-4" style={{ color: c.mutedText }} />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ahmet Yılmaz"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className={`${inputCls} pl-10 pr-4`}
-                      style={{
-                        backgroundColor: c.surfaceHover,
-                        borderColor: c.border,
-                        color: c.text,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: c.text }}>
-                    Telefon Numaranız *
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3.5 top-3 w-4 h-4" style={{ color: c.mutedText }} />
-                    <input
-                      type="tel"
-                      required
-                      placeholder="0532 000 00 00"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className={`${inputCls} pl-10 pr-4`}
-                      style={{
-                        backgroundColor: c.surfaceHover,
-                        borderColor: c.border,
-                        color: c.text,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: c.text }}>
-                  E-Posta (İsteğe bağlı)
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-3 w-4 h-4" style={{ color: c.mutedText }} />
                   <input
-                    type="email"
-                    placeholder="ornek@mail.com"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    className={`${inputCls} pl-10 pr-4`}
-                    style={{
-                      backgroundColor: c.surfaceHover,
-                      borderColor: c.border,
-                      color: c.text,
-                    }}
+                    id="bk-name"
+                    type="text"
+                    required
+                    autoComplete="name"
+                    placeholder="Ahmet Yılmaz"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className={`h-11 ${pt.input} ${r.input}`}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="bk-phone" className={`mb-1.5 block text-sm font-medium ${pt.text}`}>
+                    Telefon *
+                  </label>
+                  <input
+                    id="bk-phone"
+                    type="tel"
+                    required
+                    autoComplete="tel"
+                    inputMode="tel"
+                    placeholder="0532 000 00 00"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className={`h-11 ${pt.input} ${r.input}`}
                   />
                 </div>
               </div>
 
-              {/* Sector: Oto Servis */}
+              <div>
+                <label htmlFor="bk-email" className={`mb-1.5 block text-sm font-medium ${pt.text}`}>
+                  E-posta <span className={`font-normal ${pt.muted}`}>(isteğe bağlı)</span>
+                </label>
+                <input
+                  id="bk-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  placeholder="ornek@mail.com"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  className={`h-11 ${pt.input} ${r.input}`}
+                />
+              </div>
+
               {business.sector === "OTO_SERVIS" && (
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: c.text }}>
-                    Araç Plakası & Modeli
+                  <label htmlFor="bk-plate" className={`mb-1.5 block text-sm font-medium ${pt.text}`}>
+                    Araç plakası ve modeli
                   </label>
                   <div className="relative">
-                    <Car className="absolute left-3.5 top-3 w-4 h-4" style={{ color: c.mutedText }} />
+                    <Car className={`pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${pt.muted}`} aria-hidden="true" />
                     <input
+                      id="bk-plate"
                       type="text"
                       placeholder="34 ABC 123 (Renault Megane 2021)"
                       value={plateNumber}
                       onChange={(e) => setPlateNumber(e.target.value)}
-                      className={`${inputCls} pl-10 pr-4`}
-                      style={{
-                        backgroundColor: c.surfaceHover,
-                        borderColor: c.border,
-                        color: c.text,
-                      }}
+                      className={`h-11 pl-9 ${pt.input} ${r.input}`}
                     />
                   </div>
                 </div>
               )}
 
-              {/* Sector: Restoran */}
-              {business.sector === "RESTORAN" && (
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: c.text }}>
-                    Kişi Sayısı
-                  </label>
-                  <div className="relative">
-                    <Utensils className="absolute left-3.5 top-3 w-4 h-4" style={{ color: c.mutedText }} />
-                    <select
-                      value={guestCount}
-                      onChange={(e) => setGuestCount(e.target.value)}
-                      className={`${inputCls} pl-10 pr-4`}
-                      style={{
-                        backgroundColor: c.surfaceHover,
-                        borderColor: c.border,
-                        color: c.text,
-                      }}
-                    >
-                      {[1, 2, 3, 4, 5, 6, 8, 10, "10+"].map((n) => (
-                        <option
-                          key={n}
-                          value={n}
-                          style={{ backgroundColor: c.surface, color: c.text }}
-                        >
-                          {n} Kişi
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: c.text }}>
-                  Özel Not / İstek
+                <label htmlFor="bk-notes" className={`mb-1.5 block text-sm font-medium ${pt.text}`}>
+                  Not <span className={`font-normal ${pt.muted}`}>(isteğe bağlı)</span>
                 </label>
                 <textarea
+                  id="bk-notes"
                   rows={2}
-                  placeholder="Eklemek istediğiniz özel bir durum var mı?"
+                  placeholder="İşletmenin bilmesini istediğiniz bir şey var mı?"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className={`${inputCls}`}
-                  style={{
-                    backgroundColor: c.surfaceHover,
-                    borderColor: c.border,
-                    color: c.text,
-                  }}
+                  className={`py-2.5 ${pt.input} ${r.input}`}
                 />
               </div>
             </div>
 
-            <div className="flex justify-between items-center">
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className={`inline-flex items-center gap-1.5 border px-4 py-2.5 text-xs font-medium transition-colors ${r.button}`}
-                style={{
-                  backgroundColor: c.surfaceHover,
-                  borderColor: c.border,
-                  color: c.mutedText,
-                }}
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Geri</span>
-              </button>
+            {/* Summary */}
+            <div className={`mt-6 border ${pt.border} ${pt.surface2} ${r.input}`}>
+              <p className={`border-b px-4 py-2.5 text-sm font-medium ${pt.border} ${pt.text}`}>Randevu özeti</p>
+              <dl className={`divide-y text-sm ${pt.divide}`}>
+                {[
+                  ["Hizmet", selectedService ? `${selectedService.name} · ${selectedService.durationMinutes} dk` : ""],
+                  ...(staffSelectionEnabled
+                    ? [["Uzman", selectedStaffMember ? selectedStaffMember.name : "İlk müsait uzman"]]
+                    : []),
+                  ["Tarih", formatDateKey(selectedDate)],
+                  ["Saat", selectedTime],
+                  ...(isRestaurant ? [["Kişi", `${guestCount} kişi`]] : []),
+                  ...(isRestaurant && selectedTable
+                    ? [["Masa", `${selectedTable.name} · ${selectedTable.area?.name || "Restoran"}`]]
+                    : []),
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-4 px-4 py-2">
+                    <dt className={pt.muted}>{label}</dt>
+                    <dd className={`text-right font-medium ${pt.text}`}>{value}</dd>
+                  </div>
+                ))}
+                <div className="flex justify-between gap-4 px-4 py-2.5">
+                  <dt className={`font-medium ${pt.text}`}>Tutar</dt>
+                  <dd className={`text-right font-semibold tabular-nums ${pt.text}`}>
+                    {priceLabel(selectedService?.price || 0)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            {submitError && <div className="mt-4">{notice("danger", submitError)}</div>}
+
+            <div className="mt-6 flex justify-between gap-2">
+              {backButton}
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`inline-flex items-center gap-2 px-7 py-3 text-sm font-semibold shadow-lg transition-all disabled:opacity-50 ${r.button}`}
-                style={{
-                  backgroundColor: c.primary,
-                  color: c.primaryText,
-                  boxShadow: `0 4px 20px ${c.accentGlow}`,
-                }}
+                className={`inline-flex h-11 flex-1 items-center justify-center gap-2 px-5 text-sm sm:flex-none ${pt.primaryBtn} ${pt.focus} ${r.button}`}
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{isSubmitting ? "Oluşturuluyor..." : "Rezervasyonu Onayla"}</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Gönderiliyor...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                    Randevuyu onayla
+                  </>
+                )}
               </button>
             </div>
           </form>
@@ -1405,102 +1138,62 @@ export function BookingWizard({
 
         {/* ── STEP 5: Success ── */}
         {step === 5 && bookingResult && (
-          <div className="text-center py-4">
-            <div
-              className={`flex h-16 w-16 items-center justify-center mx-auto mb-4 border ${r.badge}`}
-              style={{
-                backgroundColor: "rgba(16,185,129,0.15)",
-                borderColor: "rgba(16,185,129,0.3)",
-                color: "#4ADE80",
-              }}
-            >
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-
-            <h3 className="text-2xl font-bold mb-2" style={{ color: c.text }}>
-              Rezervasyonunuz Alındı! 🎉
-            </h3>
-            <p className="text-sm max-w-md mx-auto mb-6" style={{ color: c.mutedText }}>
-              Talebiniz{" "}
-              <span className="font-semibold" style={{ color: c.text }}>
-                {business.name}
-              </span>{" "}
-              işletmesine başarıyla iletildi.
+          <div className="py-2 text-center" role="status">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-(color:--t-success-bg) text-(color:--t-success)">
+              <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
+            </span>
+            <h3 className={`mt-4 text-xl font-semibold tracking-tight ${pt.text}`}>Randevu talebiniz alındı</h3>
+            <p className={`mx-auto mt-1 max-w-sm text-sm ${pt.muted}`}>
+              Talebiniz <span className={`font-medium ${pt.text}`}>{business.name}</span> işletmesine iletildi.
+              İşletme onayladığında randevunuz kesinleşir.
             </p>
 
-            <div
-              className={`border p-5 max-w-md mx-auto mb-6 text-left text-xs space-y-2.5 ${r.card}`}
-              style={{
-                backgroundColor: c.surfaceHover,
-                borderColor: c.border,
-              }}
-            >
-              <div className="flex justify-between">
-                <span style={{ color: c.mutedText }}>Tarih & Saat:</span>
-                <span className="font-semibold" style={{ color: c.text }}>
-                  {selectedDate} • {selectedTime}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: c.mutedText }}>Hizmet:</span>
-                <span className="font-semibold" style={{ color: c.text }}>
-                  {selectedService?.name}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span style={{ color: c.mutedText }}>Müşteri:</span>
-                <span className="font-semibold" style={{ color: c.text }}>
-                  {customerName} ({customerPhone})
-                </span>
-              </div>
-              {selectedTable && (
-                <div className="flex justify-between pt-1 border-t" style={{ borderColor: c.border }}>
-                  <span style={{ color: c.mutedText }}>Masanız:</span>
-                  <span className="font-bold text-emerald-400">
-                    {selectedTable.name} ({selectedTable.area?.name || "Restoran"} - {guestCount} Kişi)
-                  </span>
+            <dl className={`mx-auto mt-6 max-w-sm divide-y border text-left text-sm ${pt.border} ${pt.divide} ${r.input}`}>
+              {[
+                ["Tarih", formatDateKey(selectedDate)],
+                ["Saat", selectedTime],
+                ["Hizmet", selectedService?.name || ""],
+                ...(selectedStaffMember ? [["Uzman", selectedStaffMember.name]] : []),
+                ...(selectedTable
+                  ? [["Masa", `${selectedTable.name} · ${selectedTable.area?.name || "Restoran"} · ${guestCount} kişi`]]
+                  : []),
+                ["Ad soyad", customerName],
+                ["Telefon", customerPhone],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4 px-4 py-2">
+                  <dt className={pt.muted}>{label}</dt>
+                  <dd className={`text-right font-medium ${pt.text}`}>{value}</dd>
                 </div>
-              )}
-            </div>
+              ))}
+            </dl>
 
             {bookingResult.whatsappUrl && (
-              <div className="space-y-3 max-w-md mx-auto">
+              <div className="mx-auto mt-6 max-w-sm">
                 <a
                   href={bookingResult.whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition-all ${r.button}`}
-                  style={{
-                    backgroundColor: "#16A34A",
-                    boxShadow: "0 4px 16px rgba(22,163,74,0.3)",
-                  }}
+                  className={`inline-flex h-11 w-full items-center justify-center gap-2 bg-[#16A34A] px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 ${pt.focus} ${r.button}`}
                 >
-                  <MessageSquare className="w-5 h-5" />
-                  <span>WhatsApp ile İşletmeye Bildir</span>
+                  <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                  WhatsApp ile işletmeye bildir
                 </a>
-                <p className="text-[11px]" style={{ color: c.mutedText }}>
-                  İşletmeyle hemen WhatsApp üzerinden teyitleşmek için yukarıdaki butona tıklayabilirsiniz.
-                </p>
+                <p className={`mt-2 text-xs ${pt.muted}`}>İsterseniz randevunuzu WhatsApp üzerinden de teyit edebilirsiniz.</p>
               </div>
             )}
 
-            <div
-              className="mt-8 pt-4 border-t"
-              style={{ borderColor: c.border }}
+            <button
+              type="button"
+              onClick={() => {
+                setStep(1);
+                setSelectedService(null);
+                setSelectedTime("");
+                setBookingResult(null);
+              }}
+              className={`mt-6 text-sm font-medium underline-offset-2 hover:underline ${pt.accent}`}
             >
-              <button
-                onClick={() => {
-                  setStep(1);
-                  setSelectedService(null);
-                  setSelectedTime("");
-                  setBookingResult(null);
-                }}
-                className="text-xs font-medium hover:underline"
-                style={{ color: c.primary }}
-              >
-                Yeni Bir Randevu Daha Al
-              </button>
-            </div>
+              Yeni bir randevu al
+            </button>
           </div>
         )}
       </div>

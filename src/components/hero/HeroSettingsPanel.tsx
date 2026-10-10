@@ -12,14 +12,17 @@ import {
   Scissors,
   UtensilsCrossed,
   Clock,
-  Layers,
-  CheckCircle2,
+  GripVertical,
+  Check,
   Info,
-  ExternalLink,
-  ShieldCheck,
   Save,
   RotateCcw,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
+import { Switch } from "@/components/ui/Switch";
+import { Field, Input } from "@/components/ui/Field";
 
 // Custom Instagram icon — lucide-react doesn't export one in this version
 function InstagramIcon({ className }: { className?: string }) {
@@ -160,71 +163,48 @@ export function HeroSettingsPanel({
   };
 
   const getItemIcon = (id: HeroActionItemId) => {
+    const cls = "w-4 h-4";
     switch (id) {
       case "booking_cta":
-        return <CalendarCheck className="w-4 h-4 text-emerald-400" />;
+        return <CalendarCheck className={cls} />;
       case "open_status":
-        return <span className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse" />;
+        return <span className="h-2 w-2 rounded-full bg-brand" />;
       case "remaining_slots":
-        return <Clock className="w-4 h-4 text-indigo-400" />;
-      case "first_available":
-        return <Sparkles className="w-4 h-4 text-amber-400" />;
       case "working_hours":
-        return <Clock className="w-4 h-4 text-slate-400" />;
+        return <Clock className={cls} />;
+      case "first_available":
+        return <Sparkles className={cls} />;
       case "whatsapp":
-        return <MessageSquare className="w-4 h-4 text-emerald-400" />;
+        return <MessageSquare className={cls} />;
       case "call":
-        return <Phone className="w-4 h-4 text-sky-400" />;
+        return <Phone className={cls} />;
       case "services":
-        return <Scissors className="w-4 h-4 text-indigo-400" />;
+        return <Scissors className={cls} />;
       case "menu":
-        return <UtensilsCrossed className="w-4 h-4 text-amber-400" />;
+        return <UtensilsCrossed className={cls} />;
       case "location":
-        return <MapPin className="w-4 h-4 text-rose-400" />;
+        return <MapPin className={cls} />;
       case "instagram":
-        return <InstagramIcon className="w-4 h-4 text-pink-400" />;
+        return <InstagramIcon className={cls} />;
       default:
-        return <Sparkles className="w-4 h-4 text-indigo-400" />;
+        return <Sparkles className={cls} />;
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Information Banner */}
-      <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4 sm:p-5 flex items-start gap-3.5">
-        <Info className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-        <div className="space-y-1 text-xs">
-          <h4 className="font-bold text-slate-200">
-            Hero Aksiyon & Canlı Durum Butonları Yönetimi
-          </h4>
-          <p className="text-slate-400 leading-relaxed">
-            Public rezervasyon sayfanızın tepe alanında müşterilerinize gösterilecek aksiyon
-            butonlarını (WhatsApp, Arama, Konum) ve canlı durum rozetlerini (Açık/Kapalı, Boş
-            Randevu Sayısı, İlk Müsait Saat) dilediğiniz gibi açıp kapatabilir, sürükleyerek
-            sıralayabilirsiniz.
-          </p>
-          <p className="text-emerald-400 font-semibold pt-0.5">
-            ✓ Açık/kapalı durumu ve kalan boş saatler çalışma saatleriniz ve gerçek takviminizden
-            otomatik olarak hesaplanır.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <p className="flex items-start gap-2 rounded-control border border-line bg-surface px-3 py-2.5 text-sm text-ink-2">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+        <span>
+          Rezervasyon sayfanızın üst alanındaki butonları (WhatsApp, arama, konum) ve canlı durum rozetlerini
+          (açık/kapalı, boş randevu sayısı, ilk müsait saat) açıp kapatabilir, sürükleyerek sıralayabilirsiniz.
+          Canlı durumlar çalışma saatleriniz ve takviminizden otomatik hesaplanır.
+        </span>
+      </p>
 
-      {/* Live Preview Box */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-5 sm:p-6 space-y-3 backdrop-blur-xl">
-        <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Canlı Buton Önizlemesi
-            </h3>
-          </div>
-          <span className="text-[11px] text-slate-400">
-            Sayfanızdaki gerçek görünüm simülasyonu
-          </span>
-        </div>
-
-        <div className="p-4 sm:p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col items-center text-center">
+      <Panel title="Önizleme" description="Sayfanızda görüneceği hali.">
+        {/* Rendered on the public page's dark surface, so the preview stays dark in both panel themes. */}
+        <div className="flex flex-col items-center rounded-control bg-[#0E1528] p-4 text-center sm:p-6">
           <HeroActionsBar
             business={business}
             stats={previewStats}
@@ -248,142 +228,113 @@ export function HeroSettingsPanel({
             align="center"
           />
         </div>
-      </div>
+      </Panel>
 
-      {/* Interactive Items Reorder & Toggle List */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 sm:p-6 backdrop-blur-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div>
-            <h3 className="text-sm font-bold text-slate-200">
-              Hero Öğeleri Sıralaması & Durumları
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Sıralamayı değiştirmek için yukarı/aşağı okları kullanın veya kartları sürükleyin.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleResetDefaults}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800/60 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Varsayılana Sıfırla</span>
-          </button>
-        </div>
-
-        <div className="space-y-2.5">
+      <Panel
+        title="Öğeler ve sıralama"
+        description="Okları kullanın veya satırları sürükleyin."
+        action={
+          <Button size="sm" variant="ghost" onClick={handleResetDefaults}>
+            <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+            Varsayılana dön
+          </Button>
+        }
+        flush
+      >
+        <ul className="divide-y divide-line">
           {items.map((item, index) => {
             const meta = HERO_ITEM_METADATA[item.id];
             if (!meta) return null;
 
-            // Restoran harici sektörlerde menüyü gizle veya bilgilendir
+            // Menu button only makes sense for restaurants
             const isMenuAndNotRestaurant = item.id === "menu" && !isRestaurant;
 
             return (
-              <div
+              <li
                 key={item.id}
                 draggable
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDrop={() => handleDrop(index)}
-                className={`group flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border transition-all ${
-                  item.enabled
-                    ? "border-slate-800 bg-slate-800/40 hover:border-slate-700"
-                    : "border-slate-800/50 bg-slate-900/40 opacity-60"
-                } ${draggedIndex === index ? "opacity-50 ring-2 ring-indigo-500" : ""}`}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 transition-colors sm:px-5",
+                  draggedIndex === index && "bg-surface-muted"
+                )}
               >
-                {/* Left: Drag Handle, Icon, and Label */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-slate-300 p-1">
-                    <Layers className="w-4 h-4" />
-                  </div>
+                <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-ink-3 active:cursor-grabbing" aria-hidden="true" />
 
-                  <div className="p-2 rounded-xl bg-slate-800 border border-slate-700 shrink-0">
-                    {getItemIcon(item.id)}
-                  </div>
+                <span
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-line bg-surface-muted text-ink-2",
+                    !item.enabled && "opacity-50"
+                  )}
+                >
+                  {getItemIcon(item.id)}
+                </span>
 
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-200 truncate">
-                        {meta.name}
-                      </h4>
-                      {meta.category === "status" && (
-                        <span className="rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold">
-                          Canlı Veri
-                        </span>
-                      )}
-                      {meta.restaurantOnly && (
-                        <span className="rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 text-[10px] font-semibold">
-                          Sadece Restoran
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 truncate max-w-xs sm:max-w-md mt-0.5">
-                      {isMenuAndNotRestaurant
-                        ? "İşletme sektörünüz restoran olmadığı için bu buton gizlenir."
-                        : meta.description}
-                    </p>
+                <div className={cn("min-w-0 flex-1", !item.enabled && "opacity-60")}>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span className="truncate text-sm font-medium text-ink">{meta.name}</span>
+                    {meta.category === "status" && <span className="text-xs text-brand-ink">Canlı veri</span>}
+                    {meta.restaurantOnly && <span className="text-xs text-ink-3">Yalnızca restoran</span>}
                   </div>
+                  <p className="truncate text-sm text-ink-3">
+                    {isMenuAndNotRestaurant
+                      ? "Sektörünüz restoran olmadığı için bu buton gizlenir."
+                      : meta.description}
+                  </p>
                 </div>
 
-                {/* Right: Reorder buttons & ON/OFF toggle switch */}
-                <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-3">
-                  <div className="flex items-center gap-1 border-r border-slate-800 pr-2">
-                    <button
-                      type="button"
+                <div className="flex shrink-0 items-center gap-1">
+                  <div className="hidden items-center sm:flex">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-8 px-0"
                       onClick={() => handleMoveUp(index)}
                       disabled={index === 0}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-20 transition-colors"
-                      title="Yukarı Taşı"
+                      title="Yukarı taşı"
+                      aria-label={`${meta.name}: yukarı taşı`}
                     >
-                      <MoveUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
+                      <MoveUp className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-8 px-0"
                       onClick={() => handleMoveDown(index)}
                       disabled={index === items.length - 1}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-20 transition-colors"
-                      title="Aşağı Taşı"
+                      title="Aşağı taşı"
+                      aria-label={`${meta.name}: aşağı taşı`}
                     >
-                      <MoveDown className="w-3.5 h-3.5" />
-                    </button>
+                      <MoveDown className="w-4 h-4" />
+                    </Button>
                   </div>
-
-                  {/* Toggle Switch */}
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={item.enabled}
-                      disabled={isMenuAndNotRestaurant}
-                      onChange={() => handleToggle(item.id)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                  </label>
+                  <Switch
+                    checked={item.enabled}
+                    disabled={isMenuAndNotRestaurant}
+                    onChange={() => handleToggle(item.id)}
+                    aria-label={`${meta.name} göster`}
+                    className="ml-1"
+                  />
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
-      </div>
+        </ul>
+      </Panel>
 
-      {/* Social & Maps External Links Config */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 sm:p-6 backdrop-blur-xl space-y-4">
-        <h3 className="text-sm font-bold text-slate-200">
-          Bağlantı & Sosyal Medya Detayları
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Instagram Kullanıcı Adı (Opsiyonel)
-            </label>
+      <Panel title="Bağlantılar">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Field
+            label="Instagram kullanıcı adı"
+            htmlFor="hero-insta"
+            hint="İsteğe bağlı. Boş bırakılırsa işletme bağlantınız kullanılır."
+          >
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
-                @
-              </span>
-              <input
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-ink-3">@</span>
+              <Input
+                id="hero-insta"
                 type="text"
                 value={insta}
                 onChange={(e) => {
@@ -391,19 +342,18 @@ export function HeroSettingsPanel({
                   if (onChangeInstagram) onChangeInstagram(e.target.value);
                 }}
                 placeholder="kuafor.ahmet"
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/80 pl-8 pr-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none"
+                className="pl-7"
               />
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Boş bırakılırsa işletme slug bağlantınız kullanılır.
-            </p>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Özel Google Harita Bağlantısı (Opsiyonel)
-            </label>
-            <input
+          <Field
+            label="Google Haritalar bağlantısı"
+            htmlFor="hero-maps"
+            hint="İsteğe bağlı. Boş bırakılırsa adresinizden otomatik oluşturulur."
+          >
+            <Input
+              id="hero-maps"
               type="text"
               value={maps}
               onChange={(e) => {
@@ -411,33 +361,17 @@ export function HeroSettingsPanel({
                 if (onChangeGoogleMapsUrl) onChangeGoogleMapsUrl(e.target.value);
               }}
               placeholder="https://maps.google.com/?cid=..."
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none"
             />
-            <p className="text-[11px] text-slate-400 mt-1">
-              Boş bırakılırsa işletme adresinizden Google Haritalar araması otomatik üretilir.
-            </p>
-          </div>
+          </Field>
         </div>
-      </div>
+      </Panel>
 
-      {/* Save Button */}
       {onSave && (
-        <div className="flex justify-end pt-2">
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all active:scale-95 disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            <span>
-              {isSaving
-                ? "Kaydediliyor..."
-                : savedSuccess
-                ? "Hero Ayarları Kaydedildi! ✓"
-                : "Hero Ayarlarını Kaydet"}
-            </span>
-          </button>
+        <div className="flex justify-end">
+          <Button variant="primary" onClick={onSave} disabled={isSaving} className="w-full sm:w-auto">
+            {savedSuccess ? <Check className="w-4 h-4" aria-hidden="true" /> : <Save className="w-4 h-4" aria-hidden="true" />}
+            {isSaving ? "Kaydediliyor..." : savedSuccess ? "Kaydedildi" : "Hero ayarlarını kaydet"}
+          </Button>
         </div>
       )}
     </div>

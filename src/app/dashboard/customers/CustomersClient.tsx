@@ -1,19 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Contact2,
-  Search,
-  MessageSquare,
-  FileEdit,
-  Phone,
-  Mail,
-  Calendar,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
-import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
+import { Contact2, Search, MessageSquare, FileEdit, Phone } from "lucide-react";
+import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { Modal } from "@/components/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { Button, buttonClasses } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Avatar } from "@/components/ui/Avatar";
+import { Input, Textarea } from "@/components/ui/Field";
+import { table } from "@/components/ui/table";
 
 interface CustomersClientProps {
   businessId: string;
@@ -25,7 +23,9 @@ export default function CustomersClient({
   initialCustomers,
 }: CustomersClientProps) {
   const [customers, setCustomers] = useState(initialCustomers);
-  const [search, setSearch] = useState("");
+  // The command palette links here with ?q=<name> to open the list filtered to one customer.
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [selectedCust, setSelectedCust] = useState<any>(null);
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
@@ -65,176 +65,142 @@ export default function CustomersClient({
       (c.email && c.email.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const whatsappHref = (phone: string) => `https://wa.me/${phone.replace(/\D/g, "")}`;
+
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#111827] dark:text-slate-100">
-            Müşteri İlişkileri (CRM)
-          </h1>
-          <p className="text-xs sm:text-sm text-[#667085] dark:text-slate-400 mt-0.5">
-            İşletmenizden randevu alan tüm müşterilerin geçmişi, toplam harcaması ve özel notları.
-          </p>
-        </div>
-
-        {/* Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-[#98A2B3] dark:text-slate-500" />
-          <input
-            type="text"
-            placeholder="Müşteri adı veya telefon..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 pl-10 pr-4 py-2.5 text-xs text-[#111827] dark:text-slate-200 placeholder-[#98A2B3] dark:placeholder-slate-500 focus:border-[#6246EA] focus:outline-none transition-colors shadow-xs"
-          />
-        </div>
-      </div>
-
-      {/* Customers List Container */}
-      <div className="rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden shadow-sm backdrop-blur-xl">
-        {filtered.length === 0 ? (
-          <div className="p-12 text-center text-[#667085] dark:text-slate-400 text-xs">
-            <Contact2 className="w-10 h-10 text-[#98A2B3] dark:text-slate-600 mx-auto mb-3" />
-            Henüz kayıtlı müşteri bulunmuyor veya arama sonucu boş.
+    <div className="space-y-5">
+      <PageHeader
+        title="Müşteriler"
+        description="Randevu alan müşterilerin geçmişi, toplam harcaması ve size özel notlarınız."
+        actions={
+          <div className="relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+            <Input
+              type="search"
+              placeholder="Ad, telefon veya e-posta..."
+              aria-label="Müşteri ara"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
           </div>
+        }
+      />
+
+      <Panel flush>
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={Contact2}
+            title={search ? "Aramaya uygun müşteri yok" : "Henüz müşteri yok"}
+            description={search ? undefined : "İlk rezervasyonla birlikte müşteriler burada listelenir."}
+          />
         ) : (
           <>
-            {/* MOBILE CARD VIEW (block md:hidden) */}
-            <div className="block md:hidden divide-y divide-[#E4E7EC] dark:divide-slate-800">
+            {/* Mobile: list rows */}
+            <ul className="divide-y divide-line md:hidden">
               {filtered.map((cust) => (
-                <div key={cust.id} className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#6246EA] dark:bg-indigo-500/20 dark:text-indigo-400 flex items-center justify-center font-bold text-sm shrink-0">
-                        {cust.name.slice(0, 1).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-bold text-[#111827] dark:text-slate-100 text-sm">
-                          {cust.name}
-                        </div>
-                        <a
-                          href={`tel:${cust.phone}`}
-                          className="text-xs text-[#667085] dark:text-slate-400 hover:text-[#6246EA] transition-colors"
-                        >
-                          {formatPhoneNumber(cust.phone)}
-                        </a>
-                      </div>
+                <li key={cust.id} className="space-y-2.5 px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <Avatar name={cust.name} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-ink">{cust.name}</p>
+                      <a href={`tel:${cust.phone}`} className="text-sm text-ink-3 tabular-nums hover:text-ink">
+                        {formatPhoneNumber(cust.phone)}
+                      </a>
                     </div>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F8F9FC] dark:bg-slate-800 text-[#344054] dark:text-slate-300 border border-[#E4E7EC] dark:border-slate-700 shrink-0">
-                      {cust.totalAppointments} Randevu
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs bg-[#F8F9FC] dark:bg-slate-950/40 rounded-xl px-3 py-2 border border-[#E4E7EC] dark:border-slate-800">
-                    <span className="text-[#667085] dark:text-slate-400">Toplam Harcama:</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
-                      {formatCurrency(cust.totalSpent)}
-                    </span>
+                    <div className="text-right">
+                      <p className="text-sm font-medium tabular-nums text-ink">{formatCurrency(cust.totalSpent)}</p>
+                      <p className="text-xs text-ink-3">{cust.totalAppointments} randevu</p>
+                    </div>
                   </div>
 
                   {cust.notes && (
-                    <div className="text-xs bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-500/20 rounded-xl p-2.5 text-amber-900 dark:text-amber-200 italic">
-                      "{cust.notes}"
-                    </div>
+                    <p className="rounded-control bg-surface-muted px-2.5 py-1.5 text-sm text-ink-2">{cust.notes}</p>
                   )}
 
-                  <div className="flex items-center gap-2 pt-1">
-                    <a
-                      href={`tel:${cust.phone}`}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#E4E7EC] dark:border-slate-700 bg-white dark:bg-slate-800/80 py-2 text-xs font-semibold text-[#344054] dark:text-slate-200 hover:bg-[#F8F9FC] transition-colors shadow-xs"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-[#6246EA]" />
-                      <span>Ara</span>
+                  <div className="flex items-center gap-1.5">
+                    <a href={`tel:${cust.phone}`} className={buttonClasses("secondary", "sm", "flex-1")}>
+                      <Phone className="w-3.5 h-3.5" aria-hidden="true" />
+                      Ara
                     </a>
                     <a
-                      href={`https://wa.me/${cust.phone.replace(/\D/g, "")}`}
+                      href={whatsappHref(cust.phone)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/30 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-colors shadow-xs"
+                      className={buttonClasses("secondary", "sm", "flex-1")}
                     >
-                      <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      <span>WhatsApp</span>
+                      <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                      WhatsApp
                     </a>
-                    <button
-                      onClick={() => handleOpenNotes(cust)}
-                      className="inline-flex items-center justify-center p-2 rounded-xl border border-[#E4E7EC] dark:border-slate-700 bg-white dark:bg-slate-800/80 text-[#667085] dark:text-slate-300 hover:bg-[#F8F9FC] transition-colors shadow-xs"
-                      title="Not Düzenle"
-                    >
+                    <Button size="sm" variant="ghost" className="w-8 px-0" onClick={() => handleOpenNotes(cust)} aria-label="Notu düzenle">
                       <FileEdit className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
 
-            {/* DESKTOP TABLE VIEW (hidden md:block) */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-[#E4E7EC] dark:border-slate-800 bg-[#F8F9FC] dark:bg-slate-950/60 text-[#667085] dark:text-slate-400 uppercase tracking-wider font-semibold text-[10px]">
+            {/* Desktop: table */}
+            <div className={cn(table.wrapper, "hidden md:block")}>
+              <table className={table.table}>
+                <thead className={table.head}>
                   <tr>
-                    <th className="py-3.5 px-4">Müşteri</th>
-                    <th className="py-3.5 px-4">Telefon & E-Posta</th>
-                    <th className="py-3.5 px-4">Toplam Randevu</th>
-                    <th className="py-3.5 px-4">Toplam Harcama</th>
-                    <th className="py-3.5 px-4">Özel Not</th>
-                    <th className="py-3.5 px-4 text-right">İşlemler</th>
+                    <th className={table.th}>Müşteri</th>
+                    <th className={table.th}>İletişim</th>
+                    <th className={cn(table.th, "text-right")}>Randevu</th>
+                    <th className={cn(table.th, "text-right")}>Toplam harcama</th>
+                    <th className={table.th}>Özel not</th>
+                    <th className={cn(table.th, "text-right")}>İşlemler</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E4E7EC] dark:divide-slate-800/80">
+                <tbody className={table.body}>
                   {filtered.map((cust) => (
-                    <tr key={cust.id} className="hover:bg-[#F8F9FC] dark:hover:bg-slate-850/50 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-[#111827] dark:text-slate-100 text-sm flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-purple-100 text-[#6246EA] dark:bg-indigo-500/20 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
-                            {cust.name.slice(0, 1).toUpperCase()}
-                          </div>
-                          <span>{cust.name}</span>
+                    <tr key={cust.id} className={table.row}>
+                      <td className={table.td}>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar name={cust.name} size="sm" />
+                          <span className="font-medium text-ink">{cust.name}</span>
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <div className="text-[#111827] dark:text-slate-200 font-medium">{formatPhoneNumber(cust.phone)}</div>
-                        {cust.email && <div className="text-[11px] text-[#667085] dark:text-slate-500">{cust.email}</div>}
+                      <td className={table.td}>
+                        <div className="tabular-nums text-ink">{formatPhoneNumber(cust.phone)}</div>
+                        {cust.email && <div className="text-xs text-ink-3">{cust.email}</div>}
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#F8F9FC] dark:bg-slate-800 px-2.5 py-0.5 font-semibold text-[#344054] dark:text-slate-300 border border-[#E4E7EC] dark:border-slate-700">
-                          {cust.totalAppointments} kez
-                        </span>
+                      <td className={cn(table.td, "text-right tabular-nums")}>{cust.totalAppointments}</td>
+
+                      <td className={cn(table.td, "text-right font-medium tabular-nums")}>
+                        {formatCurrency(cust.totalSpent)}
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                          {formatCurrency(cust.totalSpent)}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4">
+                      <td className={table.td}>
                         {cust.notes ? (
-                          <p className="text-xs text-[#344054] dark:text-slate-300 max-w-[200px] truncate italic">
-                            "{cust.notes}"
-                          </p>
+                          <p className="max-w-[220px] truncate text-ink-2">{cust.notes}</p>
                         ) : (
-                          <span className="text-[#98A2B3] dark:text-slate-600 text-[11px]">Not eklenmemiş</span>
+                          <span className="text-ink-3">—</span>
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
+                      <td className={cn(table.td, "whitespace-nowrap text-right")}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="w-8 px-0"
                             onClick={() => handleOpenNotes(cust)}
-                            className="p-1.5 rounded-lg border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900 text-[#667085] dark:text-slate-400 hover:text-[#111827] dark:hover:text-slate-100 hover:bg-[#F8F9FC] dark:hover:bg-slate-800 transition-colors"
-                            title="Not Düzenle"
+                            title="Notu düzenle"
+                            aria-label={`${cust.name} için notu düzenle`}
                           >
                             <FileEdit className="w-4 h-4" />
-                          </button>
+                          </Button>
                           <a
-                            href={`https://wa.me/${cust.phone.replace(/\D/g, "")}`}
+                            href={whatsappHref(cust.phone)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900 text-[#667085] dark:text-slate-400 hover:text-emerald-500 hover:bg-[#F8F9FC] dark:hover:bg-slate-800 transition-colors"
-                            title="WhatsApp İletişim"
+                            className={buttonClasses("ghost", "sm", "w-8 px-0")}
+                            title="WhatsApp'tan yaz"
+                            aria-label={`${cust.name} ile WhatsApp'tan yazış`}
                           >
                             <MessageSquare className="w-4 h-4" />
                           </a>
@@ -247,35 +213,27 @@ export default function CustomersClient({
             </div>
           </>
         )}
-      </div>
+      </Panel>
 
       {/* Note Editor Modal */}
       {selectedCust && (
-        <Modal
-          isOpen={!!selectedCust}
-          onClose={() => setSelectedCust(null)}
-          title={`Müşteri Notu: ${selectedCust.name}`}
-        >
-          <form onSubmit={handleSaveNotes} className="space-y-4 text-xs">
-            <p className="text-[#667085] dark:text-slate-400">
-              Bu müşteriye özel tercihleri veya dikkat edilmesi gereken detayları kaydedin (Müşteri bu notu göremez).
+        <Modal isOpen={!!selectedCust} onClose={() => setSelectedCust(null)} title={`Müşteri notu: ${selectedCust.name}`}>
+          <form onSubmit={handleSaveNotes} className="space-y-4">
+            <p className="text-sm text-ink-3">
+              Bu müşteriye özel tercihleri veya dikkat edilmesi gereken detayları kaydedin. Müşteri bu notu göremez.
             </p>
 
-            <textarea
+            <Textarea
               rows={4}
+              aria-label="Müşteri notu"
               placeholder="Örn: Saç dipleri alerjik, sert wax istemiyor. Çay ikramı tercih ediyor."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 p-3.5 text-sm text-[#111827] dark:text-slate-100 placeholder-[#98A2B3] dark:placeholder-slate-600 focus:border-[#6246EA] focus:outline-none transition-colors"
             />
 
-            <button
-              type="submit"
-              disabled={savingNotes}
-              className="w-full rounded-xl bg-[#6246EA] py-3 text-sm font-semibold text-white shadow-lg shadow-[#6246EA]/25 hover:bg-[#5235D9] transition-all disabled:opacity-50"
-            >
-              {savingNotes ? "Kaydediliyor..." : "Notu Kaydet"}
-            </button>
+            <Button type="submit" variant="primary" disabled={savingNotes} className="w-full">
+              {savingNotes ? "Kaydediliyor..." : "Notu kaydet"}
+            </Button>
           </form>
         </Modal>
       )}

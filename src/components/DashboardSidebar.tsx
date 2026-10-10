@@ -20,13 +20,14 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Sparkles,
   ShieldCheck,
   Camera,
   UtensilsCrossed,
   X,
+  type LucideIcon,
+  LifeBuoy,
 } from "lucide-react";
-import { SectorBadge } from "./SectorBadge";
+import { SECTORS, cn } from "@/lib/utils";
 
 interface DashboardSidebarProps {
   business: {
@@ -40,6 +41,21 @@ interface DashboardSidebarProps {
   userRole?: string;
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
+  /** Shown in the account row at the bottom of the menu. */
+  user?: { name: string; email: string };
+}
+
+interface NavItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  /** Extra path prefix that should also mark this item active. */
+  matchPrefix?: string;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
 }
 
 export function DashboardSidebar({
@@ -48,29 +64,64 @@ export function DashboardSidebar({
   userRole = "BUSINESS_OWNER",
   mobileOpen = false,
   onCloseMobile,
+  user,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
   const isRestaurant = business.sector === "RESTORAN" || business.sector === "RESTAURANT";
+  const sectorLabel =
+    SECTORS.find((s) => s.id === business.sector)?.name ??
+    (isRestaurant ? "Restoran & Kafe" : "Hizmet İşletmesi");
+  const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN";
 
-  const navigation = [
-    { name: "Ana Sayfa", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Takvim", href: "/dashboard/calendar", icon: CalendarDays },
-    { name: "Rezervasyonlar", href: "/dashboard/appointments", icon: CalendarCheck2 },
-    ...(isRestaurant
-      ? [{ name: "Masa Planı", href: "/dashboard/tables", icon: UtensilsCrossed }]
-      : []),
-    { name: "Hizmetler", href: "/dashboard/services", icon: Scissors },
-    { name: "Çalışanlar", href: "/dashboard/employees", icon: Users2 },
-    { name: "Müşteriler", href: "/dashboard/customers", icon: Contact2 },
-    { name: "Yorumlar", href: "/dashboard/reviews", icon: Star },
-    { name: "Sayfa Düzenleyici", href: "/dashboard/page-builder", icon: Palette },
-    { name: "Galeri & Portföy", href: "/dashboard/page-builder?tab=gallery", icon: Camera },
-    { name: "İstatistikler & AI", href: "/dashboard/analytics", icon: BarChart3 },
-    { name: "Abonelik", href: "/dashboard/subscription", icon: CreditCard },
-    { name: "Ayarlar", href: "/dashboard/settings", icon: Settings },
+  // Labels collapse on desktop only; the mobile drawer always shows them.
+  const showLabels = !collapsed || mobileOpen;
+
+  const groups: NavGroup[] = [
+    {
+      label: "Günlük",
+      items: [
+        { name: "Özet", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Takvim", href: "/dashboard/calendar", icon: CalendarDays },
+        { name: "Rezervasyonlar", href: "/dashboard/appointments", icon: CalendarCheck2 },
+        ...(isRestaurant
+          ? [{ name: "Masa Planı", href: "/dashboard/tables", icon: UtensilsCrossed, matchPrefix: "/dashboard/tables" }]
+          : []),
+        { name: "Müşteriler", href: "/dashboard/customers", icon: Contact2 },
+      ],
+    },
+    {
+      label: "İşletme",
+      items: [
+        { name: "Hizmetler", href: "/dashboard/services", icon: Scissors },
+        { name: "Çalışanlar", href: "/dashboard/employees", icon: Users2 },
+        { name: "Yorumlar", href: "/dashboard/reviews", icon: Star },
+        { name: "İstatistikler", href: "/dashboard/analytics", icon: BarChart3 },
+      ],
+    },
+    {
+      label: "Vitrin",
+      items: [
+        { name: "Sayfa Düzenleyici", href: "/dashboard/page-builder", icon: Palette, matchPrefix: "/dashboard/page-builder" },
+        { name: "Galeri & Portföy", href: "/dashboard/page-builder?tab=gallery", icon: Camera },
+      ],
+    },
+    {
+      label: "Hesap",
+      items: [
+        { name: "Abonelik", href: "/dashboard/subscription", icon: CreditCard },
+        { name: "Ayarlar", href: "/dashboard/settings", icon: Settings },
+        { name: "Destek", href: "/dashboard/support", icon: LifeBuoy, matchPrefix: "/dashboard/support" },
+      ],
+    },
   ];
+
+  const isActive = (item: NavItem) => {
+    // The gallery shortcut shares its route with the page builder; keep only the builder highlighted.
+    if (item.href.includes("?")) return false;
+    return pathname === item.href || (!!item.matchPrefix && pathname.startsWith(item.matchPrefix));
+  };
 
   const handleLogout = async () => {
     try {
@@ -83,165 +134,162 @@ export function DashboardSidebar({
 
   return (
     <aside
-      className={`fixed md:relative inset-y-0 left-0 z-50 md:z-30 flex flex-col border-r border-[#151B2E] bg-[#080D1B] backdrop-blur-xl transition-all duration-300 shrink-0 text-slate-100 ${
-        mobileOpen
-          ? "translate-x-0 w-72 max-w-[85vw] shadow-2xl"
-          : "-translate-x-full md:translate-x-0"
-      } ${collapsed ? "md:w-20" : "md:w-64"}`}
+      className={cn(
+        "fixed md:relative inset-y-0 left-0 z-50 md:z-30 flex flex-col shrink-0 bg-nav text-nav-text border-r border-nav-line transition-[width,transform] duration-200",
+        mobileOpen ? "translate-x-0 w-72 max-w-[85vw] shadow-pop" : "-translate-x-full md:translate-x-0",
+        collapsed ? "md:w-[68px]" : "md:w-64"
+      )}
+      aria-label="Panel menüsü"
     >
-      {/* Brand Header */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-[#151B2E]">
+      {/* Wordmark */}
+      <div className={cn("flex h-14 items-center gap-2 px-4", collapsed && !mobileOpen ? "md:justify-center md:px-0" : "justify-between")}>
         <Link
           href="/dashboard"
           onClick={() => onCloseMobile?.()}
-          className="flex items-center gap-2.5 overflow-hidden"
+          className="flex items-center gap-2.5 min-w-0 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          aria-label="RandevuGo panel ana sayfası"
         >
-          <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-black shrink-0">
-            <Image
-              src="/brand/mascot-logo.png"
-              alt="RandevuGo Logo"
-              fill
-              sizes="36px"
-              className="object-cover"
-              unoptimized
-            />
+          <div className="relative w-7 h-7 rounded-[7px] overflow-hidden bg-black shrink-0">
+            <Image src="/brand/mascot-logo.png" alt="" fill sizes="28px" className="object-cover" unoptimized />
           </div>
-          {(!collapsed || mobileOpen) && (
-            <div className="flex flex-col min-w-0">
-              <Image
-                src="/brand/randevugo-text-logo.png"
-                alt="RandevuGo"
-                width={120}
-                height={20}
-                className="h-4.5 w-auto object-contain"
-                unoptimized
-              />
-              <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 mt-0.5">
-                SaaS Dashboard
-              </span>
-            </div>
+          {showLabels && (
+            <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-nav-text-strong">
+              RandevuGo
+            </span>
           )}
         </Link>
 
-        {/* Desktop Collapse Toggle */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg border border-[#1E2742] bg-[#0E1528] text-slate-400 hover:text-white transition-colors"
-          title={collapsed ? "Genişlet" : "Daralt"}
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
-
-        {/* Mobile Close Button */}
         {onCloseMobile && (
           <button
+            type="button"
             onClick={onCloseMobile}
-            className="md:hidden flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E2742] bg-[#0E1528] text-slate-400 hover:text-white transition-colors"
-            aria-label="Menüyü Kapat"
+            className="md:hidden flex h-8 w-8 items-center justify-center rounded-control text-nav-text hover:bg-nav-hover hover:text-nav-text-strong transition-colors"
+            aria-label="Menüyü kapat"
           >
             <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      {/* Business Info Card */}
-      {!collapsed && (
-        <div className="p-3 mx-3 mt-3 rounded-2xl border border-[#1E2742] bg-[#0E1528]/90">
-          <div className="flex items-center gap-3">
+      {/* Business */}
+      {showLabels && (
+        <div className="px-3 pb-2">
+          <Link
+            href={`/${business.slug}`}
+            target="_blank"
+            onClick={() => onCloseMobile?.()}
+            className="group flex items-center gap-3 rounded-panel bg-nav-raised p-2.5 shadow-raised transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            title="Rezervasyon sayfanızı yeni sekmede açın"
+          >
             {business.logo ? (
-              <img
-                src={business.logo}
-                alt={business.name}
-                className="w-10 h-10 rounded-xl object-cover border border-[#263152] shrink-0"
-              />
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={business.logo} alt="" className="w-9 h-9 rounded-control border border-nav-line object-cover shrink-0" />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-[#6246EA]/20 text-[#6246EA] flex items-center justify-center font-bold text-sm border border-[#6246EA]/30 shrink-0">
-                {business.name.slice(0, 1)}
+              <div className="w-9 h-9 rounded-control bg-brand-soft text-brand-ink flex items-center justify-center text-sm font-bold shrink-0">
+                {business.name.slice(0, 1).toLocaleUpperCase("tr-TR")}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-slate-100 truncate">{business.name}</p>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400 rotate-90 shrink-0" />
-              </div>
-              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block shrink-0" />
-                <span className="truncate">{business.sector === "BERBER" ? "Erkek Kuaförü & Berber" : business.sector}</span>
-              </div>
+              <p className="text-sm font-semibold text-nav-text-strong truncate">{business.name}</p>
+              <p className="flex items-center gap-1 text-xs text-nav-text truncate">
+                <span className="truncate">/{business.slug}</span>
+                <ExternalLink className="w-3 h-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+              </p>
             </div>
-          </div>
-
-          <div className="mt-2.5 pt-2.5 border-t border-[#1E2742] flex flex-col gap-0.5 text-[11px]">
-            <span className="text-slate-400 text-[10px]">Canlı Sayfa:</span>
-            <Link
-              href={`/${business.slug}`}
-              target="_blank"
-              className="inline-flex items-center gap-1.5 text-[#8C75FF] hover:text-white font-medium transition-colors truncate"
-            >
-              <span className="truncate">randevugo.com/{business.slug}</span>
-              <ExternalLink className="w-3 h-3 shrink-0" />
-            </Link>
-          </div>
+          </Link>
+          <p className="sr-only">{sectorLabel}</p>
         </div>
       )}
 
-      {/* Navigation Links */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
-        {navigation.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (item.name === "Sayfa Düzenleyici" && pathname.startsWith("/dashboard/page-builder")) ||
-            (item.name === "Masa Planı" && pathname.startsWith("/dashboard/tables"));
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={() => onCloseMobile?.()}
-              className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-xs sm:text-sm font-medium transition-all ${
-                isActive
-                  ? "bg-[#6246EA] text-white shadow-md shadow-[#6246EA]/30 font-semibold"
-                  : "text-[#94A3B8] hover:bg-[#0E1528] hover:text-white"
-              }`}
-              title={collapsed ? item.name : undefined}
-            >
-              <Icon
-                className={`w-4.5 h-4.5 shrink-0 transition-colors ${
-                  isActive ? "text-white" : "text-[#94A3B8] group-hover:text-white"
-                }`}
-              />
-              {(!collapsed || mobileOpen) && <span className="truncate">{item.name}</span>}
-              {(!collapsed || mobileOpen) && item.name === "Abonelik" && subscriptionStatus === "trial" && (
-                <span className="ml-auto rounded-full bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">
-                  Deneme
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-5">
+        {groups.map((group) => (
+          <div key={group.label}>
+            {showLabels ? (
+              <p className="px-2.5 pb-1.5 text-[11px] font-semibold tracking-[0.02em] text-nav-text/80">{group.label}</p>
+            ) : (
+              <div className="mx-2 mb-2 border-t border-nav-line first:hidden" aria-hidden="true" />
+            )}
+            <ul className="space-y-px">
+              {group.items.map((item) => {
+                const active = isActive(item);
+                const Icon = item.icon;
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      onClick={() => onCloseMobile?.()}
+                      aria-current={active ? "page" : undefined}
+                      title={!showLabels ? item.name : undefined}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-control px-2.5 h-9 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                        !showLabels && "md:justify-center md:px-0",
+                        active
+                          ? "bg-nav-raised text-nav-text-strong font-semibold shadow-raised"
+                          : "text-nav-text hover:bg-nav-hover hover:text-nav-text-strong"
+                      )}
+                    >
+                      <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-brand" : "opacity-80")} aria-hidden="true" />
+                      {showLabels && <span className="truncate">{item.name}</span>}
+                      {showLabels && item.name === "Abonelik" && subscriptionStatus === "trial" && (
+                        <span className="ml-auto rounded-full border border-pending-line bg-pending-soft px-2 py-0.5 text-[11px] font-medium text-pending">
+                          Deneme
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
 
-        {(userRole === "ADMIN" || userRole === "SUPER_ADMIN" || userRole === "SUPERADMIN") && (
+        {isAdmin && (
           <Link
             href="/admin"
             onClick={() => onCloseMobile?.()}
-            className="group flex items-center gap-3 rounded-xl px-3.5 py-3 text-xs sm:text-sm font-medium text-amber-400 hover:bg-amber-500/10 transition-colors border border-amber-500/20"
-            title="Süper Yönetici Paneli"
+            title={!showLabels ? "Sistem Admin" : undefined}
+            className={cn(
+              "flex items-center gap-2.5 rounded-control px-2.5 h-9 text-sm text-pending hover:bg-nav-hover transition-colors",
+              !showLabels && "md:justify-center md:px-0"
+            )}
           >
-            <ShieldCheck className="w-4.5 h-4.5 shrink-0 text-amber-400" />
-            {(!collapsed || mobileOpen) && <span className="truncate">Sistem Admin</span>}
+            <ShieldCheck className="w-[18px] h-[18px] shrink-0" aria-hidden="true" />
+            {showLabels && <span className="truncate">Sistem Admin</span>}
           </Link>
         )}
       </nav>
 
-      {/* Bottom Footer Actions */}
-      <div className="p-3 border-t border-[#151B2E]">
+      {/* Account */}
+      <div className={cn("flex items-center gap-2 border-t border-nav-line p-3", !showLabels && "md:flex-col")}>
+        {showLabels && user && (
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 px-1" title={user.email}>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-nav-raised text-xs font-bold text-nav-text-strong shadow-raised">
+              {user.name ? user.name.trim().slice(0, 1).toLocaleUpperCase("tr-TR") : "?"}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-nav-text-strong">{user.name}</span>
+              <span className="block truncate text-xs text-nav-text">{user.email}</span>
+            </span>
+          </div>
+        )}
         <button
+          type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-2.5 rounded-xl border border-[#1E2742] bg-[#0E1528] px-3.5 py-2.5 text-xs sm:text-sm font-medium text-[#94A3B8] hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 transition-colors"
-          title={collapsed ? "Çıkış Yap" : undefined}
+          title="Çıkış yap"
+          aria-label="Çıkış yap"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-nav-text hover:bg-nav-hover hover:text-nav-text-strong transition-colors"
         >
-          <LogOut className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Çıkış Yap</span>}
+          <LogOut className="w-4 h-4" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="hidden md:flex h-9 w-9 shrink-0 items-center justify-center rounded-control text-nav-text hover:bg-nav-hover hover:text-nav-text-strong transition-colors"
+          aria-label={collapsed ? "Menüyü genişlet" : "Menüyü daralt"}
+          title={collapsed ? "Genişlet" : "Daralt"}
+        >
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </div>
     </aside>

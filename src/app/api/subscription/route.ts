@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  applyPercentOff,
+  formatTL,
+  getActiveRedemption,
+  getBasePrice,
+  normalizeCouponCode,
+  checkCouponForBusiness,
+  DEFAULT_MONTHLY_PRICE,
+} from "@/lib/coupons";
 
 export async function GET() {
   try {
@@ -26,7 +35,7 @@ export async function GET() {
           trialEndDate: trialEnd,
           status: "trial",
           paymentStatus: "paid",
-          monthlyPrice: 89.0,
+          monthlyPrice: DEFAULT_MONTHLY_PRICE,
         },
       });
     }
@@ -65,7 +74,7 @@ export async function GET() {
       subscription,
       daysRemaining,
       isExpired,
-      monthlyPrice: 89.0,
+      monthlyPrice: subscription.monthlyPrice,
       supportedGateways: ["PayTR", "iyzico"],
     });
   } catch (error) {
@@ -81,42 +90,96 @@ export async function POST(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const businessId = user.business.id;
 
     const body = await req.json().catch(() => ({}));
     const { provider = "PayTR", planType = "PRO" } = body;
+    const couponCode = normalizeCouponCode(body.couponCode);
+
+    // Price is always computed here; the client only sends the code.
+    const basePrice = await getBasePrice(businessId);
+    const activeRedemption = await getActiveRedemption(businessId);
+
+    let percentOff = 0;
+    let appliedCode: string | null = null;
+    let newCoupon: { id: string; code: string; percentOff: number; durationMonths: number } | null = null;
+
+    if (activeRedemption) {
+      if (couponCode && couponCode !== activeRedemption.coupon.code) {
+        return NextResponse.json(
+          { error: "Devam eden bir indiriminiz var; yeni kod bu indirim bittikten sonra kullanılabilir." },
+          { status: 400 }
+        );
+      }
+      percentOff = activeRedemption.percentOff;
+      appliedCode = activeRedemption.coupon.code;
+    } else if (couponCode) {
+      const check = await checkCouponForBusiness(couponCode, businessId);
+      if (!check.ok) {
+        return NextResponse.json({ error: check.error }, { status: 400 });
+      }
+      newCoupon = check.coupon;
+      percentOff = check.coupon.percentOff;
+      appliedCode = check.coupon.code;
+    }
+
+    const chargedAmount = percentOff ? applyPercentOff(basePrice, percentOff) : basePrice;
 
     const now = new Date();
     const subEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-    const updated = await prisma.subscription.upsert({
-      where: { businessId: user.business.id },
-      create: {
-        businessId: user.business.id,
-        planType,
-        trialStartDate: now,
-        trialEndDate: now,
-        subscriptionStartDate: now,
-        subscriptionEndDate: subEnd,
-        status: "active",
-        paymentStatus: "paid",
-        monthlyPrice: 89.0,
-        paymentProvider: provider,
-      },
-      update: {
-        planType,
-        subscriptionStartDate: now,
-        subscriptionEndDate: subEnd,
-        status: "active",
-        paymentStatus: "paid",
-        paymentProvider: provider,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      // This payment consumes one discounted month.
+      if (activeRedemption) {
+        await tx.couponRedemption.update({
+          where: { id: activeRedemption.id },
+          data: { monthsRemaining: { decrement: 1 } },
+        });
+      } else if (newCoupon) {
+        await tx.couponRedemption.create({
+          data: {
+            couponId: newCoupon.id,
+            businessId,
+            percentOff: newCoupon.percentOff,
+            monthsRemaining: newCoupon.durationMonths - 1,
+          },
+        });
+      }
+
+      return tx.subscription.upsert({
+        where: { businessId },
+        create: {
+          businessId,
+          planType,
+          trialStartDate: now,
+          trialEndDate: now,
+          subscriptionStartDate: now,
+          subscriptionEndDate: subEnd,
+          status: "active",
+          paymentStatus: "paid",
+          monthlyPrice: basePrice,
+          paymentProvider: provider,
+        },
+        update: {
+          planType,
+          subscriptionStartDate: now,
+          subscriptionEndDate: subEnd,
+          status: "active",
+          paymentStatus: "paid",
+          paymentProvider: provider,
+        },
+      });
     });
 
+    const remainingRedemption = await getActiveRedemption(businessId);
+    const priceText = formatTL(chargedAmount);
     await prisma.notification.create({
       data: {
-        businessId: user.business.id,
+        businessId,
         title: "Abonelik Başarıyla Aktif Edildi 🎉",
-        message: `${provider} üzerinden 89 TL aylık aboneliğiniz onaylandı. 30 gün boyunca kesintisiz kullanım sağlayabilirsiniz.`,
+        message: appliedCode
+          ? `${provider} üzerinden ${priceText} ödemeniz onaylandı (${appliedCode} kodu ile %${percentOff} indirim). 30 gün boyunca kesintisiz kullanım sağlayabilirsiniz.`
+          : `${provider} üzerinden ${priceText} aylık aboneliğiniz onaylandı. 30 gün boyunca kesintisiz kullanım sağlayabilirsiniz.`,
         type: "SUBSCRIPTION",
         link: "/dashboard/subscription",
       },
@@ -125,6 +188,16 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       subscription: updated,
+      chargedAmount,
+      appliedCode,
+      percentOff,
+      activeDiscount: remainingRedemption
+        ? {
+            code: remainingRedemption.coupon.code,
+            percentOff: remainingRedemption.percentOff,
+            monthsRemaining: remainingRedemption.monthsRemaining,
+          }
+        : null,
       message: "Aboneliğiniz başarıyla yenilendi!",
     });
   } catch (error) {

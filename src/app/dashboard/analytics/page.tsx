@@ -8,8 +8,9 @@ export default async function AnalyticsPage() {
 
   const businessId = user.business.id;
 
+  // Blocked slots ("Saat kapat") are not bookings; keep them out of revenue and counts.
   const appointments = await prisma.appointment.findMany({
-    where: { businessId },
+    where: { businessId, isBlockedSlot: false },
     include: { service: true, employee: true },
   });
 

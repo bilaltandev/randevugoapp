@@ -1,21 +1,13 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import {
-  X,
-  Upload,
-  Camera,
-  Check,
-  Circle,
-  Square,
-  RectangleHorizontal,
-  Users,
-  Image as ImageIcon,
-  Loader2,
-  Trash2,
-  Sparkles,
-} from "lucide-react";
+import { Camera, Check, Circle, Square, RectangleHorizontal, Loader2, Trash2, Plus, Minus } from "lucide-react";
 import { RestaurantTable, RestaurantArea, TableShape, TableStatus } from "./types";
+import { Modal } from "@/components/Modal";
+import { Button } from "@/components/ui/Button";
+import { Switch } from "@/components/ui/Switch";
+import { Field, Input, Select } from "@/components/ui/Field";
+import { choiceClasses } from "@/components/ui/choice";
 
 interface TableModalProps {
   isOpen: boolean;
@@ -143,312 +135,203 @@ export function TableModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-lg rounded-3xl border border-slate-700/80 bg-slate-900 shadow-2xl p-6 text-slate-100 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div>
-            <h3 className="text-lg font-bold text-white">
-              {isEditing ? "Masayı Düzenle" : "Yeni Masa Oluştur"}
-            </h3>
-            <p className="text-xs text-slate-400">
-              Restoran masa planınızdaki masa bilgilerini yapılandırın.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+  const SHAPES: { id: TableShape; label: string; icon: typeof Circle }[] = [
+    { id: "ROUND", label: "Yuvarlak", icon: Circle },
+    { id: "SQUARE", label: "Kare", icon: Square },
+    { id: "RECTANGLE", label: "Dikdörtgen", icon: RectangleHorizontal },
+  ];
 
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? "Masayı düzenle" : "Yeni masa"} maxWidth="lg">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+          <p role="alert" className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
             {error}
-          </div>
+          </p>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          {/* Table Name & Capacity */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Masa Adı / No *
-              </label>
-              <input
-                type="text"
-                placeholder="Örn: Masa 1, Teras 4, VIP 2"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Kişi Kapasitesi *
-              </label>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCapacity(Math.max(1, capacity - 1))}
-                  className="h-10 w-10 shrink-0 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center font-bold"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={capacity}
-                  onChange={(e) => setCapacity(parseInt(e.target.value, 10) || 1)}
-                  className="w-full text-center rounded-xl border border-slate-700 bg-slate-800/80 px-2 py-2 text-sm font-bold text-white focus:outline-none focus:border-indigo-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setCapacity(capacity + 1)}
-                  className="h-10 w-10 shrink-0 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center font-bold"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Area Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Bulunduğu Alan
-            </label>
-            <select
-              value={areaId}
-              onChange={(e) => setAreaId(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
-            >
-              <option value="">Alansız (Genel)</option>
-              {areas.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Table Shape */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Masa Şekli
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleShapeChange("ROUND")}
-                className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-semibold transition-all ${
-                  shape === "ROUND"
-                    ? "border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                    : "border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700"
-                }`}
-              >
-                <Circle className="w-5 h-5" />
-                <span>Yuvarlak</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleShapeChange("SQUARE")}
-                className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-semibold transition-all ${
-                  shape === "SQUARE"
-                    ? "border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                    : "border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700"
-                }`}
-              >
-                <Square className="w-5 h-5" />
-                <span>Kare</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleShapeChange("RECTANGLE")}
-                className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border text-xs font-semibold transition-all ${
-                  shape === "RECTANGLE"
-                    ? "border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-md shadow-indigo-500/20"
-                    : "border-slate-800 bg-slate-800/50 text-slate-400 hover:border-slate-700"
-                }`}
-              >
-                <RectangleHorizontal className="w-5 h-5" />
-                <span>Dikdörtgen</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Description & Quick Tags */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Masa Özelliği / Açıklama
-            </label>
-            <input
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Masa adı / no *" htmlFor="tbl-name">
+            <Input
+              id="tbl-name"
               type="text"
-              placeholder="Örn: Deniz Manzaralı, Pencere Kenarı, Teras Ön Cephe"
+              placeholder="Örn: Masa 1, Teras 4"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </Field>
+
+          <Field label="Kişi kapasitesi *" htmlFor="tbl-capacity">
+            <div className="flex items-center gap-1.5">
+              <Button
+                className="w-9 shrink-0 px-0"
+                onClick={() => setCapacity(Math.max(1, capacity - 1))}
+                aria-label="Kapasiteyi azalt"
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <Input
+                id="tbl-capacity"
+                type="number"
+                min={1}
+                max={30}
+                value={capacity}
+                onChange={(e) => setCapacity(parseInt(e.target.value, 10) || 1)}
+                className="text-center tabular-nums"
+              />
+              <Button className="w-9 shrink-0 px-0" onClick={() => setCapacity(capacity + 1)} aria-label="Kapasiteyi artır">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          </Field>
+        </div>
+
+        <Field label="Bulunduğu alan" htmlFor="tbl-area">
+          <Select id="tbl-area" value={areaId} onChange={(e) => setAreaId(e.target.value)}>
+            <option value="">Alansız (genel)</option>
+            {areas.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        <fieldset className="space-y-1.5">
+          <legend className="text-sm font-medium text-ink-2">Masa şekli</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {SHAPES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                aria-pressed={shape === s.id}
+                onClick={() => handleShapeChange(s.id)}
+                className={choiceClasses(shape === s.id, "flex flex-col items-center gap-1 py-2.5 text-xs font-medium")}
+              >
+                <s.icon className="h-4 w-4" aria-hidden="true" />
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="space-y-1.5">
+          <Field label="Masa özelliği / açıklama" htmlFor="tbl-desc">
+            <Input
+              id="tbl-desc"
+              type="text"
+              placeholder="Örn: Deniz manzaralı, pencere kenarı"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             />
-            {/* Quick chips */}
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {QUICK_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => {
-                    if (description.includes(tag)) return;
-                    setDescription(description ? `${description}, ${tag}` : tag);
-                  }}
-                  className="rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700/60 px-2 py-1 text-[11px] text-slate-300 transition-colors"
-                >
-                  + {tag}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Table Photo Upload */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Masaya Özel Fotoğraf (Opsiyonel)
-            </label>
-            <div className="space-y-2">
-              {imageUrl ? (
-                <div className="relative h-32 w-full rounded-2xl overflow-hidden border border-slate-700 group bg-slate-800">
-                  <img
-                    src={imageUrl}
-                    alt="Masa Görseli"
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="rounded-xl bg-slate-900/90 text-white px-3 py-1.5 text-xs font-semibold hover:bg-black transition-colors"
-                    >
-                      Değiştir
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageUrl("")}
-                      className="rounded-xl bg-rose-600 text-white p-1.5 hover:bg-rose-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="cursor-pointer border-2 border-dashed border-slate-700 hover:border-indigo-500/70 rounded-2xl p-4 text-center bg-slate-800/40 hover:bg-slate-800/70 transition-all flex flex-col items-center justify-center gap-2"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
-                      <span className="text-xs text-slate-400">Görsel yükleniyor...</span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                        <Camera className="w-5 h-5" />
-                      </div>
-                      <div className="text-xs font-semibold text-slate-200">
-                        Fotoğraf Yüklemek İçin Tıklayın
-                      </div>
-                      <p className="text-[11px] text-slate-400">
-                        Deniz manzarası, bahçe, pencere kenarı gibi masadan kareler
-                      </p>
-                    </>
-                  )}
-                </div>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
-          </div>
-
-          {/* Status & Active State */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-slate-800">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Masa Durumu
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TableStatus)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
-              >
-                <option value="AVAILABLE">Müsait (Yeşil)</option>
-                <option value="RESERVED">Rezerve (Sarı)</option>
-                <option value="OCCUPIED">Dolu (Kırmızı)</option>
-                <option value="OUT_OF_SERVICE">Kullanım Dışı (Gri)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Rezervasyona Açık / Aktif
-              </label>
+          </Field>
+          <div className="flex flex-wrap gap-1">
+            {QUICK_TAGS.map((tag) => (
               <button
+                key={tag}
                 type="button"
-                onClick={() => setIsActive(!isActive)}
-                className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2 text-xs font-semibold border transition-all ${
-                  isActive
-                    ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-                    : "bg-slate-800 border-slate-700 text-slate-400"
-                }`}
+                onClick={() => {
+                  if (description.includes(tag)) return;
+                  setDescription(description ? `${description}, ${tag}` : tag);
+                }}
+                className="h-7 rounded-control border border-line bg-surface px-2 text-xs text-ink-2 transition-colors hover:bg-surface-muted"
               >
-                <span>{isActive ? "Aktif (Müşteriler Görebilir)" : "Pasif (Gizli)"}</span>
-                <span
-                  className={`w-3 h-3 rounded-full ${
-                    isActive ? "bg-emerald-400 shadow-sm shadow-emerald-400" : "bg-slate-500"
-                  }`}
-                />
+                + {tag}
               </button>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium text-ink-2">
+            Masa fotoğrafı <span className="font-normal text-ink-3">(isteğe bağlı)</span>
+          </p>
+          {imageUrl ? (
+            <div className="relative h-32 w-full overflow-hidden rounded-control border border-line bg-surface-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="Masa görseli" className="h-full w-full object-cover" />
+              <div className="absolute bottom-2 right-2 flex gap-1.5">
+                <Button size="sm" onClick={() => fileInputRef.current?.click()}>
+                  Değiştir
+                </Button>
+                <Button size="sm" variant="danger" className="w-8 px-0" onClick={() => setImageUrl("")} aria-label="Fotoğrafı kaldır">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex cursor-pointer flex-col items-center gap-1 rounded-control border border-dashed border-line-strong p-4 text-center transition-colors hover:bg-surface-muted"
             >
-              İptal
-            </button>
-            <button
-              type="submit"
-              disabled={saving || uploading}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#6246EA] hover:from-indigo-500 hover:to-[#7257ff] text-white px-5 py-2.5 text-xs font-bold shadow-lg shadow-indigo-500/30 transition-all disabled:opacity-50"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Kaydediliyor...</span>
-                </>
+              {uploading ? (
+                <span className="flex items-center gap-2 text-sm text-ink-2">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Görsel yükleniyor...
+                </span>
               ) : (
                 <>
-                  <Check className="w-4 h-4" />
-                  <span>{isEditing ? "Değişiklikleri Kaydet" : "Masayı Ekle"}</span>
+                  <span className="flex items-center gap-2 text-sm font-medium text-ink">
+                    <Camera className="h-4 w-4 text-ink-3" aria-hidden="true" />
+                    Fotoğraf yüklemek için tıklayın
+                  </span>
+                  <span className="text-xs text-ink-3">Manzara, bahçe, pencere kenarı gibi masadan kareler</span>
                 </>
               )}
-            </button>
+            </div>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 border-t border-line pt-4 sm:grid-cols-2">
+          <Field label="Masa durumu" htmlFor="tbl-status">
+            <Select id="tbl-status" value={status} onChange={(e) => setStatus(e.target.value as TableStatus)}>
+              <option value="AVAILABLE">Müsait</option>
+              <option value="RESERVED">Rezerve</option>
+              <option value="OCCUPIED">Dolu</option>
+              <option value="OUT_OF_SERVICE">Kullanım dışı</option>
+            </Select>
+          </Field>
+
+          <div className="space-y-1.5">
+            <p id="tbl-active-label" className="text-sm font-medium text-ink-2">
+              Rezervasyona açık
+            </p>
+            <div className="flex h-9 items-center justify-between rounded-control border border-line px-3">
+              <span className="text-sm text-ink-2">{isActive ? "Müşteriler görebilir" : "Gizli"}</span>
+              <Switch checked={isActive} onChange={setIsActive} aria-labelledby="tbl-active-label" />
+            </div>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-line pt-4">
+          <Button variant="ghost" onClick={onClose}>
+            İptal
+          </Button>
+          <Button type="submit" variant="primary" disabled={saving || uploading}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                Kaydediliyor...
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" aria-hidden="true" />
+                {isEditing ? "Değişiklikleri kaydet" : "Masayı ekle"}
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

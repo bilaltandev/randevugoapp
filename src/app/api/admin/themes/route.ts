@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { THEME_REGISTRY } from "@/lib/themes/registry";
+import { isSuperAdminRole } from "@/lib/support";
 
-// Ensure themes exist in ThemeCatalog
+// Ensure every registry theme has a ThemeCatalog row (new themes get added; admin edits are kept)
 async function syncDefaultThemes() {
-  const existing = await prisma.themeCatalog.findMany();
-  if (existing.length === 0) {
-    for (const [key, t] of Object.entries(THEME_REGISTRY)) {
+  const existing = await prisma.themeCatalog.findMany({ select: { id: true } });
+  const known = new Set(existing.map((t) => t.id));
+  for (const t of Object.values(THEME_REGISTRY)) {
+    if (!known.has(t.id)) {
       await prisma.themeCatalog.create({
         data: {
           id: t.id,
@@ -27,7 +29,7 @@ async function syncDefaultThemes() {
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== "ADMIN") {
+    if (!user || !isSuperAdminRole(user.role)) {
       return NextResponse.json({ error: "Yetkisiz erişim. Sadece yönetici görüntüleyebilir." }, { status: 403 });
     }
 
@@ -47,7 +49,7 @@ export async function GET() {
 export async function PATCH(req: Request) {
   try {
     const user = await getCurrentUser();
-    if (!user || user.role !== "ADMIN") {
+    if (!user || !isSuperAdminRole(user.role)) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 403 });
     }
 

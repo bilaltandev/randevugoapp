@@ -9,7 +9,17 @@ export interface CreateAuditLogParams {
     | "SUBSCRIPTION_CHANGE"
     | "FEATURE_FLAG_CHANGE"
     | "SECTOR_CHANGE"
-    | "PRICE_CHANGE";
+    | "PRICE_CHANGE"
+    | "ADMIN_PROFILE_UPDATE"
+    | "ADMIN_PASSWORD_CHANGE"
+    | "SUPPORT_AGENT_CREATE"
+    | "SUPPORT_AGENT_UPDATE"
+    | "SUPPORT_AGENT_DELETE"
+    | "SUPPORT_TRIAL_EXTENDED"
+    | "SUPPORT_PASSWORD_RESET"
+    | "COUPON_CREATE"
+    | "COUPON_UPDATE"
+    | "COUPON_DELETE";
   target: string;
   targetId?: string | null;
   oldValue?: string | null;

@@ -2,6 +2,158 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ═══════════════════════════════════════════════════════════════════
+   RANDEVUGO DESIGN TOKENS
+   Raw values live in --rg-* variables so `.dark` can swap them;
+   @theme inline exposes them as Tailwind utilities (bg-surface, text-ink…).
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --rg-canvas: #F5F6F8;
+  --rg-surface: #FFFFFF;
+  --rg-surface-muted: #F0F2F5;
+  --rg-line: #E6E8EC;
+  --rg-line-strong: #D0D5DD;
+  --rg-ink: #0D1117;
+  --rg-ink-2: #454E5C;
+  --rg-ink-3: #687180;
+
+  --rg-brand: #0A7B5C;
+  --rg-brand-hover: #086A4F;
+  --rg-brand-soft: #EAF6F1;
+  --rg-brand-line: #B5E0CF;
+  --rg-brand-ink: #075A43;
+  --rg-on-brand: #FFFFFF;
+
+  --rg-pending: #B45309;
+  --rg-pending-soft: #FFFBEB;
+  --rg-pending-line: #FDE68A;
+  --rg-danger: #B91C1C;
+  --rg-danger-soft: #FEF2F2;
+  --rg-danger-line: #FECACA;
+  --rg-neutral-soft: #F3F4F6;
+
+  --rg-sidebar: #101827;
+  --rg-sidebar-raised: #1A2333;
+  --rg-sidebar-line: #1F2937;
+  --rg-sidebar-text: #9CA3AF;
+  --rg-sidebar-text-strong: #F9FAFB;
+
+  /* Dashboard navigation (light rail beside the content). The --rg-sidebar-* set above
+     stays dark for the auth and support screens that put the white logo on it. */
+  --rg-nav: #F5F6F8;
+  --rg-nav-raised: #FFFFFF;
+  --rg-nav-hover: rgba(13, 17, 23, 0.045);
+  --rg-nav-line: #E6E8EC;
+  --rg-nav-text: #555E6C;
+  --rg-nav-text-strong: #0D1117;
+}
+
+.dark {
+  color-scheme: dark;
+  --rg-canvas: #0B0E13;
+  --rg-surface: #12161D;
+  --rg-surface-muted: #181D26;
+  --rg-line: #232A36;
+  --rg-line-strong: #313A49;
+  --rg-ink: #EEF1F5;
+  --rg-ink-2: #B9C1CE;
+  --rg-ink-3: #8A94A4;
+
+  --rg-brand: #2BBF8E;
+  --rg-brand-hover: #4FD3A5;
+  --rg-brand-soft: rgba(43, 191, 142, 0.12);
+  --rg-brand-line: rgba(43, 191, 142, 0.34);
+  --rg-brand-ink: #7FE3BF;
+  /* The bright dark-mode emerald needs dark text (white is ~2.4:1). */
+  --rg-on-brand: #04261B;
+
+  --rg-pending: #FBBF24;
+  --rg-pending-soft: rgba(251, 191, 36, 0.12);
+  --rg-pending-line: rgba(251, 191, 36, 0.35);
+  --rg-danger: #F87171;
+  --rg-danger-soft: rgba(248, 113, 113, 0.12);
+  --rg-danger-line: rgba(248, 113, 113, 0.35);
+  --rg-neutral-soft: #1C222C;
+
+  --rg-nav: #0B0E13;
+  --rg-nav-raised: #181D26;
+  --rg-nav-hover: rgba(238, 241, 245, 0.05);
+  --rg-nav-line: #1C222C;
+  --rg-nav-text: #8A94A4;
+  --rg-nav-text-strong: #EEF1F5;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Page titles, key numbers and the wordmark */
+  --font-display: var(--font-manrope), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: var(--rg-canvas);
+  --color-surface: var(--rg-surface);
+  --color-surface-muted: var(--rg-surface-muted);
+  --color-line: var(--rg-line);
+  --color-line-strong: var(--rg-line-strong);
+  --color-ink: var(--rg-ink);
+  --color-ink-2: var(--rg-ink-2);
+  --color-ink-3: var(--rg-ink-3);
+
+  --color-brand: var(--rg-brand);
+  --color-brand-hover: var(--rg-brand-hover);
+  --color-brand-soft: var(--rg-brand-soft);
+  --color-brand-line: var(--rg-brand-line);
+  --color-brand-ink: var(--rg-brand-ink);
+  --color-on-brand: var(--rg-on-brand);
+
+  --color-pending: var(--rg-pending);
+  --color-pending-soft: var(--rg-pending-soft);
+  --color-pending-line: var(--rg-pending-line);
+  --color-danger: var(--rg-danger);
+  --color-danger-soft: var(--rg-danger-soft);
+  --color-danger-line: var(--rg-danger-line);
+  --color-neutral-soft: var(--rg-neutral-soft);
+
+  --color-sidebar: var(--rg-sidebar);
+  --color-sidebar-raised: var(--rg-sidebar-raised);
+  --color-sidebar-line: var(--rg-sidebar-line);
+  --color-sidebar-text: var(--rg-sidebar-text);
+  --color-sidebar-text-strong: var(--rg-sidebar-text-strong);
+
+  --color-nav: var(--rg-nav);
+  --color-nav-raised: var(--rg-nav-raised);
+  --color-nav-hover: var(--rg-nav-hover);
+  --color-nav-line: var(--rg-nav-line);
+  --color-nav-text: var(--rg-nav-text);
+  --color-nav-text-strong: var(--rg-nav-text-strong);
+
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --radius-dialog: 16px;
+
+  /* Panels sit on a hairline plus a barely-there lift; menus and dialogs float. */
+  --shadow-panel: 0 1px 2px rgba(13, 17, 23, 0.04), 0 1px 1px rgba(13, 17, 23, 0.02);
+  --shadow-raised: 0 1px 2px rgba(13, 17, 23, 0.06), 0 0 0 1px rgba(13, 17, 23, 0.04);
+  --shadow-pop: 0 16px 40px -12px rgba(13, 17, 23, 0.22), 0 2px 6px rgba(13, 17, 23, 0.06);
+}
+
+/* Blocked time slots: hatched so they read as "closed", not as a booking */
+.slot-blocked {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--rg-ink-3) 14%, transparent) 6px 7px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer base {
   :root {
     --background: 220 20% 6%;
@@ -54,7 +206,7 @@ html { scroll-behavior: smooth; }
 body {
   background-color: #080c10;
   color: #f1f5f9;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -272,7 +424,7 @@ body {
 .js-reveal-ready .reveal-right.is-visible { opacity: 1; transform: translateX(0); }
 
 /* ─────────── FOCUS RING ─────────── */
-:focus-visible { outline: 2px solid rgba(34,197,94,0.6); outline-offset: 2px; border-radius: 4px; }
+:focus-visible { outline: 2px solid color-mix(in srgb, var(--rg-brand) 70%, transparent); outline-offset: 2px; border-radius: 4px; }
 
 /* ─────────── METRIC CARD ─────────── */
 .metric-card { position: relative; overflow: hidden; }
@@ -329,16 +481,14 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   RANDEVUGO DASHBOARD - LIGHT THEME (DEFAULT)
-   Background: #F6F7FB | Cards: #FFFFFF | Text: #111827 | Border: #E4E7EC
-   Sidebar: #080D1B (Dark) | Purple: #6246EA | RandevuGo Green: #00C98D
+   LEGACY LIGHT-MODE ADAPTER
+   Dashboard pages use the design tokens above. These overrides only
+   repaint components still written dark-first (slate/indigo classes),
+   and only inside an opt-in `.dash-legacy-surface` wrapper — currently
+   the restaurant floor plan, which is shared with the public booking flow.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* 1. Main Background and Scroll Area */
-.dash-theme-light .dash-main-area {
-  background-color: #F6F7FB !important;
-  color: #111827 !important;
-}
+/* 1. Scroll area */
 
 .dash-theme-light .dash-content-scroll::-webkit-scrollbar-track {
   background: #F2F4F7;
@@ -352,55 +502,55 @@ body {
 }
 
 /* 2. Text Colors (Exclude live preview canvas) */
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h1,
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h2,
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h3,
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h4,
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h5,
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) h6 {
+.dash-theme-light .dash-legacy-surface h1,
+.dash-theme-light .dash-legacy-surface h2,
+.dash-theme-light .dash-legacy-surface h3,
+.dash-theme-light .dash-legacy-surface h4,
+.dash-theme-light .dash-legacy-surface h5,
+.dash-theme-light .dash-legacy-surface h6 {
   color: #111827 !important;
 }
 
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-100,
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-200 {
+.dash-theme-light .dash-legacy-surface .text-slate-100,
+.dash-theme-light .dash-legacy-surface .text-slate-200 {
   color: #111827 !important;
 }
 
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-300 {
+.dash-theme-light .dash-legacy-surface .text-slate-300 {
   color: #344054 !important;
 }
 
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-400,
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) .text-slate-500 {
+.dash-theme-light .dash-legacy-surface .text-slate-400,
+.dash-theme-light .dash-legacy-surface .text-slate-500 {
   color: #667085 !important;
 }
 
 /* 3. Cards & Panels */
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-slate-900"],
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-slate-950"]:not(.bg-black):not(.theme-live-preview-viewport *),
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-[#0E1528]"]:not(.theme-live-preview-viewport *),
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-[#151D36]"]:not(.theme-live-preview-viewport *) {
+.dash-theme-light .dash-legacy-surface [class*="bg-slate-900"],
+.dash-theme-light .dash-legacy-surface [class*="bg-slate-950"]:not(.bg-black):not(.theme-live-preview-viewport *),
+.dash-theme-light .dash-legacy-surface [class*="bg-[#0E1528]"]:not(.theme-live-preview-viewport *),
+.dash-theme-light .dash-legacy-surface [class*="bg-[#151D36]"]:not(.theme-live-preview-viewport *) {
   background-color: #FFFFFF !important;
   border-color: #E4E7EC !important;
   box-shadow: 0 1px 3px 0 rgba(16, 24, 40, 0.05), 0 1px 2px -1px rgba(16, 24, 40, 0.03);
 }
 
 /* 4. Wells, Sub-sections, Nested items */
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="bg-slate-800"]:not(button):not(a):not(.theme-live-preview-viewport *) {
+.dash-theme-light .dash-legacy-surface [class*="bg-slate-800"]:not(button):not(a):not(.theme-live-preview-viewport *) {
   background-color: #F8F9FC !important;
   border-color: #E4E7EC !important;
 }
 
 /* 5. Borders */
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="border-slate-800"],
-.dash-theme-light .dash-main-area:not(.theme-live-preview-viewport) [class*="border-slate-700"] {
+.dash-theme-light .dash-legacy-surface [class*="border-slate-800"],
+.dash-theme-light .dash-legacy-surface [class*="border-slate-700"] {
   border-color: #E4E7EC !important;
 }
 
 /* 6. Form Inputs, Selects & Textareas */
-.dash-theme-light .dash-main-area input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-.dash-theme-light .dash-main-area select,
-.dash-theme-light .dash-main-area textarea {
+.dash-theme-light .dash-legacy-surface input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dash-theme-light .dash-legacy-surface select,
+.dash-theme-light .dash-legacy-surface textarea {
   background-color: #FFFFFF !important;
   border: 1px solid #D0D5DD !important;
   color: #111827 !important;
@@ -409,177 +559,177 @@ body {
   transition: all 0.15s ease-in-out;
 }
 
-.dash-theme-light .dash-main-area input::placeholder,
-.dash-theme-light .dash-main-area textarea::placeholder {
+.dash-theme-light .dash-legacy-surface input::placeholder,
+.dash-theme-light .dash-legacy-surface textarea::placeholder {
   color: #98A2B3 !important;
 }
 
-.dash-theme-light .dash-main-area input:focus,
-.dash-theme-light .dash-main-area select:focus,
-.dash-theme-light .dash-main-area textarea:focus {
-  border-color: #6246EA !important;
+.dash-theme-light .dash-legacy-surface input:focus,
+.dash-theme-light .dash-legacy-surface select:focus,
+.dash-theme-light .dash-legacy-surface textarea:focus {
+  border-color: #059669 !important;
   outline: none !important;
-  box-shadow: 0 0 0 4px rgba(98, 70, 234, 0.12) !important;
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12) !important;
 }
 
 /* 7. Tables */
-.dash-theme-light .dash-main-area table {
+.dash-theme-light .dash-legacy-surface table {
   background-color: #FFFFFF !important;
   border-color: #E4E7EC !important;
 }
 
-.dash-theme-light .dash-main-area thead,
-.dash-theme-light .dash-main-area th {
+.dash-theme-light .dash-legacy-surface thead,
+.dash-theme-light .dash-legacy-surface th {
   background-color: #F8F9FC !important;
   color: #475467 !important;
   border-bottom: 1px solid #E4E7EC !important;
   font-weight: 600 !important;
 }
 
-.dash-theme-light .dash-main-area tbody tr {
+.dash-theme-light .dash-legacy-surface tbody tr {
   border-bottom: 1px solid #F2F4F7 !important;
   transition: background-color 0.15s ease;
 }
 
-.dash-theme-light .dash-main-area tbody tr:hover {
+.dash-theme-light .dash-legacy-surface tbody tr:hover {
   background-color: #F9FAFB !important;
 }
 
-.dash-theme-light .dash-main-area td {
+.dash-theme-light .dash-legacy-surface td {
   color: #111827 !important;
 }
 
 /* 8. Status Badges */
-.dash-theme-light .dash-main-area [class*="bg-emerald-500/10"],
-.dash-theme-light .dash-main-area [class*="bg-emerald-500/15"],
-.dash-theme-light .dash-main-area [class*="bg-emerald-500/20"] {
+.dash-theme-light .dash-legacy-surface [class*="bg-emerald-500/10"],
+.dash-theme-light .dash-legacy-surface [class*="bg-emerald-500/15"],
+.dash-theme-light .dash-legacy-surface [class*="bg-emerald-500/20"] {
   background-color: #ECFDF3 !important;
   color: #027A48 !important;
   border: 1px solid #A6F4C5 !important;
 }
 
-.dash-theme-light .dash-main-area [class*="bg-indigo-500/10"],
-.dash-theme-light .dash-main-area [class*="bg-indigo-500/15"],
-.dash-theme-light .dash-main-area [class*="bg-indigo-500/20"] {
-  background-color: #F4F3FF !important;
-  color: #5925DC !important;
-  border: 1px solid #D9D6FE !important;
+.dash-theme-light .dash-legacy-surface [class*="bg-indigo-500/10"],
+.dash-theme-light .dash-legacy-surface [class*="bg-indigo-500/15"],
+.dash-theme-light .dash-legacy-surface [class*="bg-indigo-500/20"] {
+  background-color: #F3F4F6 !important;
+  color: #374151 !important;
+  border: 1px solid #E5E7EB !important;
 }
 
-.dash-theme-light .dash-main-area [class*="bg-amber-500/10"],
-.dash-theme-light .dash-main-area [class*="bg-amber-500/15"],
-.dash-theme-light .dash-main-area [class*="bg-amber-500/20"] {
+.dash-theme-light .dash-legacy-surface [class*="bg-amber-500/10"],
+.dash-theme-light .dash-legacy-surface [class*="bg-amber-500/15"],
+.dash-theme-light .dash-legacy-surface [class*="bg-amber-500/20"] {
   background-color: #FFFAEB !important;
   color: #B54708 !important;
   border: 1px solid #FEDF89 !important;
 }
 
-.dash-theme-light .dash-main-area [class*="bg-rose-500/10"],
-.dash-theme-light .dash-main-area [class*="bg-rose-500/15"],
-.dash-theme-light .dash-main-area [class*="bg-rose-500/20"] {
+.dash-theme-light .dash-legacy-surface [class*="bg-rose-500/10"],
+.dash-theme-light .dash-legacy-surface [class*="bg-rose-500/15"],
+.dash-theme-light .dash-legacy-surface [class*="bg-rose-500/20"] {
   background-color: #FEF3F2 !important;
   color: #B42318 !important;
   border: 1px solid #FECDCA !important;
 }
 
 /* 9. Buttons */
-.dash-theme-light .dash-main-area button.bg-indigo-600,
-.dash-theme-light .dash-main-area a.bg-indigo-600 {
-  background-color: #6246EA !important;
+.dash-theme-light .dash-legacy-surface button.bg-indigo-600,
+.dash-theme-light .dash-legacy-surface a.bg-indigo-600 {
+  background-color: #059669 !important;
   color: #FFFFFF !important;
-  box-shadow: 0 1px 3px 0 rgba(98, 70, 234, 0.3) !important;
+  box-shadow: 0 1px 3px 0 rgba(5, 150, 105, 0.3) !important;
 }
 
-.dash-theme-light .dash-main-area button.bg-indigo-600:hover,
-.dash-theme-light .dash-main-area a.bg-indigo-600:hover {
-  background-color: #5339d1 !important;
+.dash-theme-light .dash-legacy-surface button.bg-indigo-600:hover,
+.dash-theme-light .dash-legacy-surface a.bg-indigo-600:hover {
+  background-color: #047857 !important;
 }
 
 /* Secondary outline / neutral buttons */
-.dash-theme-light .dash-main-area button[class*="border-slate-700"]:not(.bg-indigo-600),
-.dash-theme-light .dash-main-area a[class*="border-slate-700"]:not(.bg-indigo-600),
-.dash-theme-light .dash-main-area button[class*="border-slate-800"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
-.dash-theme-light .dash-main-area a[class*="border-slate-800"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
+.dash-theme-light .dash-legacy-surface button[class*="border-slate-700"]:not(.bg-indigo-600),
+.dash-theme-light .dash-legacy-surface a[class*="border-slate-700"]:not(.bg-indigo-600),
+.dash-theme-light .dash-legacy-surface button[class*="border-slate-800"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
+.dash-theme-light .dash-legacy-surface a[class*="border-slate-800"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
   background-color: #FFFFFF !important;
   border-color: #D0D5DD !important;
   color: #344054 !important;
 }
 
-.dash-theme-light .dash-main-area button[class*="border-slate-700"]:hover:not(.bg-indigo-600),
-.dash-theme-light .dash-main-area a[class*="border-slate-700"]:hover:not(.bg-indigo-600),
-.dash-theme-light .dash-main-area button[class*="border-slate-800"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
-.dash-theme-light .dash-main-area a[class*="border-slate-800"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
+.dash-theme-light .dash-legacy-surface button[class*="border-slate-700"]:hover:not(.bg-indigo-600),
+.dash-theme-light .dash-legacy-surface a[class*="border-slate-700"]:hover:not(.bg-indigo-600),
+.dash-theme-light .dash-legacy-surface button[class*="border-slate-800"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
+.dash-theme-light .dash-legacy-surface a[class*="border-slate-800"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
   background-color: #F8F9FC !important;
   color: #111827 !important;
   border-color: #B2BCC9 !important;
 }
 
 /* 10. Calendar Component specific tweaks */
-.dash-theme-light .dash-main-area .divide-slate-800\/80 {
+.dash-theme-light .dash-legacy-surface .divide-slate-800\/80 {
   border-color: #E4E7EC !important;
 }
-.dash-theme-light .dash-main-area .divide-slate-800\/80 > * + * {
+.dash-theme-light .dash-legacy-surface .divide-slate-800\/80 > * + * {
   border-color: #E4E7EC !important;
 }
 
 /* 11. Pill tabs and filter buttons */
-.dash-theme-light .dash-main-area button[class*="bg-slate-950"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
-.dash-theme-light .dash-main-area a[class*="bg-slate-950"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
+.dash-theme-light .dash-legacy-surface button[class*="bg-slate-950"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
+.dash-theme-light .dash-legacy-surface a[class*="bg-slate-950"]:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
   background-color: #FFFFFF !important;
   border-color: #E4E7EC !important;
   color: #475467 !important;
 }
 
-.dash-theme-light .dash-main-area button[class*="bg-slate-950"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
-.dash-theme-light .dash-main-area a[class*="bg-slate-950"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
+.dash-theme-light .dash-legacy-surface button[class*="bg-slate-950"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]),
+.dash-theme-light .dash-legacy-surface a[class*="bg-slate-950"]:hover:not(.bg-indigo-600):not([class*="bg-[#00C98D]"]) {
   background-color: #F8F9FC !important;
   color: #111827 !important;
 }
 
 /* 12. Active Tab Purple Accent */
-.dash-theme-light .dash-main-area .bg-indigo-600\/15 {
-  background-color: #F4F3FF !important;
-  color: #6246EA !important;
-  border-color: #D9D6FE !important;
+.dash-theme-light .dash-legacy-surface .bg-indigo-600\/15 {
+  background-color: #ECFDF5 !important;
+  color: #059669 !important;
+  border-color: #A7F3D0 !important;
 }
 
 /* 13. Unselected icon badges and small wells */
-.dash-theme-light .dash-main-area [class*="bg-slate-700"]:not(button):not(a):not(.theme-live-preview-viewport *) {
+.dash-theme-light .dash-legacy-surface [class*="bg-slate-700"]:not(button):not(a):not(.theme-live-preview-viewport *) {
   background-color: #F2F4F7 !important;
   color: #344054 !important;
   border-color: #E4E7EC !important;
 }
 
-.dash-theme-light .dash-main-area [class*="bg-slate-700"]:not(button):not(a):not(.theme-live-preview-viewport *) svg {
+.dash-theme-light .dash-legacy-surface [class*="bg-slate-700"]:not(button):not(a):not(.theme-live-preview-viewport *) svg {
   color: #344054 !important;
 }
 
 /* Selected active items in gallery and themes */
-.dash-theme-light .dash-main-area .bg-indigo-600 svg,
-.dash-theme-light .dash-main-area [class*="bg-[#6246EA]"] svg {
+.dash-theme-light .dash-legacy-surface .bg-indigo-600 svg,
+.dash-theme-light .dash-legacy-surface [class*="bg-[#059669]"] svg {
   color: #FFFFFF !important;
 }
 
 /* 14. Option selection buttons (direction, size, ratio in gallery) */
-.dash-theme-light .dash-main-area button[class*="bg-slate-800/60"],
-.dash-theme-light .dash-main-area button[class*="bg-slate-800/50"],
-.dash-theme-light .dash-main-area button[class*="bg-slate-800/40"] {
+.dash-theme-light .dash-legacy-surface button[class*="bg-slate-800/60"],
+.dash-theme-light .dash-legacy-surface button[class*="bg-slate-800/50"],
+.dash-theme-light .dash-legacy-surface button[class*="bg-slate-800/40"] {
   background-color: #FFFFFF !important;
   border-color: #E4E7EC !important;
   color: #475467 !important;
 }
 
-.dash-theme-light .dash-main-area button[class*="bg-slate-800/60"]:hover,
-.dash-theme-light .dash-main-area button[class*="bg-slate-800/50"]:hover,
-.dash-theme-light .dash-main-area button[class*="bg-slate-800/40"]:hover {
+.dash-theme-light .dash-legacy-surface button[class*="bg-slate-800/60"]:hover,
+.dash-theme-light .dash-legacy-surface button[class*="bg-slate-800/50"]:hover,
+.dash-theme-light .dash-legacy-surface button[class*="bg-slate-800/40"]:hover {
   background-color: #F8F9FC !important;
   color: #111827 !important;
 }
 
-.dash-theme-light .dash-main-area button[class*="bg-indigo-600/20"] {
-  background-color: #F4F3FF !important;
-  border-color: #6246EA !important;
-  color: #6246EA !important;
+.dash-theme-light .dash-legacy-surface button[class*="bg-indigo-600/20"] {
+  background-color: #ECFDF5 !important;
+  border-color: #059669 !important;
+  color: #059669 !important;
 }
 
 

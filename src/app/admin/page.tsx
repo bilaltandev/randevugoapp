@@ -10,7 +10,7 @@ export default async function AdminPage() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/admin/login");
   }
 
   // Security Check: Only SUPER_ADMIN (or ADMIN)
@@ -19,6 +19,12 @@ export default async function AdminPage() {
   if (!isAuthorized) {
     redirect("/dashboard");
   }
+
+  // getCurrentUser doesn't select phone; the profile tab needs it.
+  const adminProfile = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { phone: true },
+  });
 
   const now = new Date();
   const todayStr = now.toISOString().split("T")[0];
@@ -170,7 +176,7 @@ export default async function AdminPage() {
           sectorCounts={sectorCounts}
           initialFeatureFlags={featureFlags}
           initialAuditLogs={auditLogs}
-          adminUser={user}
+          adminUser={{ ...user, phone: adminProfile?.phone ?? null }}
         />
       </div>
     </div>

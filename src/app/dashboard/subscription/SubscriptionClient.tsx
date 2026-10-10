@@ -2,34 +2,90 @@
 
 import React, { useState } from "react";
 import confetti from "canvas-confetti";
-import {
-  CreditCard,
-  CheckCircle2,
-  Clock,
-  Sparkles,
-  ShieldCheck,
-  AlertTriangle,
-  Lock,
-  ArrowRight,
-  Zap,
-} from "lucide-react";
+import { CreditCard, CheckCircle2, Check, ShieldCheck, Lock, Tag, X } from "lucide-react";
 import { Modal } from "@/components/Modal";
-import { formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { applyPercentOff, formatTL, normalizeCouponCode } from "@/lib/couponOptions";
+
+interface ActiveDiscount {
+  code: string;
+  percentOff: number;
+  monthsRemaining: number;
+}
+
+interface CouponQuote {
+  code: string;
+  percentOff: number;
+  durationMonths: number;
+  discountedPrice: number;
+}
 
 interface SubscriptionClientProps {
   business: any;
   initialSubscription: any;
+  basePrice: number;
+  initialActiveDiscount: ActiveDiscount | null;
 }
 
 export default function SubscriptionClient({
   business,
   initialSubscription,
+  basePrice,
+  initialActiveDiscount,
 }: SubscriptionClientProps) {
   const [sub, setSub] = useState(initialSubscription);
+  const [activeDiscount, setActiveDiscount] = useState<ActiveDiscount | null>(initialActiveDiscount);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [gateway, setGateway] = useState<"PayTR" | "iyzico">("PayTR");
   const [loading, setLoading] = useState(false);
   const [successNotice, setSuccessNotice] = useState("");
+  const [checkoutError, setCheckoutError] = useState("");
+
+  // Coupon entry (only when no discount is already running)
+  const [couponInput, setCouponInput] = useState("");
+  const [couponQuote, setCouponQuote] = useState<CouponQuote | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
+
+  // What this payment will charge: a running discount wins, else a validated new code.
+  const appliedPercent = activeDiscount?.percentOff ?? couponQuote?.percentOff ?? 0;
+  const chargeAmount = appliedPercent ? applyPercentOff(basePrice, appliedPercent) : basePrice;
+  const basePriceText = formatTL(basePrice);
+
+  const handleApplyCoupon = async () => {
+    const code = normalizeCouponCode(couponInput);
+    if (!code) return;
+    setCheckingCoupon(true);
+    setCouponError("");
+    try {
+      const res = await fetch("/api/subscription/coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCouponQuote(null);
+        setCouponError(data.error || "İndirim kodu uygulanamadı.");
+        return;
+      }
+      setCouponQuote(data);
+    } catch {
+      setCouponError("Bağlantı hatası oluştu.");
+    } finally {
+      setCheckingCoupon(false);
+    }
+  };
+
+  const clearCoupon = () => {
+    setCouponQuote(null);
+    setCouponInput("");
+    setCouponError("");
+  };
 
   // Card simulation fields
   const [cardNumber, setCardNumber] = useState("5428 •••• •••• 9012");
@@ -52,19 +108,28 @@ export default function SubscriptionClient({
     e.preventDefault();
     setLoading(true);
     setSuccessNotice("");
+    setCheckoutError("");
 
     try {
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: gateway, planType: "PRO" }),
+        body: JSON.stringify({ provider: gateway, planType: "PRO", couponCode: couponQuote?.code }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setCheckoutError(data.error || "Ödeme tamamlanamadı.");
+        return;
+      }
       if (data.subscription) {
         setSub(data.subscription);
+        setActiveDiscount(data.activeDiscount);
+        clearCoupon();
         setIsCheckoutOpen(false);
         setSuccessNotice(
-          `${gateway} 3D Secure doğrulaması onaylandı! Aboneliğiniz 89 TL / Ay olarak aktif edildi.`
+          data.appliedCode
+            ? `${gateway} 3D Secure doğrulaması onaylandı! ${data.appliedCode} kodu ile %${data.percentOff} indirimli ${formatTL(data.chargedAmount)} ödemeniz alındı.`
+            : `${gateway} 3D Secure doğrulaması onaylandı! Aboneliğiniz ${formatTL(data.chargedAmount)} / ay olarak aktif edildi.`
         );
         confetti({ particleCount: 100, spread: 70 });
       }
@@ -92,288 +157,293 @@ export default function SubscriptionClient({
     }
   };
 
+  const isActive = sub?.status === "active";
+  const isExpired = sub?.status === "expired";
+
+  const statusBadge = isActive
+    ? { label: "Aktif", cls: "bg-brand-soft text-brand-ink border-brand-line" }
+    : isExpired
+    ? { label: "Süresi doldu", cls: "bg-danger-soft text-danger border-danger-line" }
+    : { label: "Deneme sürümü", cls: "bg-pending-soft text-pending border-pending-line" };
+
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-          Abonelik & Fatura Yönetimi
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-          RandevuGo SaaS planınızı, deneme sürenizi ve ödeme yöntemlerinizi buradan yönetin.
-        </p>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Abonelik"
+        description="Planınızı, deneme sürenizi ve ödeme yöntemlerinizi yönetin."
+      />
 
       {successNotice && (
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs font-semibold text-emerald-300 flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <span>{successNotice}</span>
+        <div
+          role="status"
+          className="flex items-center gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink"
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {successNotice}
         </div>
       )}
 
-      {/* Current Plan Overview Card */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-              <Zap className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-slate-100">
-                  {sub?.status === "active" ? "RandevuGo Pro Plan" : "3 Gün Ücretsiz Deneme"}
-                </h3>
-                {sub?.status === "active" ? (
-                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                    Aktif
-                  </span>
-                ) : sub?.status === "expired" ? (
-                  <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                    Süresi Doldu
-                  </span>
-                ) : (
-                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                    Deneme Sürümü
-                  </span>
+      {/* Current plan */}
+      <Panel>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-semibold text-ink">
+                {isActive ? "RandevuGo Pro" : "Ücretsiz deneme"}
+              </h2>
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-control border px-1.5 py-0.5 text-xs font-medium leading-4",
+                  statusBadge.cls
                 )}
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                {sub?.status === "active"
-                  ? "Sınırsız randevu, çalışan yönetimi ve sayfa tasarlayıcı dahil."
-                  : `Deneme sürenizin bitmesine ${daysRemaining} gün kaldı.`}
-              </p>
+              >
+                {statusBadge.label}
+              </span>
             </div>
+            <p className="mt-1 text-sm text-ink-3">
+              {isActive
+                ? `Sınırsız randevu, çalışan yönetimi ve sayfa düzenleyici dahil. Yenilemeye ${daysRemaining} gün.`
+                : isExpired
+                ? "Deneme süreniz sona erdi. Rezervasyon almaya devam etmek için Pro'ya geçin."
+                : `Deneme sürenizin bitmesine ${daysRemaining} gün kaldı.`}
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsCheckoutOpen(true)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-indigo-600 px-6 py-3 text-xs font-bold text-white shadow-xl shadow-indigo-500/25 hover:opacity-95 transition-all"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>{sub?.status === "active" ? "Planı Yenile / Değiştir" : "Pro'ya Yükselt (89 TL / Ay)"}</span>
-            </button>
-          </div>
+          <Button variant="primary" onClick={() => setIsCheckoutOpen(true)}>
+            {isActive ? "Planı yönet" : `Pro'ya geç · ${basePriceText}/ay`}
+          </Button>
         </div>
 
-        {/* Progress Bar for Trial */}
+        {activeDiscount && (
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4 text-sm">
+            <Tag className="h-4 w-4 text-brand" aria-hidden="true" />
+            <span className="font-medium text-ink">{activeDiscount.code}</span>
+            <span className="text-ink-3">
+              · %{activeDiscount.percentOff} indirim · sonraki {activeDiscount.monthsRemaining} aylık ödemede{" "}
+              {formatTL(applyPercentOff(basePrice, activeDiscount.percentOff))}
+            </span>
+          </div>
+        )}
+
         {sub?.status === "trial" && (
-          <div className="pt-6 space-y-2">
-            <div className="flex justify-between text-xs text-slate-400">
-              <span>Deneme Süresi Durumu</span>
-              <span className="font-semibold text-amber-400">{daysRemaining} / 3 Gün Kaldı</span>
+          <div className="mt-5 space-y-1.5 border-t border-line pt-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-ink-3">Deneme süresi</span>
+              <span className="tabular-nums text-ink">{daysRemaining} / 3 gün kaldı</span>
             </div>
-            <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-amber-500 to-indigo-500"
-                style={{ width: `${Math.max(10, (daysRemaining / 3) * 100)}%` }}
+                className="h-full rounded-full bg-pending"
+                style={{ width: `${Math.max(4, (daysRemaining / 3) * 100)}%` }}
               />
             </div>
           </div>
         )}
-      </div>
+      </Panel>
 
-      {/* Plan Details & Features Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Pro Plan Card */}
-        <div className="rounded-3xl border border-indigo-500/30 bg-gradient-to-b from-indigo-950/20 to-slate-900/60 p-6 backdrop-blur-xl">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
-                Aylık Abonelik
-              </span>
-              <h4 className="text-xl font-bold text-slate-100 mt-1">İşletme Pro Paketi</h4>
-            </div>
-            <div className="text-right">
-              <span className="text-3xl font-extrabold text-slate-100">89 TL</span>
-              <span className="text-xs text-slate-400 block">/ ay</span>
-            </div>
-          </div>
-
-          <p className="text-xs text-slate-300 leading-relaxed mb-6">
-            Küçük ve orta ölçekli işletmelerin tüm randevu, müşteri ve web sayfası ihtiyaçlarını karşılayan hepsi bir arada çözüm.
-          </p>
-
-          <ul className="space-y-3 text-xs text-slate-300 mb-6">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        {/* Pro plan */}
+        <Panel
+          title="İşletme Pro"
+          description="Randevu, müşteri ve web sayfası ihtiyaçlarınız için hepsi bir arada."
+          action={
+            <p className="text-right">
+              <span className="text-xl font-semibold tabular-nums text-ink">{basePriceText}</span>
+              <span className="text-sm text-ink-3"> / ay</span>
+            </p>
+          }
+        >
+          <ul className="space-y-2.5">
             {[
-              "Sınırsız Online Rezervasyon Kabulü",
-              "Özel Web Rezervasyon Sayfası (randevugo.com/adiniz)",
-              "Görsel Sürükle-Bırak Sayfa Tasarlayıcı",
-              "Sınırsız Hizmet & Çalışan Tanımlama",
-              "Müşteri İlişkileri Yönetimi (CRM)",
-              "WhatsApp Rezervasyon Bildirim Bağlantısı",
-              "Doğrulanmış Müşteri Yorum ve Puanlama Motoru",
-              "Yapay Zeka Destekli Yoğun Saat Analizi",
-            ].map((f, i) => (
-              <li key={i} className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{f}</span>
+              "Sınırsız online rezervasyon",
+              "Özel rezervasyon sayfası (randevugo.com/adiniz)",
+              "Sürükle-bırak sayfa düzenleyici",
+              "Sınırsız hizmet ve çalışan",
+              "Müşteri yönetimi (CRM)",
+              "WhatsApp bildirim bağlantısı",
+              "Doğrulanmış müşteri yorumları",
+              "Yapay zeka destekli yoğunluk analizi",
+            ].map((f) => (
+              <li key={f} className="flex items-center gap-2.5 text-sm text-ink-2">
+                <Check className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                {f}
               </li>
             ))}
           </ul>
 
-          <button
-            onClick={() => setIsCheckoutOpen(true)}
-            className="w-full rounded-2xl bg-indigo-600 py-3 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 transition-all"
+          <Button variant="primary" className="mt-5 w-full" onClick={() => setIsCheckoutOpen(true)}>
+            Abone ol
+          </Button>
+        </Panel>
+
+        <div className="space-y-5">
+          <Panel title="Ödeme altyapısı" description="PayTR ve iyzico ile 3D Secure ödeme.">
+            <ul className="divide-y divide-line rounded-control border border-line">
+              {[
+                ["PayTR", "Sanal POS ve 3D Secure"],
+                ["iyzico", "Korumalı alışveriş"],
+              ].map(([name, desc]) => (
+                <li key={name} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <div>
+                    <p className="text-sm font-medium text-ink">{name}</p>
+                    <p className="text-xs text-ink-3">{desc}</p>
+                  </div>
+                  <ShieldCheck className="h-4 w-4 text-ink-3" aria-hidden="true" />
+                </li>
+              ))}
+            </ul>
+          </Panel>
+
+          {/* Test status simulator (developer / tester) */}
+          <Panel
+            title="Test simülatörü"
+            description="Farklı abonelik durumlarını ve kısıtlamaları anında denemek için."
           >
-            Hemen Abone Ol (89 TL / Ay)
-          </button>
-        </div>
-
-        {/* Payment Gateways & Sandbox Testing Card */}
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl">
-            <h4 className="text-sm font-bold text-slate-100 mb-2">Ödeme Entegrasyonları</h4>
-            <p className="text-xs text-slate-400 leading-relaxed mb-4">
-              RandevuGo, Türkiye'nin lider ödeme sağlayıcıları PayTR ve iyzico ile tam uyumlu 3D Secure altyapısına sahiptir.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-slate-200 block">PayTR</span>
-                  <span className="text-[10px] text-slate-400">Sanal POS & 3D Secure</span>
-                </div>
-                <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <span className="font-bold text-slate-200 block">iyzico</span>
-                  <span className="text-[10px] text-slate-400">Korumalı Alışveriş</span>
-                </div>
-                <ShieldCheck className="w-5 h-5 text-indigo-400" />
-              </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <Button size="sm" onClick={() => handleSimulateStatus("trial")}>
+                Deneme yap
+              </Button>
+              <Button size="sm" onClick={() => handleSimulateStatus("active")}>
+                Pro aktif yap
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => handleSimulateStatus("expired")}>
+                Süresi doldur
+              </Button>
             </div>
-          </div>
-
-          {/* Test Status Simulator (For developer / tester) */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              SaaS Test Simülatörü
-            </h4>
-            <p className="text-xs text-slate-400 mb-4">
-              Platformun kısıtlamalarını ve farklı abonelik durumlarını anında test etmek için aşağıdaki butonları kullanabilirsiniz:
-            </p>
-
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <button
-                onClick={() => handleSimulateStatus("trial")}
-                className="rounded-xl border border-slate-700 bg-slate-800/80 py-2 font-medium text-amber-300 hover:bg-slate-700"
-              >
-                Deneme Yap
-              </button>
-              <button
-                onClick={() => handleSimulateStatus("active")}
-                className="rounded-xl border border-slate-700 bg-slate-800/80 py-2 font-medium text-emerald-300 hover:bg-slate-700"
-              >
-                Pro Aktif Yap
-              </button>
-              <button
-                onClick={() => handleSimulateStatus("expired")}
-                className="rounded-xl border border-rose-500/30 bg-rose-500/10 py-2 font-medium text-rose-400 hover:bg-rose-500/20"
-              >
-                Süresi Doldur
-              </button>
-            </div>
-          </div>
+          </Panel>
         </div>
       </div>
 
       {/* PayTR / iyzico Checkout Modal */}
-      <Modal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        title="Güvenli Ödeme Ekranı (89 TL / Ay)"
-      >
-        <form onSubmit={handleCheckout} className="space-y-4 text-xs">
-          {/* Gateway selector */}
-          <div>
-            <label className="block font-semibold text-slate-300 mb-2">Ödeme Altyapısı</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setGateway("PayTR")}
-                className={`p-3 rounded-xl border text-center font-bold transition-all ${
-                  gateway === "PayTR"
-                    ? "border-indigo-500 bg-indigo-950/40 text-indigo-300 ring-2 ring-indigo-500"
-                    : "border-slate-800 bg-slate-950/40 text-slate-400"
-                }`}
-              >
-                PayTR Sanal POS
-              </button>
-              <button
-                type="button"
-                onClick={() => setGateway("iyzico")}
-                className={`p-3 rounded-xl border text-center font-bold transition-all ${
-                  gateway === "iyzico"
-                    ? "border-indigo-500 bg-indigo-950/40 text-indigo-300 ring-2 ring-indigo-500"
-                    : "border-slate-800 bg-slate-950/40 text-slate-400"
-                }`}
-              >
-                iyzico Ödeme
-              </button>
+      <Modal isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} title={`Güvenli ödeme · ${basePriceText} / ay`}>
+        <form onSubmit={handleCheckout} className="space-y-4">
+          <fieldset>
+            <legend className="mb-1.5 text-sm font-medium text-ink-2">Ödeme altyapısı</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {(["PayTR", "iyzico"] as const).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  aria-pressed={gateway === g}
+                  onClick={() => setGateway(g)}
+                  className={cn(
+                    "h-10 rounded-control border text-sm font-medium transition-colors",
+                    gateway === g
+                      ? "border-brand bg-brand-soft text-brand-ink"
+                      : "border-line-strong bg-surface text-ink-2 hover:bg-surface-muted"
+                  )}
+                >
+                  {g === "PayTR" ? "PayTR Sanal POS" : "iyzico"}
+                </button>
+              ))}
             </div>
-          </div>
+          </fieldset>
 
-          <div>
-            <label className="block font-semibold text-slate-300 mb-1">Kart Numarası</label>
+          <Field label="Kart numarası" htmlFor="card-number">
             <div className="relative">
-              <CreditCard className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
-              <input
+              <CreditCard className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+              <Input
+                id="card-number"
                 type="text"
                 value={cardNumber}
                 onChange={(e) => setCardNumber(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 pl-10 pr-4 py-2.5 text-sm text-slate-100 font-mono focus:border-indigo-500 focus:outline-none"
+                className="pl-9 font-mono"
               />
             </div>
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-semibold text-slate-300 mb-1">Kart Üzerindeki İsim</label>
-            <input
-              type="text"
-              value={cardHolder}
-              onChange={(e) => setCardHolder(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
+          <Field label="Kart üzerindeki isim" htmlFor="card-holder">
+            <Input id="card-holder" type="text" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
+          </Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">Son Kullanma (AA/YY)</label>
-              <input
+            <Field label="Son kullanma (AA/YY)" htmlFor="card-expiry">
+              <Input
+                id="card-expiry"
                 type="text"
                 value={cardExpiry}
                 onChange={(e) => setCardExpiry(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 font-mono focus:border-indigo-500 focus:outline-none"
+                className="font-mono"
               />
-            </div>
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">CVV / Güvenlik Kodu</label>
-              <input
+            </Field>
+            <Field label="CVV" htmlFor="card-cvc">
+              <Input
+                id="card-cvc"
                 type="text"
                 value={cardCvc}
                 onChange={(e) => setCardCvc(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 font-mono focus:border-indigo-500 focus:outline-none"
+                className="font-mono"
               />
+            </Field>
+          </div>
+
+          {activeDiscount ? (
+            <p className="flex items-center gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
+              <Tag className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {activeDiscount.code} indiriminiz bu ödemeye otomatik uygulanır (%{activeDiscount.percentOff}, {activeDiscount.monthsRemaining} ay kaldı).
+            </p>
+          ) : couponQuote ? (
+            <div className="flex items-center justify-between gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
+              <span className="flex items-center gap-2">
+                <Tag className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>
+                  <span className="font-medium">{couponQuote.code}</span> · %{couponQuote.percentOff} indirim · ilk{" "}
+                  {couponQuote.durationMonths} ay
+                </span>
+              </span>
+              <button type="button" onClick={clearCoupon} className="rounded-control p-1 hover:bg-brand/10" aria-label="İndirim kodunu kaldır">
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <Field label="İndirim kodu" htmlFor="coupon-code">
+              <div className="flex gap-2">
+                <Input
+                  id="coupon-code"
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Kodunuz varsa girin"
+                  value={couponInput}
+                  onChange={(e) => {
+                    setCouponInput(e.target.value);
+                    setCouponError("");
+                  }}
+                  onKeyDown={(e) => {
+                    // Enter here should apply the code, not submit the payment form.
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleApplyCoupon();
+                    }
+                  }}
+                  className="font-mono uppercase"
+                />
+                <Button type="button" onClick={handleApplyCoupon} disabled={checkingCoupon || !couponInput.trim()}>
+                  {checkingCoupon ? "Kontrol..." : "Uygula"}
+                </Button>
+              </div>
+              {couponError && <p className="text-xs text-danger">{couponError}</p>}
+            </Field>
+          )}
+
+          <div className="space-y-1 rounded-control bg-surface-muted px-3 py-2 text-sm">
+            {appliedPercent > 0 && (
+              <div className="flex items-center justify-between text-ink-3">
+                <span>Aylık ücret</span>
+                <span className="tabular-nums line-through">{basePriceText}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-ink-3">Çekilecek tutar</span>
+              <span className="font-semibold tabular-nums text-ink">{formatTL(chargeAmount)}</span>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs">
-            <span className="text-slate-400">Çekilecek Tutar:</span>
-            <span className="text-base font-extrabold text-emerald-400">89,00 TL</span>
-          </div>
+          {checkoutError && <p className="text-sm text-danger">{checkoutError}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-indigo-600 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 hover:opacity-95 disabled:opacity-50 transition-all"
-          >
-            <Lock className="w-4 h-4" />
-            <span>{loading ? "3D Secure Onaylanıyor..." : `89 TL ile Abone Ol (${gateway})`}</span>
-          </button>
+          <Button type="submit" variant="primary" disabled={loading} className="w-full">
+            <Lock className="w-4 h-4" aria-hidden="true" />
+            {loading ? "3D Secure onaylanıyor..." : `${formatTL(chargeAmount)} ile abone ol (${gateway})`}
+          </Button>
         </form>
       </Modal>
     </div>

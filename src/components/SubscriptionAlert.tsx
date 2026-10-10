@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import { AlertTriangle, Clock, Sparkles, CheckCircle2, ShieldAlert } from "lucide-react";
+import { Clock, CheckCircle2, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 interface SubscriptionAlertProps {
   status?: string;
@@ -41,46 +41,30 @@ export function SubscriptionAlert({
 
   if (successMsg) {
     return (
-      <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-300 flex items-center gap-3">
-        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-        <span className="text-sm font-medium">{successMsg}</span>
+      <div role="status" className="flex items-center gap-2.5 rounded-panel border border-brand-line bg-brand-soft px-4 py-3 text-sm text-brand-ink">
+        <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+        <span>{successMsg}</span>
       </div>
     );
   }
 
   if (status === "expired" || status === "cancelled") {
     return (
-      <div className="mb-6 rounded-xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 to-slate-900 p-4 sm:p-5 shadow-lg">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-rose-500/20 p-2 text-rose-400 border border-rose-500/30">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-rose-200">
-                Abonelik Süreniz Sona Erdi! (Panel Sınırlandırıldı)
-              </h4>
-              <p className="text-xs text-rose-300/80 mt-0.5">
-                Müşterileriniz şu an randevu oluşturamıyor. Kesintisiz hizmet için aylık 89 TL ile devam edin.
-              </p>
-            </div>
+      <div role="alert" className="flex flex-col gap-3 rounded-panel border border-danger-line bg-danger-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-2.5">
+          <ShieldAlert className="mt-0.5 w-4 h-4 shrink-0 text-danger" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-medium text-ink">Aboneliğinizin süresi doldu</p>
+            <p className="mt-0.5 text-sm text-ink-2">
+              Müşterileriniz şu an randevu oluşturamıyor. Aylık 89 TL ile kesintisiz devam edebilirsiniz.
+            </p>
           </div>
-          <div className="flex items-center gap-2.5 w-full sm:w-auto">
-            <button
-              onClick={handleQuickUpgrade}
-              disabled={upgrading}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-rose-500/20 hover:opacity-95 transition-opacity"
-            >
-              <Sparkles className="w-4 h-4" />
-              {upgrading ? "İşleniyor..." : "Aboneliği Başlat (89 TL / Ay)"}
-            </button>
-            <Link
-              href="/dashboard/subscription"
-              className="rounded-xl border border-slate-700 bg-slate-800/80 px-3.5 py-2.5 text-xs font-medium text-slate-300 hover:bg-slate-700 transition-colors"
-            >
-              Detaylar
-            </Link>
-          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="primary" onClick={handleQuickUpgrade} disabled={upgrading}>
+            {upgrading ? "İşleniyor…" : "Aboneliği başlat"}
+          </Button>
+          <Button href="/dashboard/subscription">Detaylar</Button>
         </div>
       </div>
     );
@@ -88,39 +72,21 @@ export function SubscriptionAlert({
 
   if (status === "trial") {
     return (
-      <div className="mb-6 rounded-2xl border border-amber-200 dark:border-amber-500/20 bg-amber-50/80 dark:bg-gradient-to-r dark:from-amber-950/20 dark:to-slate-900/80 p-4 shadow-sm transition-colors">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-400/10 px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-400/20">
-                  Ücretsiz Deneme
-                </span>
-                <span className="text-sm font-semibold text-[#111827] dark:text-slate-200">
-                  {daysRemaining > 0
-                    ? `Deneme sürenizin bitmesine ${daysRemaining} gün kaldı.`
-                    : "Deneme süreniz bugün sona eriyor."}
-                </span>
-              </div>
-              <p className="text-xs text-[#667085] dark:text-slate-400 mt-1">
-                Tüm SaaS özellikleri (Rezervasyon motoru, sayfa düzenleyici, çalışan yönetimi) aktif durumda.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              onClick={handleQuickUpgrade}
-              disabled={upgrading}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-xl bg-[#6246EA] hover:bg-[#5339d1] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#6246EA]/25 transition-all"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              {upgrading ? "Aktif Ediliyor..." : "Pro'ya Geç (89 TL / Ay)"}
-            </button>
-          </div>
+      <div className="flex flex-col gap-3 rounded-panel border border-pending-line bg-pending-soft px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2.5 text-sm">
+          <Clock className="w-4 h-4 shrink-0 text-pending" aria-hidden="true" />
+          <p className="text-ink">
+            <span className="font-medium">
+              {daysRemaining > 0
+                ? `Ücretsiz denemenizin bitmesine ${daysRemaining} gün kaldı.`
+                : "Ücretsiz denemeniz bugün sona eriyor."}
+            </span>{" "}
+            <span className="text-ink-2">Pro planı aylık 89 TL.</span>
+          </p>
         </div>
+        <Button variant="primary" size="sm" onClick={handleQuickUpgrade} disabled={upgrading} className="self-start sm:self-auto">
+          {upgrading ? "Aktif ediliyor…" : "Pro'ya geç"}
+        </Button>
       </div>
     );
   }

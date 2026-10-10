@@ -87,6 +87,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Closing a time slot is an owner action; the public booking form must not be able to do it.
+    if (isBlockedSlot) {
+      const owner = await getCurrentUser();
+      if (!owner || owner.business?.id !== businessId) {
+        return NextResponse.json({ error: "Saat kapatmak için işletme hesabıyla giriş yapmalısınız." }, { status: 403 });
+      }
+    }
+
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       include: { subscription: true },
@@ -138,35 +146,39 @@ export async function POST(req: Request) {
       where: { id: assignedEmployeeId },
     });
 
-    // Upsert Customer CRM record
-    let customer = await prisma.customer.findFirst({
-      where: {
-        businessId,
-        phone: customerPhone.trim(),
-      },
-    });
-
-    if (customer) {
-      customer = await prisma.customer.update({
-        where: { id: customer.id },
-        data: {
-          name: customerName,
-          email: customerEmail || customer.email,
-          totalAppointments: { increment: 1 },
-          totalSpent: { increment: service.price },
-        },
-      });
-    } else {
-      customer = await prisma.customer.create({
-        data: {
+    // Upsert Customer CRM record. A blocked slot ("Saat kapat") is not a booking:
+    // it gets no customer record and adds nothing to anyone's spend.
+    let customer: { id: string } | null = null;
+    if (!isBlockedSlot) {
+      const existing = await prisma.customer.findFirst({
+        where: {
           businessId,
-          name: customerName,
           phone: customerPhone.trim(),
-          email: customerEmail || null,
-          totalAppointments: 1,
-          totalSpent: service.price,
         },
       });
+
+      if (existing) {
+        customer = await prisma.customer.update({
+          where: { id: existing.id },
+          data: {
+            name: customerName,
+            email: customerEmail || existing.email,
+            totalAppointments: { increment: 1 },
+            totalSpent: { increment: service.price },
+          },
+        });
+      } else {
+        customer = await prisma.customer.create({
+          data: {
+            businessId,
+            name: customerName,
+            phone: customerPhone.trim(),
+            email: customerEmail || null,
+            totalAppointments: 1,
+            totalSpent: service.price,
+          },
+        });
+      }
     }
 
     // Handle table validation for restaurant
@@ -212,7 +224,7 @@ export async function POST(req: Request) {
     const appointment = await prisma.appointment.create({
       data: {
         businessId,
-        customerId: customer.id,
+        customerId: customer?.id ?? null,
         employeeId: assignedEmployeeId,
         serviceId,
         tableId: validatedTableId,
@@ -224,7 +236,7 @@ export async function POST(req: Request) {
         customerPhone,
         customerEmail: customerEmail || null,
         notes: notes || null,
-        price: service.price,
+        price: isBlockedSlot ? 0 : service.price,
         sectorData: Object.keys(mergedSectorData).length > 0 ? JSON.stringify(mergedSectorData) : null,
         isBlockedSlot,
       },

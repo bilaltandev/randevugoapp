@@ -1,18 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import {
-  Bell,
-  Copy,
-  Check,
-  ExternalLink,
-  Plus,
-  Sparkles,
-  Search,
-  User,
-  Menu,
-} from "lucide-react";
+import { Copy, Check, ExternalLink, Globe, Plus, Menu, Search, Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 
 interface DashboardHeaderProps {
   business: {
@@ -20,34 +11,37 @@ interface DashboardHeaderProps {
     name: string;
     slug: string;
   };
-  user: {
-    name: string;
-    email: string;
-  };
   currentTheme?: "light" | "dark";
   onToggleTheme?: () => void;
-  subscriptionStatus?: string;
-  onOpenNewAppointment?: () => void;
   onToggleMobileMenu?: () => void;
+  /** Opens the Ctrl/⌘+K command palette. */
+  onOpenSearch?: () => void;
 }
 
+const noopSubscribe = () => () => {};
+
+/**
+ * Slim top bar. Every page renders its own title (PageHeader), so the bar only holds
+ * what is useful everywhere: the public booking link, the theme switch and "Yeni randevu".
+ */
 export function DashboardHeader({
   business,
-  user,
   currentTheme = "light",
   onToggleTheme,
-  subscriptionStatus = "trial",
-  onOpenNewAppointment,
   onToggleMobileMenu,
+  onOpenSearch,
 }: DashboardHeaderProps) {
   const [copied, setCopied] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-
+  // The platform's own shortcut key; "Ctrl" during server render.
+  const modKey = useSyncExternalStore(
+    noopSubscribe,
+    () => (/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl"),
+    () => "Ctrl"
+  );
   const isLight = currentTheme === "light";
 
-  const bookingUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/${business.slug}`
-    : `http://localhost:3000/${business.slug}`;
+  const bookingUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/${business.slug}` : `http://localhost:3000/${business.slug}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookingUrl);
@@ -55,213 +49,93 @@ export function DashboardHeader({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const sampleNotifications = [
-    { id: "1", title: "Yeni Rezervasyon", desc: "Tolga Akın yarın 14:00 randevusu aldı.", time: "10 dk önce", unread: true },
-    { id: "2", title: "Yeni Değerlendirme ⭐", desc: "Mehmet Yılmaz 5 yıldızlı yorum bıraktı.", time: "1 saat önce", unread: true },
-    { id: "3", title: "Deneme Süresi", desc: "3 günlük ücretsiz denemeniz başladı.", time: "Dün", unread: false },
-  ];
+  const iconButton =
+    "inline-flex h-9 w-9 items-center justify-center rounded-control text-ink-3 hover:bg-surface-muted hover:text-ink transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
   return (
-    <header
-      className={`sticky top-0 z-20 flex h-16 w-full items-center justify-between px-4 md:px-8 transition-colors duration-200 ${
-        isLight
-          ? "border-b border-[#E4E7EC] bg-white/95 text-[#111827] shadow-[0_1px_2px_rgba(16,24,40,0.05)] backdrop-blur-md"
-          : "border-b border-slate-800/80 bg-slate-950/70 text-slate-100 backdrop-blur-xl"
-      }`}
-    >
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+    <header className="sticky top-0 z-20 flex h-14 w-full shrink-0 items-center justify-between gap-3 border-b border-line bg-canvas/85 px-3 backdrop-blur-md sm:px-6 lg:px-8">
+      <div className="flex min-w-0 items-center gap-2">
         {onToggleMobileMenu && (
-          <button
-            onClick={onToggleMobileMenu}
-            className={`md:hidden rounded-lg p-2 transition-colors shrink-0 ${
-              isLight
-                ? "text-[#667085] hover:bg-[#F2F4F7] hover:text-[#111827]"
-                : "text-slate-400 hover:bg-slate-900 hover:text-slate-100"
-            }`}
-            aria-label="Menüyü Aç"
-          >
+          <button type="button" onClick={onToggleMobileMenu} className={`md:hidden -ml-1 ${iconButton}`} aria-label="Menüyü aç">
             <Menu className="w-5 h-5" />
           </button>
         )}
+        <span className="md:hidden truncate font-display text-[15px] font-bold tracking-[-0.02em] text-ink">{business.name}</span>
 
-        {/* Desktop Live booking link chip */}
-        <div
-          className={`hidden sm:flex items-center gap-2 rounded-full px-3 py-1.5 text-xs transition-colors ${
-            isLight
-              ? "border border-[#E4E7EC] bg-[#F8F9FC] text-[#344054]"
-              : "border border-slate-800 bg-slate-900/80 text-slate-300"
-          }`}
-        >
-          <span className="h-2 w-2 rounded-full bg-[#00C98D] animate-pulse" />
-          <span className={isLight ? "text-[#667085]" : "text-slate-400"}>Rezervasyon Sayfanız:</span>
-          <span className="font-semibold text-[#6246EA]">randevugo.com/{business.slug}</span>
+        {/* Public booking link */}
+        <div className="hidden md:flex h-9 items-center rounded-full border border-line bg-surface pl-1 text-sm shadow-panel">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-muted text-ink-3" aria-hidden="true">
+            <Globe className="h-3.5 w-3.5" />
+          </span>
           <Link
             href={`/${business.slug}`}
             target="_blank"
-            className={`transition-colors ${
-              isLight
-                ? "text-[#667085] hover:text-[#6246EA]"
-                : "text-slate-400 hover:text-indigo-400"
-            }`}
-            title="Yeni Sekmede Aç"
+            className="flex h-full items-center gap-1.5 px-3 text-ink-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
+            title="Rezervasyon sayfanızı yeni sekmede açın"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <span className="text-ink-3">randevugo.com/</span>
+            <span className="font-medium max-w-[180px] truncate text-ink">{business.slug}</span>
+            <ExternalLink className="w-3.5 h-3.5 text-ink-3" aria-hidden="true" />
           </Link>
           <button
+            type="button"
             onClick={handleCopyLink}
-            className={`ml-0.5 rounded p-1 transition-colors ${
-              isLight
-                ? "text-[#667085] hover:text-[#111827] hover:bg-[#E4E7EC]"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
-            }`}
-            title="Linki Kopyala"
+            className="flex h-full items-center rounded-r-full border-l border-line px-3 text-ink-3 hover:bg-surface-muted hover:text-ink transition-colors"
+            aria-label="Rezervasyon bağlantısını kopyala"
+            title="Bağlantıyı kopyala"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-[#00C98D]" /> : <Copy className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        {/* Mobile Live booking link chip */}
-        <div
-          className={`flex sm:hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] transition-colors border ${
-            isLight
-              ? "border-[#E4E7EC] bg-[#F8F9FC] text-[#344054]"
-              : "border-slate-800 bg-slate-900/80 text-slate-300"
-          }`}
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-[#00C98D] animate-pulse shrink-0" />
-          <Link
-            href={`/${business.slug}`}
-            target="_blank"
-            className="font-bold text-[#6246EA] truncate max-w-[100px]"
-            title="Rezervasyon Sayfası"
-          >
-            /{business.slug}
-          </Link>
-          <button
-            onClick={handleCopyLink}
-            className="p-0.5 text-slate-400 hover:text-slate-200"
-            title="Kopyala"
-          >
-            {copied ? <Check className="w-3 h-3 text-[#00C98D]" /> : <Copy className="w-3 h-3" />}
+            {copied ? <Check className="w-4 h-4 text-brand" /> : <Copy className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        {/* Theme Toggle (Light / Dark) */}
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        {onOpenSearch && (
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            className="hidden h-9 items-center gap-2 rounded-control border border-line bg-surface pl-3 pr-1.5 text-sm text-ink-3 shadow-panel transition-colors hover:text-ink sm:flex lg:w-56"
+            aria-label="Hızlı arama"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+            <span className="flex-1 text-left">Ara...</span>
+            <kbd className="rounded-[5px] border border-line bg-surface-muted px-1.5 py-0.5 font-sans text-[11px] font-medium">
+              {modKey} K
+            </kbd>
+          </button>
+        )}
+        {onOpenSearch && (
+          <button type="button" onClick={onOpenSearch} className={`sm:hidden ${iconButton}`} aria-label="Hızlı arama">
+            <Search className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className={`md:hidden ${iconButton}`}
+          aria-label="Rezervasyon bağlantısını kopyala"
+          title="Rezervasyon bağlantısını kopyala"
+        >
+          {copied ? <Check className="w-4 h-4 text-brand" /> : <Copy className="w-4 h-4" />}
+        </button>
+
         {onToggleTheme && (
           <button
+            type="button"
             onClick={onToggleTheme}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all ${
-              isLight
-                ? "border border-[#E4E7EC] bg-[#F8F9FC] text-[#344054] hover:bg-[#F2F4F7] hover:text-[#111827]"
-                : "border border-slate-800 bg-slate-900/60 text-slate-300 hover:bg-slate-800 hover:text-white"
-            }`}
-            title={isLight ? "Koyu Temaya Geç" : "Açık Temaya Geç"}
+            className={iconButton}
+            aria-label={isLight ? "Koyu temaya geç" : "Açık temaya geç"}
+            title={isLight ? "Koyu temaya geç" : "Açık temaya geç"}
           >
-            {isLight ? (
-              <>
-                <span className="text-amber-500 font-bold text-sm">☀️</span>
-                <span className="hidden md:inline text-[11px] font-semibold text-[#475467]">Açık</span>
-              </>
-            ) : (
-              <>
-                <span className="text-indigo-400 font-bold text-sm">🌙</span>
-                <span className="hidden md:inline text-[11px] font-semibold text-slate-300">Koyu</span>
-              </>
-            )}
+            {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </button>
         )}
 
-        {/* Notifications Popover */}
-        <div className="relative">
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className={`relative rounded-xl p-2 transition-colors ${
-              isLight
-                ? "border border-[#E4E7EC] bg-white text-[#667085] hover:bg-[#F8F9FC] hover:text-[#111827]"
-                : "border border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-900 hover:text-slate-100"
-            }`}
-          >
-            <Bell className="w-4 h-4" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#6246EA] ring-2 ring-white dark:ring-slate-950" />
-          </button>
-
-          {showNotifications && (
-            <div
-              className={`absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl p-4 shadow-xl z-50 transition-all ${
-                isLight
-                  ? "border border-[#E4E7EC] bg-white text-[#111827]"
-                  : "border border-slate-800 bg-slate-900/95 text-slate-100 backdrop-blur-xl shadow-2xl"
-              }`}
-            >
-              <div
-                className={`flex items-center justify-between pb-3 mb-2 border-b ${
-                  isLight ? "border-[#E4E7EC]" : "border-slate-800"
-                }`}
-              >
-                <span className="text-xs font-bold">Bildirimler</span>
-                <span className="text-[10px] text-[#6246EA] bg-[#6246EA]/10 px-2 py-0.5 rounded-full font-bold">
-                  2 yeni
-                </span>
-              </div>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {sampleNotifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className={`p-2.5 rounded-xl text-xs transition-colors ${
-                      n.unread
-                        ? isLight
-                          ? "bg-[#F4F3FF] border border-[#6246EA]/20"
-                          : "bg-indigo-950/30 border border-indigo-500/20"
-                        : isLight
-                        ? "bg-[#F8F9FC]"
-                        : "bg-slate-800/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">{n.title}</span>
-                      <span className={`text-[10px] ${isLight ? "text-[#667085]" : "text-slate-400"}`}>
-                        {n.time}
-                      </span>
-                    </div>
-                    <p className={`mt-1 text-[11px] ${isLight ? "text-[#667085]" : "text-slate-400"}`}>
-                      {n.desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* User Profile Mini Badge */}
-        <div
-          className={`flex items-center gap-2 pl-2 border-l ${
-            isLight ? "border-[#E4E7EC]" : "border-slate-800/80"
-          }`}
-        >
-          <div
-            className={`flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs ${
-              isLight
-                ? "bg-[#ECE8FF] text-[#6246EA] border border-[#6246EA]/20"
-                : "bg-gradient-to-tr from-slate-800 to-slate-700 text-slate-200 border border-slate-700"
-            }`}
-          >
-            {user.name ? user.name.slice(0, 1).toUpperCase() : "A"}
-          </div>
-          <div className="hidden lg:flex flex-col text-left">
-            <span className={`text-xs font-semibold ${isLight ? "text-[#111827]" : "text-slate-200"}`}>
-              {user.name}
-            </span>
-            <span className={`text-[10px] truncate max-w-[130px] ${isLight ? "text-[#667085]" : "text-slate-400"}`}>
-              {user.email}
-            </span>
-          </div>
-          <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        <Button href="/dashboard/calendar?new=1" variant="primary" className="px-2.5 sm:px-3.5">
+          <Plus className="w-4 h-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Yeni randevu</span>
+          <span className="sr-only sm:hidden">Yeni randevu</span>
+        </Button>
       </div>
     </header>
   );

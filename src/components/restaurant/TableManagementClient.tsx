@@ -1,24 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  UtensilsCrossed,
-  Plus,
-  Layers,
-  LayoutGrid,
-  List,
-  Users,
-  CheckCircle2,
-  Clock,
-  Ban,
-  Camera,
-  Search,
-  Filter,
-  Trash2,
-  Edit2,
-  Sparkles,
-} from "lucide-react";
+import { UtensilsCrossed, Plus, Layers, LayoutGrid, List, Users, Search, Trash2, Edit2 } from "lucide-react";
 import { RestaurantTable, RestaurantArea, TableShape, TableStatus } from "./types";
+import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Segmented";
+import { StatStrip } from "@/components/ui/StatStrip";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Input } from "@/components/ui/Field";
+import { choiceClasses } from "@/components/ui/choice";
 import { FloorPlanCanvas } from "./FloorPlanCanvas";
 import { TableModal } from "./TableModal";
 import { AreaModal } from "./AreaModal";
@@ -222,104 +215,59 @@ export function TableManagementClient({
     if (activeAreaId === id) setActiveAreaId("ALL");
   };
 
+  const STATUS_OPTIONS: { id: TableStatus; label: string; active: string }[] = [
+    { id: "AVAILABLE", label: "Müsait", active: "border-brand bg-brand-soft text-brand-ink" },
+    { id: "RESERVED", label: "Rezerve", active: "border-pending-line bg-pending-soft text-pending" },
+    { id: "OCCUPIED", label: "Dolu", active: "border-danger-line bg-danger-soft text-danger" },
+    { id: "OUT_OF_SERVICE", label: "Pasif", active: "border-line-strong bg-surface-muted text-ink" },
+  ];
+
+  const shapeLabel = (shape: TableShape) =>
+    shape === "ROUND" ? "Yuvarlak" : shape === "SQUARE" ? "Kare" : "Dikdörtgen";
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-[#6246EA] text-white shadow-lg shadow-indigo-500/30">
-            <UtensilsCrossed className="w-7 h-7" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-white tracking-tight">Masa Planı</h1>
-              <span className="rounded-full bg-indigo-500/20 border border-indigo-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-300">
-                Restoran Modülü
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1 max-w-xl">
-              İşletmenizin masa yerleşimini görsel olarak tasarlayın, masalara özel fotoğraflar yükleyin ve rezervasyon müsaitliklerini anlık takip edin.
-            </p>
-          </div>
-        </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Masa Planı"
+        description="Masa yerleşiminizi tasarlayın ve bugünkü rezervasyon durumlarını takip edin."
+        actions={
+          <>
+            <Button onClick={() => setIsAreaModalOpen(true)}>
+              <Layers className="w-4 h-4" aria-hidden="true" />
+              Alanları yönet
+            </Button>
+            <Button variant="primary" onClick={handleOpenAddTable}>
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Masa ekle
+            </Button>
+          </>
+        }
+      />
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 w-full md:w-auto">
+      <StatStrip
+        stats={[
+          { label: "Toplam masa", value: totalTables, hint: `${totalCapacity} kişilik kapasite` },
+          { label: "Müsait", value: availableCount, hint: "Rezervasyona hazır" },
+          {
+            label: "Rezerve / dolu",
+            value: reservedOccupiedCount,
+            hint: "Bugün aktif rezervasyonlu",
+            attention: reservedOccupiedCount > 0,
+          },
+          { label: "Kullanım dışı", value: inactiveCount, hint: "Bakımda veya pasif" },
+        ]}
+      />
+
+      {/* Area filter & view switcher */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 sm:pb-0">
           <button
             type="button"
-            onClick={() => setIsAreaModalOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-slate-700 bg-slate-800/90 hover:bg-slate-700 px-3 sm:px-4 py-2.5 text-xs font-semibold text-slate-200 transition-colors shadow-sm"
-          >
-            <Layers className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span className="truncate">Alanları Yönet</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleOpenAddTable}
-            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-[#6246EA] hover:from-indigo-500 hover:to-[#7257ff] text-white px-3 sm:px-5 py-2.5 text-xs font-bold shadow-lg shadow-indigo-500/30 transition-all"
-          >
-            <Plus className="w-4 h-4 shrink-0" />
-            <span className="truncate">Masa Ekle</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur-md">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-medium">Toplam Masa</span>
-            <UtensilsCrossed className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="text-2xl font-black text-white">{totalTables}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">
-            {totalCapacity} kişi toplam kapasite
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-4 backdrop-blur-md">
-          <div className="flex items-center justify-between text-emerald-400 mb-1">
-            <span className="text-xs font-medium">Müsait Masalar</span>
-            <CheckCircle2 className="w-4 h-4" />
-          </div>
-          <div className="text-2xl font-black text-emerald-300">{availableCount}</div>
-          <div className="text-[11px] text-emerald-400/80 mt-0.5">Rezervasyona hazır</div>
-        </div>
-
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-950/20 p-4 backdrop-blur-md">
-          <div className="flex items-center justify-between text-amber-400 mb-1">
-            <span className="text-xs font-medium">Rezerve / Dolu</span>
-            <Clock className="w-4 h-4" />
-          </div>
-          <div className="text-2xl font-black text-amber-300">{reservedOccupiedCount}</div>
-          <div className="text-[11px] text-amber-400/80 mt-0.5">Aktif rezervasyonlu</div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur-md">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-medium">Kullanım Dışı</span>
-            <Ban className="w-4 h-4 text-slate-400" />
-          </div>
-          <div className="text-2xl font-black text-slate-300">{inactiveCount}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">Bakım veya pasif</div>
-        </div>
-      </div>
-
-      {/* Area Filter Tabs & View Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        {/* Area Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <button
-            type="button"
+            aria-pressed={activeAreaId === "ALL"}
             onClick={() => setActiveAreaId("ALL")}
-            className={`rounded-xl px-4 py-2 text-xs font-bold transition-all shrink-0 ${
-              activeAreaId === "ALL"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                : "bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800"
-            }`}
+            className={choiceClasses(activeAreaId === "ALL", "h-8 shrink-0 px-3 text-xs font-medium")}
           >
-            Tüm Masalar ({tables.length})
+            Tüm masalar <span className="ml-1 tabular-nums text-ink-3">{tables.length}</span>
           </button>
           {areas.map((area) => {
             const count = tables.filter((t) => t.areaId === area.id).length;
@@ -328,220 +276,153 @@ export function TableManagementClient({
               <button
                 key={area.id}
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => setActiveAreaId(area.id)}
-                className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                    : "bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800"
-                }`}
+                className={choiceClasses(isActive, "h-8 shrink-0 px-3 text-xs font-medium")}
               >
-                <span>{area.name}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-slate-700 text-slate-400"}`}>
-                  {count}
-                </span>
+                {area.name} <span className="ml-1 tabular-nums text-ink-3">{count}</span>
               </button>
             );
           })}
-          <button
-            type="button"
-            onClick={() => setIsAreaModalOpen(true)}
-            className="rounded-xl border border-dashed border-slate-700 hover:border-indigo-500/70 text-slate-400 hover:text-indigo-300 px-3 py-1.5 text-xs font-medium transition-colors shrink-0"
-          >
-            + Yeni Alan
-          </button>
+          <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setIsAreaModalOpen(true)}>
+            <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+            Alan
+          </Button>
         </div>
 
-        {/* View Switcher: Floor Plan vs List View */}
-        <div className="grid grid-cols-2 sm:flex items-center rounded-xl border border-slate-800 bg-slate-900/90 p-1 w-full sm:w-auto shrink-0">
-          <button
-            type="button"
-            onClick={() => setViewMode("canvas")}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-              viewMode === "canvas"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Görsel Plan</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("list")}
-            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-              viewMode === "list"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <List className="w-3.5 h-3.5" />
-            <span>Masa Listesi</span>
-          </button>
-        </div>
+        <Segmented
+          aria-label="Görünüm"
+          value={viewMode}
+          onChange={setViewMode}
+          options={[
+            { value: "canvas", label: "Görsel plan", icon: LayoutGrid },
+            { value: "list", label: "Liste", icon: List },
+          ]}
+        />
       </div>
 
-      {/* Main View Mode Area */}
       {viewMode === "canvas" ? (
-        <FloorPlanCanvas
-          tables={tables}
-          areas={areas}
-          activeAreaId={activeAreaId}
-          onTablesChange={setTables}
-          onSavePositions={handleSavePositions}
-          onEditTable={handleEditTable}
-          onDeleteTable={handleDeleteTable}
-          onQuickAddTable={handleQuickAddTable}
-          mode="admin"
-        />
+        // The floor plan is shared with the public booking flow and styled dark-first;
+        // the legacy adapter in globals.css lightens it for the panel's light theme.
+        <div className="dash-legacy-surface">
+          <FloorPlanCanvas
+            tables={tables}
+            areas={areas}
+            activeAreaId={activeAreaId}
+            onTablesChange={setTables}
+            onSavePositions={handleSavePositions}
+            onEditTable={handleEditTable}
+            onDeleteTable={handleDeleteTable}
+            onQuickAddTable={handleQuickAddTable}
+            mode="admin"
+          />
+        </div>
       ) : (
-        /* List View Mode */
         <div className="space-y-4">
-          {/* Search Bar */}
           <div className="relative max-w-md">
-            <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+            <Input
+              type="search"
+              aria-label="Masa ara"
               placeholder="Masa adı, alan veya özellik ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-900/80 pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="pl-9"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTables.map((tbl) => {
-              const status = tbl.computedStatus || tbl.status;
-              return (
-                <div
-                  key={tbl.id}
-                  className="rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-lg hover:border-slate-700 transition-all flex flex-col justify-between"
-                >
-                  {/* Photo or Header */}
-                  {tbl.imageUrl ? (
-                    <div className="relative h-36 w-full overflow-hidden bg-slate-800">
-                      <img
-                        src={tbl.imageUrl}
-                        alt={tbl.name}
-                        className="h-full w-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-                      {tbl.area?.name && (
-                        <span className="absolute top-2.5 left-2.5 rounded-full bg-slate-900/80 backdrop-blur-md px-2.5 py-0.5 text-[11px] font-semibold text-slate-300 border border-slate-700/60">
-                          {tbl.area.name}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="px-4 pt-4 flex items-center justify-between">
-                      {tbl.area?.name ? (
-                        <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] font-semibold text-slate-300 border border-slate-700/60">
-                          {tbl.area.name}
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">Genel Alan</span>
-                      )}
-                      <span className="text-xs text-slate-400 font-mono">
-                        {tbl.shape === "ROUND" ? "Yuvarlak" : tbl.shape === "SQUARE" ? "Kare" : "Dikdörtgen"}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Body */}
-                  <div className="p-4 space-y-2 flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-base text-white">{tbl.name}</h3>
-                      <div className="flex items-center gap-1 text-xs font-semibold text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-md border border-indigo-500/20">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>{tbl.capacity} Kişilik</span>
+          {filteredTables.length === 0 ? (
+            <Panel>
+              <EmptyState
+                icon={UtensilsCrossed}
+                title="Masa bulunamadı"
+                description={searchQuery ? "Aramaya uygun masa yok." : "Bu alanda henüz masa yok."}
+                actions={
+                  <Button size="sm" variant="primary" onClick={handleOpenAddTable}>
+                    <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                    Masa ekle
+                  </Button>
+                }
+              />
+            </Panel>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredTables.map((tbl) => {
+                const status = tbl.computedStatus || tbl.status;
+                return (
+                  <section key={tbl.id} className="flex flex-col overflow-hidden rounded-panel border border-line bg-surface">
+                    {tbl.imageUrl && (
+                      <div className="h-32 w-full overflow-hidden bg-surface-muted">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={tbl.imageUrl} alt={tbl.name} className="h-full w-full object-cover" />
                       </div>
-                    </div>
-
-                    {tbl.description && (
-                      <p className="text-xs text-slate-300 line-clamp-2">{tbl.description}</p>
                     )}
 
-                    {/* Quick status selector */}
-                    <div className="pt-2">
-                      <label className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
-                        Hızlı Durum Değiştir:
-                      </label>
-                      <div className="grid grid-cols-4 gap-1 text-[11px]">
-                        <button
-                          type="button"
-                          onClick={() => handleQuickStatusChange(tbl, "AVAILABLE")}
-                          className={`rounded-lg py-1 text-center font-semibold transition-colors ${
-                            status === "AVAILABLE"
-                              ? "bg-emerald-600 text-white"
-                              : "bg-slate-800 text-slate-400 hover:text-emerald-400"
-                          }`}
+                    <div className="flex-1 space-y-3 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-semibold text-ink">{tbl.name}</h3>
+                          <p className="text-sm text-ink-3">
+                            {[tbl.area?.name || "Genel alan", shapeLabel(tbl.shape)].join(" · ")}
+                          </p>
+                        </div>
+                        <span className="inline-flex shrink-0 items-center gap-1 text-sm text-ink-2 tabular-nums">
+                          <Users className="h-3.5 w-3.5 text-ink-3" aria-hidden="true" />
+                          {tbl.capacity} kişi
+                        </span>
+                      </div>
+
+                      {tbl.description && <p className="line-clamp-2 text-sm text-ink-2">{tbl.description}</p>}
+
+                      <fieldset>
+                        <legend className="mb-1.5 text-xs text-ink-3">Durum</legend>
+                        <div className="grid grid-cols-4 gap-1">
+                          {STATUS_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              aria-pressed={status === opt.id}
+                              onClick={() => handleQuickStatusChange(tbl, opt.id)}
+                              className={cn(
+                                "h-7 rounded-control border text-xs font-medium transition-colors",
+                                status === opt.id
+                                  ? opt.active
+                                  : "border-line bg-surface text-ink-3 hover:bg-surface-muted hover:text-ink"
+                              )}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-line px-4 py-2">
+                      <span className="text-xs text-ink-3 tabular-nums">
+                        X {tbl.positionX} · Y {tbl.positionY}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => handleEditTable(tbl)}>
+                          <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
+                          Düzenle
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-8 px-0 hover:text-danger"
+                          onClick={() => handleDeleteTable(tbl)}
+                          title="Masayı sil"
+                          aria-label={`${tbl.name} masasını sil`}
                         >
-                          Müsait
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickStatusChange(tbl, "RESERVED")}
-                          className={`rounded-lg py-1 text-center font-semibold transition-colors ${
-                            status === "RESERVED"
-                              ? "bg-amber-600 text-white"
-                              : "bg-slate-800 text-slate-400 hover:text-amber-400"
-                          }`}
-                        >
-                          Rezerve
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickStatusChange(tbl, "OCCUPIED")}
-                          className={`rounded-lg py-1 text-center font-semibold transition-colors ${
-                            status === "OCCUPIED"
-                              ? "bg-rose-600 text-white"
-                              : "bg-slate-800 text-slate-400 hover:text-rose-400"
-                          }`}
-                        >
-                          Dolu
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleQuickStatusChange(tbl, "OUT_OF_SERVICE")}
-                          className={`rounded-lg py-1 text-center font-semibold transition-colors ${
-                            status === "OUT_OF_SERVICE"
-                              ? "bg-slate-600 text-white"
-                              : "bg-slate-800 text-slate-400 hover:text-slate-200"
-                          }`}
-                        >
-                          Pasif
-                        </button>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Actions Footer */}
-                  <div className="px-4 py-3 border-t border-slate-800/80 bg-slate-900/50 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">
-                      Konum: X:{tbl.positionX}, Y:{tbl.positionY}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEditTable(tbl)}
-                        className="rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span>Düzenle</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTable(tbl)}
-                        className="rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 p-1.5 transition-colors"
-                        title="Masayı Sil"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

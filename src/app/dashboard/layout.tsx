@@ -18,6 +18,11 @@ export default async function DashboardLayout({
   const role = user.role?.toUpperCase();
   const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN" || role === "SUPERADMIN";
 
+  // Support agents have their own panel and no business of their own.
+  if (role === "SUPPORT") {
+    redirect("/support");
+  }
+
   if (!user.business) {
     if (isAdmin) {
       redirect("/admin");

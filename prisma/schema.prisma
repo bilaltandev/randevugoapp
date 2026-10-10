@@ -1,6 +1,7 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -13,7 +14,8 @@ model User {
   password   String
   name       String
   phone      String?
-  role       String     @default("BUSINESS_OWNER") // "BUSINESS_OWNER" | "ADMIN"
+  role       String     @default("BUSINESS_OWNER") // "BUSINESS_OWNER" | "ADMIN" | "SUPER_ADMIN" | "SUPPORT"
+  isActive   Boolean    @default(true) // Support agents can be deactivated by a super admin
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   businesses Business[]
@@ -53,6 +55,8 @@ model Business {
   galleryItems    GalleryItem[]
   restaurantAreas RestaurantArea[]
   restaurantTables RestaurantTable[]
+  supportTickets  SupportTicket[]
+  couponRedemptions CouponRedemption[]
 }
 
 model Category {
@@ -365,4 +369,65 @@ model AuditLog {
   @@index([action])
   @@index([targetId])
   @@index([createdAt])
+}
+
+model SupportTicket {
+  id             String           @id @default(uuid())
+  businessId     String
+  business       Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  subject        String
+  category       String           @default("GENERAL") // "GENERAL" | "TECHNICAL" | "BILLING" | "ACCOUNT"
+  priority       String           @default("NORMAL")  // "LOW" | "NORMAL" | "HIGH" | "URGENT"
+  status         String           @default("OPEN")    // "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED"
+  assignedToId   String?
+  assignedToName String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  messages       SupportMessage[]
+
+  @@index([businessId])
+  @@index([status])
+}
+
+model SupportMessage {
+  id         String        @id @default(uuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String
+  authorName String
+  authorRole String        // "OWNER" | "SUPPORT"
+  body       String
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId])
+}
+
+model Coupon {
+  id              String             @id @default(uuid())
+  code            String             @unique // stored upper-case
+  percentOff      Int                // 1-100
+  durationMonths  Int                @default(1) // how many monthly payments get the discount
+  expiresAt       DateTime?          // last moment the code can be redeemed; null = no end date
+  maxRedemptions  Int?               // total redemption limit; null = unlimited
+  isActive        Boolean            @default(true)
+  description     String?
+  createdBy       String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  redemptions     CouponRedemption[]
+}
+
+model CouponRedemption {
+  id              String   @id @default(uuid())
+  couponId        String
+  coupon          Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  businessId      String
+  business        Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  percentOff      Int      // copied at redemption so later coupon edits don't change a running discount
+  monthsRemaining Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([couponId, businessId])
+  @@index([businessId])
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useId } from "react";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -18,6 +18,8 @@ export function Modal({
   children,
   maxWidth = "md",
 }: ModalProps) {
+  const titleId = useId();
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -43,22 +45,27 @@ export function Modal({
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-[#101827]/50 dark:bg-black/70"
         onClick={onClose}
+        aria-hidden="true"
       />
 
-      {/* Content */}
+      {/* Content: bottom sheet on phones, centered dialog from sm up */}
       <div
-        className={`relative z-10 w-full ${maxWidthClass} max-w-[95vw] sm:max-w-md md:max-w-lg rounded-2xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/98 text-[#111827] dark:text-slate-100 p-4 sm:p-6 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className={`relative z-10 w-full ${maxWidthClass} sm:max-w-md md:max-w-lg rounded-t-dialog sm:rounded-dialog border border-line bg-surface text-ink p-4 sm:p-6 shadow-pop`}
       >
-        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-[#E4E7EC] dark:border-slate-800/80 mb-4 sm:mb-5">
-          <h3 className="text-base sm:text-lg font-bold text-[#111827] dark:text-slate-100 truncate pr-2">{title}</h3>
+        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-line mb-4 sm:mb-5">
+          <h3 id={titleId} className="text-base font-semibold text-ink truncate pr-2">{title}</h3>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-[#667085] hover:text-[#111827] hover:bg-[#F2F4F7] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100 transition-colors shrink-0"
+            className="rounded-control p-1.5 text-ink-3 hover:text-ink hover:bg-surface-muted transition-colors shrink-0"
             aria-label="Kapat"
           >
             <X className="w-5 h-5" />

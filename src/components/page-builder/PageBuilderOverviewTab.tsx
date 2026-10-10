@@ -4,14 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import {
   Image as ImageIcon,
-  Video,
   Palette,
   ExternalLink,
-  Trash2,
+  RotateCcw,
   Upload,
-  Play,
-  Maximize2,
-  Layout,
   ArrowLeft,
   ArrowRight,
   Scissors,
@@ -20,17 +16,31 @@ import {
   Star,
 } from "lucide-react";
 import { ThemeOverrides } from "@/lib/themes/types";
+import { getContrastRatio, getCustomAccent } from "@/lib/themes/utils";
+import { cn } from "@/lib/utils";
+import { Panel } from "@/components/ui/Panel";
+import { buttonClasses } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Segmented";
+import { Switch } from "@/components/ui/Switch";
+import { Avatar } from "@/components/ui/Avatar";
+import { Field, Input, Textarea } from "@/components/ui/Field";
+import { choiceClasses } from "@/components/ui/choice";
+import { CoverImagePicker, SAMPLE_COVERS } from "./CoverImagePicker";
 
 interface PageBuilderOverviewTabProps {
   business: any;
   themeOverrides: ThemeOverrides | null;
   onUpdateOverrides: (overrides: ThemeOverrides) => void;
   gallery: any;
+  /** Gallery photos the owner can reuse as the hero background. */
+  galleryItems: { id: string; imageUrl: string; title?: string | null }[];
   onUpdateGallery: (galleryConfig: any) => void;
   onSave: () => void;
   isSaving: boolean;
   savedSuccess: boolean;
   onOpenLivePreviewModal: () => void;
+  /** Accent of the active theme; the booking button uses it unless a custom color is set. */
+  themePrimaryColor: string;
 }
 
 export function PageBuilderOverviewTab({
@@ -38,8 +48,10 @@ export function PageBuilderOverviewTab({
   themeOverrides,
   onUpdateOverrides,
   gallery,
+  galleryItems,
   onUpdateGallery,
   onOpenLivePreviewModal,
+  themePrimaryColor,
 }: PageBuilderOverviewTabProps) {
   // Hero fields state (synced with themeOverrides or business defaults)
   const [heroTitle, setHeroTitle] = useState(
@@ -50,14 +62,13 @@ export function PageBuilderOverviewTab({
       business.description ||
       "Modern stil, profesyonel dokunuş. Kendinize en iyi bakım, en iyi randevu ile başlar."
   );
-  const [bgType, setBgType] = useState<"image" | "video" | "color">(
-    themeOverrides?.heroBgType || "image"
+  const [bgType, setBgType] = useState<"image" | "color">(
+    themeOverrides?.heroBgType === "color" ? "color" : "image"
   );
   const [coverImage, setCoverImage] = useState(
-    themeOverrides?.coverImage ||
-      business.coverImage ||
-      "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1200&h=600&fit=crop"
+    themeOverrides?.coverImage || business.coverImage || SAMPLE_COVERS[0]
   );
+  const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
   const [showLogo, setShowLogo] = useState(themeOverrides?.showLogo !== false);
   const [showSlogan, setShowSlogan] = useState(themeOverrides?.showSlogan !== false);
   const [sloganText, setSloganText] = useState(
@@ -67,9 +78,12 @@ export function PageBuilderOverviewTab({
   const [ctaText, setCtaText] = useState(
     themeOverrides?.customCtaText || "Hemen Randevu Al"
   );
-  const [ctaColor, setCtaColor] = useState<"purple" | "green" | "custom">(
-    themeOverrides?.ctaColor || "purple"
-  );
+  // Button color: the theme's accent unless the owner picked a custom one.
+  const customAccent = getCustomAccent(themeOverrides);
+  const ctaMode: "theme" | "custom" = customAccent ? "custom" : "theme";
+  const ctaPreviewColor = customAccent || themePrimaryColor;
+  const ctaPreviewText =
+    getContrastRatio("#FFFFFF", ctaPreviewColor) >= getContrastRatio("#0F172A", ctaPreviewColor) ? "#FFFFFF" : "#0F172A";
 
   // Sync to parent themeOverrides
   const syncOverrides = (updates: Partial<ThemeOverrides>) => {
@@ -83,13 +97,6 @@ export function PageBuilderOverviewTab({
       showSlogan,
       sloganText,
       customCtaText: ctaText,
-      ctaColor,
-      primaryColor:
-        (updates.ctaColor || ctaColor) === "purple"
-          ? "#6246EA"
-          : (updates.ctaColor || ctaColor) === "green"
-          ? "#00C98D"
-          : themeOverrides?.primaryColor || "#6246EA",
       ...updates,
     };
     onUpdateOverrides(nextOverrides);
@@ -164,52 +171,92 @@ export function PageBuilderOverviewTab({
     onUpdateGallery({ ...gallery, aspectRatio });
   };
 
-  // Sample covers to choose from
-  const sampleCovers = [
-    "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1200&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1200&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=1200&h=600&fit=crop",
+  // Picking a photo also switches the backdrop to "Görsel" so the choice shows up.
+  const handleSelectCover = (url: string) => {
+    setCoverImage(url);
+    setBgType("image");
+    syncOverrides({ coverImage: url, heroBgType: "image" });
+  };
+
+  const counter = (value: string, max: number) => (
+    <span className="tabular-nums">
+      {value.length}/{max}
+    </span>
+  );
+
+  // Mini wireframes for the four gallery layouts.
+  const block = "rounded-[3px] bg-line-strong";
+  const LAYOUTS: { id: string; name: string; desc: string; thumb: React.ReactNode }[] = [
+    {
+      id: "INFINITE_FLOW",
+      name: "Infinite Flow",
+      desc: "Kesintisiz kayan sonsuz şerit",
+      thumb: (
+        <div className="flex h-full gap-1">
+          <div className={cn(block, "flex-1")} />
+          <div className={cn(block, "flex-1 opacity-70")} />
+          <div className={cn(block, "flex-1")} />
+        </div>
+      ),
+    },
+    {
+      id: "DUAL_FLOW",
+      name: "Dual Flow",
+      desc: "Zıt yönlere akan çift şerit",
+      thumb: (
+        <div className="flex h-full flex-col gap-1">
+          <div className="flex flex-1 gap-1">
+            <div className={cn(block, "flex-1")} />
+            <div className={cn(block, "flex-1 opacity-70")} />
+          </div>
+          <div className="flex flex-1 gap-1">
+            <div className={cn(block, "flex-1 opacity-70")} />
+            <div className={cn(block, "flex-1")} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "CINEMATIC_STRIP",
+      name: "Cinematic Strip",
+      desc: "Geniş sinematik kartlar",
+      thumb: <div className={cn(block, "h-full w-full")} />,
+    },
+    {
+      id: "CARDS",
+      name: "Cards",
+      desc: "Kart yapısında yatay carousel",
+      thumb: (
+        <div className="flex h-full gap-1">
+          <div className={cn(block, "flex-1")} />
+          <div className={cn(block, "flex-1 opacity-70")} />
+        </div>
+      ),
+    },
   ];
 
-  const handleToggleCoverModal = () => {
-    const nextIdx = (sampleCovers.indexOf(coverImage) + 1) % sampleCovers.length;
-    const nextCover = sampleCovers[nextIdx];
-    setCoverImage(nextCover);
-    syncOverrides({ coverImage: nextCover });
+  const setCtaMode = (mode: "theme" | "custom") => {
+    if (mode === "theme") {
+      // Dropping primaryColor lets the theme's accent show again.
+      const next: ThemeOverrides = { ...(themeOverrides || {}), ctaColor: "theme" };
+      delete next.primaryColor;
+      onUpdateOverrides(next);
+    } else {
+      syncOverrides({ ctaColor: "custom", primaryColor: ctaPreviewColor });
+    }
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
       {/* ────────────────── LEFT COLUMN (HERO & GALLERY LAYOUT) ────────────────── */}
-      <div className="lg:col-span-7 space-y-6">
-        {/* 1. HERO AYARLARI CARD */}
-        <div className="rounded-2xl border border-[#E4E7EC] dark:border-[#1E2742] bg-white dark:bg-[#0E1528] p-5 sm:p-6 shadow-sm">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#6246EA]/10 text-[#6246EA]">
-              <ImageIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-[#111827] dark:text-white">
-                Hero Ayarları
-              </h2>
-              <p className="text-xs text-[#667085] dark:text-slate-400">
-                Sayfanızın üst bölümünü özelleştirin.
-              </p>
-            </div>
-          </div>
-
-          {/* Form Content: 2 Subcolumns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Left Subcol: Title, Description, Background */}
+      <div className="space-y-5 lg:col-span-7">
+        <Panel title="Hero alanı" description="Sayfanızın en üstünde görünen karşılama bölümü.">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            {/* Title, description, background */}
             <div className="space-y-4">
-              {/* Başlık */}
-              <div>
-                <label className="block text-xs font-semibold text-[#344054] dark:text-slate-300 mb-1.5">
-                  Başlık
-                </label>
-                <input
+              <Field label="Başlık" htmlFor="hero-title" hint={counter(heroTitle, 60)}>
+                <Input
+                  id="hero-title"
                   type="text"
                   maxLength={60}
                   value={heroTitle}
@@ -217,20 +264,13 @@ export function PageBuilderOverviewTab({
                     setHeroTitle(e.target.value);
                     syncOverrides({ customTitle: e.target.value });
                   }}
-                  className="w-full rounded-xl border border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] px-3.5 py-2.5 text-xs sm:text-sm text-[#111827] dark:text-white placeholder-[#98A2B3] focus:border-[#6246EA] focus:outline-none focus:ring-2 focus:ring-[#6246EA]/15 transition-all"
-                  placeholder="İşletme Adınız"
+                  placeholder="İşletme adınız"
                 />
-                <div className="text-[11px] text-[#98A2B3] text-right mt-1 font-medium">
-                  {heroTitle.length}/60
-                </div>
-              </div>
+              </Field>
 
-              {/* Açıklama */}
-              <div>
-                <label className="block text-xs font-semibold text-[#344054] dark:text-slate-300 mb-1.5">
-                  Açıklama
-                </label>
-                <textarea
+              <Field label="Açıklama" htmlFor="hero-desc" hint={counter(heroDesc, 160)}>
+                <Textarea
+                  id="hero-desc"
                   rows={3}
                   maxLength={160}
                   value={heroDesc}
@@ -238,174 +278,119 @@ export function PageBuilderOverviewTab({
                     setHeroDesc(e.target.value);
                     syncOverrides({ customSubtitle: e.target.value });
                   }}
-                  className="w-full rounded-xl border border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] p-3 text-xs sm:text-sm text-[#111827] dark:text-white placeholder-[#98A2B3] focus:border-[#6246EA] focus:outline-none focus:ring-2 focus:ring-[#6246EA]/15 transition-all resize-none"
+                  className="resize-none"
                   placeholder="İşletmenizi tanıtan kısa bir karşılama metni..."
                 />
-                <div className="text-[11px] text-[#98A2B3] text-right mt-1 font-medium">
-                  {heroDesc.length}/160
-                </div>
-              </div>
+              </Field>
 
-              {/* Arka Plan Türü */}
-              <div>
-                <label className="block text-xs font-semibold text-[#344054] dark:text-slate-300 mb-1.5">
-                  Arka Plan Türü
-                </label>
-                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-[#F8F9FC] dark:bg-[#151D36] border border-[#E4E7EC] dark:border-[#263152]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBgType("image");
-                      syncOverrides({ heroBgType: "image" });
-                    }}
-                    className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      bgType === "image"
-                        ? "bg-[#ECE8FF] text-[#6246EA] shadow-xs"
-                        : "text-[#667085] dark:text-slate-400 hover:text-[#111827]"
-                    }`}
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span>Görsel</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBgType("video");
-                      syncOverrides({ heroBgType: "video" });
-                    }}
-                    className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      bgType === "video"
-                        ? "bg-[#ECE8FF] text-[#6246EA] shadow-xs"
-                        : "text-[#667085] dark:text-slate-400 hover:text-[#111827]"
-                    }`}
-                  >
-                    <Video className="w-3.5 h-3.5" />
-                    <span>Video</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBgType("color");
-                      syncOverrides({ heroBgType: "color" });
-                    }}
-                    className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      bgType === "color"
-                        ? "bg-[#ECE8FF] text-[#6246EA] shadow-xs"
-                        : "text-[#667085] dark:text-slate-400 hover:text-[#111827]"
-                    }`}
-                  >
-                    <Palette className="w-3.5 h-3.5" />
-                    <span>Renk</span>
-                  </button>
-                </div>
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium text-ink-2">Arka plan türü</p>
+                <Segmented
+                  fill
+                  aria-label="Arka plan türü"
+                  value={bgType}
+                  onChange={(v) => {
+                    setBgType(v);
+                    syncOverrides({ heroBgType: v });
+                  }}
+                  options={[
+                    { value: "image", label: "Görsel", icon: ImageIcon },
+                    { value: "color", label: "Tema rengi", icon: Palette },
+                  ]}
+                />
 
-                {/* Arka Plan Görsel Önizlemesi & Butonları */}
-                <div className="relative mt-2.5 h-28 rounded-xl overflow-hidden border border-[#E4E7EC] dark:border-[#263152] group">
-                  <img
-                    src={coverImage}
-                    alt="Hero Arka Plan"
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center gap-2 p-2">
-                    <button
-                      type="button"
-                      onClick={handleToggleCoverModal}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-white text-xs font-medium border border-white/20 backdrop-blur-md transition-all shadow-md active:scale-95"
-                    >
-                      <ImageIcon className="w-3.5 h-3.5" />
-                      <span>Görseli Değiştir</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const fallback = sampleCovers[0];
-                        setCoverImage(fallback);
-                        syncOverrides({ coverImage: fallback });
-                      }}
-                      className="p-1.5 rounded-lg bg-black/60 hover:bg-rose-900/60 text-white hover:text-rose-300 text-xs border border-white/20 backdrop-blur-md transition-colors"
-                      title="Sıfırla"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                {bgType === "color" ? (
+                  <div
+                    className="mt-2 flex h-28 items-center justify-center rounded-control border border-line px-3 text-center text-xs font-medium text-white"
+                    style={{ backgroundColor: ctaPreviewColor }}
+                  >
+                    <span className="rounded-control bg-black/35 px-2.5 py-1.5">
+                      Üst alan, buton rengiyle boyanır
+                    </span>
                   </div>
-                </div>
+                ) : (
+                  <div className="relative mt-2 h-28 overflow-hidden rounded-control border border-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={coverImage} alt="Hero arka planı" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 p-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsCoverPickerOpen(true)}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-control bg-black/70 px-3 text-xs font-medium text-white transition-colors hover:bg-black/85"
+                      >
+                        <ImageIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                        Görseli değiştir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCover(SAMPLE_COVERS[0])}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-control bg-black/70 text-white transition-colors hover:bg-black/85"
+                        title="Varsayılana döndür"
+                        aria-label="Görseli varsayılana döndür"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <CoverImagePicker
+                  isOpen={isCoverPickerOpen}
+                  onClose={() => setIsCoverPickerOpen(false)}
+                  current={coverImage}
+                  galleryItems={galleryItems}
+                  onSelect={handleSelectCover}
+                />
               </div>
             </div>
 
-            {/* Right Subcol: Logo, Slogan, CTA */}
+            {/* Logo, slogan, CTA */}
             <div className="space-y-4">
-              {/* Logo Göster */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-[#344054] dark:text-slate-300">
-                    Logo Göster
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !showLogo;
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span id="hero-show-logo" className="text-sm font-medium text-ink-2">
+                    Logo göster
+                  </span>
+                  <Switch
+                    checked={showLogo}
+                    aria-labelledby="hero-show-logo"
+                    onChange={(next) => {
                       setShowLogo(next);
                       syncOverrides({ showLogo: next });
                     }}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      showLogo ? "bg-[#00C98D]" : "bg-slate-300 dark:bg-slate-700"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        showLogo ? "translate-x-4" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
+                  />
                 </div>
-
-                <div className="flex items-center gap-3 p-2.5 rounded-xl border border-[#E4E7EC] dark:border-[#263152] bg-[#F8F9FC] dark:bg-[#151D36]">
-                  {business.logo ? (
-                    <img
-                      src={business.logo}
-                      alt="Logo"
-                      className="w-10 h-10 rounded-lg object-cover border border-[#E4E7EC] dark:border-[#263152] shrink-0"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-[#6246EA]/15 text-[#6246EA] flex items-center justify-center font-bold text-sm shrink-0">
-                      {business.name.slice(0, 1)}
-                    </div>
-                  )}
+                <div className="flex items-center gap-3 rounded-control border border-line bg-surface-muted p-2.5">
+                  <Avatar name={business.name} src={business.logo} />
                   <div className="min-w-0 flex-1">
-                    <span className="text-xs font-semibold text-[#6246EA] hover:underline cursor-pointer flex items-center gap-1">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Logo Yükle</span>
-                    </span>
-                    <p className="text-[11px] text-[#98A2B3] mt-0.5">PNG, JPG (max 2MB)</p>
+                    <Link
+                      href="/dashboard/page-builder?tab=blocks"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-hover"
+                    >
+                      <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+                      Logoyu değiştir
+                    </Link>
+                    <p className="text-xs text-ink-3">PNG, JPG, WebP veya SVG</p>
                   </div>
                 </div>
               </div>
 
-              {/* Slogan Göster & Metni */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-[#344054] dark:text-slate-300">
-                    Slogan Göster
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="hero-slogan" className="text-sm font-medium text-ink-2">
+                    Slogan göster
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !showSlogan;
+                  <Switch
+                    checked={showSlogan}
+                    aria-label="Slogan göster"
+                    onChange={(next) => {
                       setShowSlogan(next);
                       syncOverrides({ showSlogan: next });
                     }}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      showSlogan ? "bg-[#00C98D]" : "bg-slate-300 dark:bg-slate-700"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        showSlogan ? "translate-x-4" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
+                  />
                 </div>
-                <input
+                <Input
+                  id="hero-slogan"
                   type="text"
                   maxLength={60}
                   value={sloganText}
@@ -414,20 +399,14 @@ export function PageBuilderOverviewTab({
                     setSloganText(e.target.value);
                     syncOverrides({ sloganText: e.target.value });
                   }}
-                  className="w-full rounded-xl border border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] px-3.5 py-2.5 text-xs sm:text-sm text-[#111827] dark:text-white placeholder-[#98A2B3] focus:border-[#6246EA] focus:outline-none focus:ring-2 focus:ring-[#6246EA]/15 transition-all disabled:opacity-50"
-                  placeholder="Slogan / Sektör Etiketi"
+                  placeholder="Slogan / sektör etiketi"
                 />
-                <div className="text-[11px] text-[#98A2B3] text-right mt-1 font-medium">
-                  {sloganText.length}/60
-                </div>
+                <p className="text-right text-xs text-ink-3">{counter(sloganText, 60)}</p>
               </div>
 
-              {/* CTA Buton Metni */}
-              <div>
-                <label className="block text-xs font-semibold text-[#344054] dark:text-slate-300 mb-1.5">
-                  CTA Buton Metni
-                </label>
-                <input
+              <Field label="Buton metni" htmlFor="hero-cta" hint={counter(ctaText, 30)}>
+                <Input
+                  id="hero-cta"
                   type="text"
                   maxLength={30}
                   value={ctaText}
@@ -435,497 +414,266 @@ export function PageBuilderOverviewTab({
                     setCtaText(e.target.value);
                     syncOverrides({ customCtaText: e.target.value });
                   }}
-                  className="w-full rounded-xl border border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] px-3.5 py-2.5 text-xs sm:text-sm text-[#111827] dark:text-white placeholder-[#98A2B3] focus:border-[#6246EA] focus:outline-none focus:ring-2 focus:ring-[#6246EA]/15 transition-all"
                   placeholder="Hemen Randevu Al"
                 />
-                <div className="text-[11px] text-[#98A2B3] text-right mt-1 font-medium">
-                  {ctaText.length}/30
+              </Field>
+
+              <fieldset className="space-y-1.5">
+                <legend className="text-sm font-medium text-ink-2">Buton rengi</legend>
+                <p className="text-xs text-ink-3">
+                  Rezervasyon sayfanızdaki butonlar ve vurgular. Tema rengi seçiliyken tema değiştirince renk de değişir.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-0.5">
+                  {(
+                    [
+                      { id: "theme", label: "Tema rengi", swatch: themePrimaryColor },
+                      { id: "custom", label: "Özel renk", swatch: customAccent },
+                    ] as const
+                  ).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      aria-pressed={ctaMode === c.id}
+                      onClick={() => setCtaMode(c.id)}
+                      className={choiceClasses(ctaMode === c.id, "flex items-center gap-2 px-3 py-2.5 text-xs")}
+                    >
+                      <span
+                        className={cn("h-4 w-4 shrink-0 rounded-full border border-black/10", !c.swatch && "bg-line-strong")}
+                        style={c.swatch ? { backgroundColor: c.swatch } : undefined}
+                        aria-hidden="true"
+                      />
+                      {c.label}
+                    </button>
+                  ))}
                 </div>
-              </div>
-
-              {/* CTA Buton Rengi */}
-              <div>
-                <label className="block text-xs font-semibold text-[#344054] dark:text-slate-300 mb-1.5">
-                  CTA Buton Rengi
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {/* Mor */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCtaColor("purple");
-                      syncOverrides({ ctaColor: "purple", primaryColor: "#6246EA" });
-                    }}
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${
-                      ctaColor === "purple"
-                        ? "border-[#6246EA] bg-[#ECE8FF]/60 dark:bg-[#6246EA]/15"
-                        : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] hover:bg-[#F8F9FC]"
-                    }`}
-                  >
-                    <div className="w-4 h-4 rounded-full bg-[#6246EA] flex items-center justify-center mb-1">
-                      {ctaColor === "purple" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <span className="text-[11px] font-semibold text-[#111827] dark:text-white">
-                      Mor
-                    </span>
-                    <span className="text-[9px] text-[#6246EA] font-medium">(Önerilen)</span>
-                  </button>
-
-                  {/* Yeşil */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCtaColor("green");
-                      syncOverrides({ ctaColor: "green", primaryColor: "#00C98D" });
-                    }}
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${
-                      ctaColor === "green"
-                        ? "border-[#00C98D] bg-emerald-50 dark:bg-emerald-950/20"
-                        : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] hover:bg-[#F8F9FC]"
-                    }`}
-                  >
-                    <div className="w-4 h-4 rounded-full bg-[#00C98D] flex items-center justify-center mb-1">
-                      {ctaColor === "green" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                    <span className="text-[11px] font-semibold text-[#111827] dark:text-white">
-                      RandevuGo
-                    </span>
-                    <span className="text-[9px] text-emerald-600 font-medium">Yeşili</span>
-                  </button>
-
-                  {/* Özel Renk */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCtaColor("custom");
-                      syncOverrides({ ctaColor: "custom" });
-                    }}
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${
-                      ctaColor === "custom"
-                        ? "border-[#6246EA] bg-[#ECE8FF]/60 dark:bg-[#6246EA]/15"
-                        : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] hover:bg-[#F8F9FC]"
-                    }`}
-                  >
-                    <div className="w-4 h-4 rounded-full bg-slate-400 flex items-center justify-center mb-1" />
-                    <span className="text-[11px] font-semibold text-[#111827] dark:text-white mt-1">
-                      Özel Renk
-                    </span>
-                  </button>
-                </div>
-              </div>
+                {ctaMode === "custom" && (
+                  <label className="flex items-center gap-2 pt-1 text-xs text-ink-2">
+                    <input
+                      type="color"
+                      value={customAccent || themePrimaryColor}
+                      onChange={(e) => syncOverrides({ ctaColor: "custom", primaryColor: e.target.value })}
+                      className="h-8 w-10 cursor-pointer rounded-control border border-line-strong bg-surface p-0.5"
+                      aria-label="Özel buton rengi"
+                    />
+                    <span className="font-mono">{customAccent}</span>
+                  </label>
+                )}
+              </fieldset>
             </div>
           </div>
-        </div>
+        </Panel>
 
-        {/* 2. GALERİ DÜZENİ (LAYOUT) CARD */}
-        <div className="rounded-2xl border border-[#E4E7EC] dark:border-[#1E2742] bg-white dark:bg-[#0E1528] p-5 sm:p-6 shadow-sm">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#6246EA]/10 text-[#6246EA]">
-              <Layout className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-[#111827] dark:text-white">
-                Galeri Düzeni (Layout)
-              </h2>
-              <p className="text-xs text-[#667085] dark:text-slate-400">
-                Hizmet ve portföy görsellerinizin nasıl görüneceğini seçin.
-              </p>
-            </div>
+        <Panel title="Galeri düzeni" description="Portföy görsellerinizin sayfada nasıl akacağını seçin.">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+            {LAYOUTS.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                aria-pressed={currentLayout === l.id}
+                onClick={() => handleLayoutChange(l.id)}
+                className={choiceClasses(currentLayout === l.id, "p-2.5 text-left")}
+              >
+                <div className="mb-2 h-14 rounded-[4px] bg-surface-muted p-1.5">{l.thumb}</div>
+                <span className="block text-sm font-medium text-ink">{l.name}</span>
+                <span className="mt-0.5 block text-xs leading-snug text-ink-3">{l.desc}</span>
+              </button>
+            ))}
           </div>
-
-          {/* 4 Layout Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {/* 1. Infinite Flow */}
-            <div
-              onClick={() => handleLayoutChange("INFINITE_FLOW")}
-              className={`cursor-pointer rounded-xl p-3 border transition-all flex flex-col justify-between ${
-                currentLayout === "INFINITE_FLOW"
-                  ? "border-2 border-[#6246EA] bg-[#F4F3FF] dark:bg-[#6246EA]/10 shadow-sm"
-                  : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] hover:border-slate-300"
-              }`}
-            >
-              <div>
-                {/* Mini thumbnail */}
-                <div className="h-16 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center gap-1 p-1 mb-2">
-                  <div className="w-1/3 h-full rounded bg-slate-700/80" />
-                  <div className="w-1/3 h-full rounded bg-slate-600/80" />
-                  <div className="w-1/3 h-full rounded bg-slate-700/80" />
-                </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-[#111827] dark:text-white">
-                  <span className="text-[#6246EA]">∞</span>
-                  <span>Infinite Flow</span>
-                </div>
-                <p className="text-[10px] text-[#667085] dark:text-slate-400 mt-1 line-clamp-2 leading-tight">
-                  Kesintisiz sağdan sola kayan sonsuz marquee
-                </p>
-              </div>
-            </div>
-
-            {/* 2. Dual Flow */}
-            <div
-              onClick={() => handleLayoutChange("DUAL_FLOW")}
-              className={`cursor-pointer rounded-xl p-3 border transition-all flex flex-col justify-between ${
-                currentLayout === "DUAL_FLOW"
-                  ? "border-2 border-[#6246EA] bg-[#F4F3FF] dark:bg-[#6246EA]/10 shadow-sm"
-                  : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] hover:border-slate-300"
-              }`}
-            >
-              <div>
-                {/* Mini thumbnail */}
-                <div className="h-16 rounded-lg bg-slate-900 overflow-hidden flex flex-col justify-center gap-1 p-1 mb-2">
-                  <div className="w-full h-1/2 rounded bg-slate-700/80 flex gap-0.5">
-                    <div className="w-1/2 h-full bg-slate-600/80 rounded" />
-                    <div className="w-1/2 h-full bg-slate-700/80 rounded" />
-                  </div>
-                  <div className="w-full h-1/2 rounded bg-slate-700/80 flex gap-0.5">
-                    <div className="w-1/2 h-full bg-slate-700/80 rounded" />
-                    <div className="w-1/2 h-full bg-slate-600/80 rounded" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-[#111827] dark:text-white">
-                  <span className="text-[#6246EA]">↔</span>
-                  <span>Dual Flow</span>
-                </div>
-                <p className="text-[10px] text-[#667085] dark:text-slate-400 mt-1 line-clamp-2 leading-tight">
-                  Çift şeritli, zıt yönlere akan lüks görsel şölen
-                </p>
-              </div>
-            </div>
-
-            {/* 3. Cinematic Strip */}
-            <div
-              onClick={() => handleLayoutChange("CINEMATIC_STRIP")}
-              className={`cursor-pointer rounded-xl p-3 border transition-all flex flex-col justify-between ${
-                currentLayout === "CINEMATIC_STRIP"
-                  ? "border-2 border-[#6246EA] bg-[#F4F3FF] dark:bg-[#6246EA]/10 shadow-sm"
-                  : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] hover:border-slate-300"
-              }`}
-            >
-              <div>
-                {/* Mini thumbnail */}
-                <div className="h-16 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center p-1 mb-2">
-                  <div className="w-full h-full rounded bg-slate-700/90 flex items-center justify-center text-[9px] text-slate-300 font-serif">
-                    Cinematic
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-[#111827] dark:text-white">
-                  <span className="text-[#6246EA]">🎬</span>
-                  <span>Cinematic Strip</span>
-                </div>
-                <p className="text-[10px] text-[#667085] dark:text-slate-400 mt-1 line-clamp-2 leading-tight">
-                  Geniş sinematik kartlar ve zarif tipografi
-                </p>
-              </div>
-            </div>
-
-            {/* 4. Cards */}
-            <div
-              onClick={() => handleLayoutChange("CARDS")}
-              className={`cursor-pointer rounded-xl p-3 border transition-all flex flex-col justify-between ${
-                currentLayout === "CARDS"
-                  ? "border-2 border-[#6246EA] bg-[#F4F3FF] dark:bg-[#6246EA]/10 shadow-sm"
-                  : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] hover:border-slate-300"
-              }`}
-            >
-              <div>
-                {/* Mini thumbnail */}
-                <div className="h-16 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center gap-1 p-1 mb-2">
-                  <div className="w-1/2 h-full rounded bg-slate-600/80" />
-                  <div className="w-1/2 h-full rounded bg-slate-700/80" />
-                </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-[#111827] dark:text-white">
-                  <span className="text-[#6246EA]">🗂️</span>
-                  <span>Cards</span>
-                </div>
-                <p className="text-[10px] text-[#667085] dark:text-slate-400 mt-1 line-clamp-2 leading-tight">
-                  Gezilebilir, kart yapısında yatay carousel
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </Panel>
       </div>
 
       {/* ────────────────── RIGHT COLUMN (PREVIEW, SPEED, SIZE) ────────────────── */}
-      <div className="lg:col-span-5 space-y-6">
-        {/* 1. SAYFA ÖNİZLEMESİ CARD */}
-        <div className="rounded-2xl border border-[#E4E7EC] dark:border-[#1E2742] bg-white dark:bg-[#0E1528] p-5 sm:p-6 shadow-sm">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#6246EA]/10 text-[#6246EA]">
-                <ExternalLink className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-[#111827] dark:text-white">
-                  Sayfa Önizlemesi
-                </h2>
-                <p className="text-xs text-[#667085] dark:text-slate-400">
-                  Yaptığınız değişiklikleri anında görüntüleyin.
-                </p>
-              </div>
-            </div>
-
-            <Link
+      <div className="space-y-5 lg:col-span-5">
+        <Panel
+          title="Önizleme"
+          description="Değişiklikler anında yansır."
+          action={
+            <a
               href={`/${business.slug}`}
               target="_blank"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E4E7EC] dark:border-[#263152] bg-[#F8F9FC] dark:bg-[#151D36] text-xs font-semibold text-[#344054] dark:text-slate-200 hover:bg-[#F2F4F7] transition-colors"
+              rel="noopener noreferrer"
+              className={buttonClasses("secondary", "sm")}
             >
-              <span>Yeni Sekmede Aç</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {/* Interactive Live Mockup Screen */}
-          <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-[#0B0F19] text-white shadow-2xl">
-            {/* Top Bar of Mockup */}
-            <div className="flex items-center justify-between px-3.5 py-2.5 bg-black/60 border-b border-white/10 backdrop-blur-md">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-[10px]">
-                  ✂
-                </div>
-                <span className="text-xs font-bold tracking-tight text-white truncate max-w-[120px]">
-                  RandevuGo
-                </span>
-              </div>
-              <div className="hidden sm:flex items-center gap-3 text-[10px] text-slate-300">
-                <span className="hover:text-white cursor-pointer">Hizmetler</span>
-                <span className="hover:text-white cursor-pointer">Çalışanlarımız</span>
-                <span className="hover:text-white cursor-pointer">Yorumlar</span>
+              Yeni sekmede aç
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          }
+        >
+          {/* Mock of the public page's hero (uses the public page's own colors) */}
+          <div className="overflow-hidden rounded-control border border-line bg-[#0B0F19] text-white">
+            <div className="flex items-center justify-between border-b border-white/10 bg-black/60 px-3 py-2">
+              <span className="max-w-[140px] truncate text-xs font-semibold">{business.name || "RandevuGo"}</span>
+              <div className="hidden items-center gap-3 text-[10px] text-slate-300 sm:flex">
+                <span>Hizmetler</span>
+                <span>Ekibimiz</span>
+                <span>Yorumlar</span>
               </div>
               <button
                 type="button"
                 onClick={onOpenLivePreviewModal}
-                className="px-2.5 py-1 rounded-lg bg-[#00C98D] text-slate-950 font-bold text-[10px] hover:bg-[#00b57e] transition-colors"
+                className="rounded-md bg-[#00C98D] px-2.5 py-1 text-[10px] font-semibold text-slate-950"
               >
                 Randevu Al
               </button>
             </div>
 
-            {/* Mockup Hero Content */}
-            <div className="relative p-5 sm:p-6 min-h-[220px] flex flex-col justify-center overflow-hidden">
-              {/* Background with overlay */}
+            <div className="relative flex min-h-[200px] flex-col justify-center overflow-hidden p-5">
               <div
-                className="absolute inset-0 bg-cover bg-center transition-all duration-300"
-                style={{ backgroundImage: `url(${coverImage})` }}
+                className="absolute inset-0 bg-cover bg-center"
+                style={
+                  bgType === "color"
+                    ? { backgroundColor: ctaPreviewColor }
+                    : { backgroundImage: `url(${coverImage})` }
+                }
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F19] via-[#0B0F19]/80 to-[#0B0F19]/60" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/55 to-black/35" />
 
-              {/* Foreground content */}
-              <div className="relative z-10 space-y-2.5 max-w-sm">
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight drop-shadow-md">
-                  {heroTitle}
-                </h3>
-                <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed drop-shadow-sm">
-                  {heroDesc}
-                </p>
+              <div className="relative z-10 max-w-sm space-y-2.5">
+                <h3 className="text-xl font-bold leading-tight tracking-tight">{heroTitle}</h3>
+                <p className="line-clamp-2 text-xs leading-relaxed text-slate-300">{heroDesc}</p>
 
                 {showSlogan && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-semibold">
-                    <Scissors className="w-3 h-3 text-amber-400" />
-                    <span>{sloganText}</span>
-                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[10px] font-medium">
+                    <Scissors className="h-3 w-3" aria-hidden="true" />
+                    {sloganText}
+                  </span>
                 )}
 
                 <div className="pt-1">
                   <button
                     type="button"
                     onClick={onOpenLivePreviewModal}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-transform active:scale-95"
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold"
                     style={{
-                      backgroundColor: ctaColor === "green" ? "#00C98D" : "#6246EA",
-                      color: ctaColor === "green" ? "#0A0E1A" : "#FFFFFF",
+                      backgroundColor: ctaPreviewColor,
+                      color: ctaPreviewText,
                     }}
                   >
-                    <span>{ctaText}</span>
-                    <span>→</span>
+                    {ctaText} →
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Trust Badges Bar inside mockup */}
-            <div className="p-3 bg-black/40 border-t border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-slate-300">
-              <div className="flex items-center gap-1.5 truncate">
-                <Users2 className="w-3 h-3 text-[#00C98D] shrink-0" />
-                <span className="truncate">Profesyonel Ekip</span>
-              </div>
-              <div className="flex items-center gap-1.5 truncate">
-                <ShieldCheck className="w-3 h-3 text-[#00C98D] shrink-0" />
-                <span className="truncate">Hijyenik Ortam</span>
-              </div>
-              <div className="flex items-center gap-1.5 truncate">
-                <Scissors className="w-3 h-3 text-[#00C98D] shrink-0" />
-                <span className="truncate">Modern Ekipmanlar</span>
-              </div>
-              <div className="flex items-center gap-1.5 truncate">
-                <Star className="w-3 h-3 text-[#00C98D] shrink-0" />
-                <span className="truncate">%100 Memnuniyet</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. HAREKET & HIZ AYARLARI CARD */}
-        <div className="rounded-2xl border border-[#E4E7EC] dark:border-[#1E2742] bg-white dark:bg-[#0E1528] p-5 sm:p-6 shadow-sm space-y-5">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#6246EA]/10 text-[#6246EA]">
-              <Play className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-[#111827] dark:text-white">
-                Hareket & Hız Ayarları
-              </h2>
-              <p className="text-xs text-[#667085] dark:text-slate-400">
-                Sayfa geçişleri, animasyonlar ve galeri akış hızını ayarlayın.
-              </p>
-            </div>
-          </div>
-
-          {/* Hareket Yönü */}
-          <div>
-            <label className="block text-xs font-semibold text-[#344054] dark:text-slate-300 mb-2">
-              Hareket Yönü
-            </label>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleDirectionChange("right-to-left")}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                  currentDirection === "right-to-left"
-                    ? "border-[#6246EA] bg-[#ECE8FF] text-[#6246EA] dark:bg-[#6246EA]/20 dark:text-[#a89af8]"
-                    : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] text-[#344054] dark:text-slate-300 hover:bg-[#F8F9FC]"
-                }`}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Sağdan Sola (Varsayılan)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDirectionChange("left-to-right")}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                  currentDirection === "left-to-right"
-                    ? "border-[#6246EA] bg-[#ECE8FF] text-[#6246EA] dark:bg-[#6246EA]/20 dark:text-[#a89af8]"
-                    : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] text-[#344054] dark:text-slate-300 hover:bg-[#F8F9FC]"
-                }`}
-              >
-                <ArrowRight className="w-4 h-4" />
-                <span>Soldan Sağa</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Akış Hızı Slider */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-[#344054] dark:text-slate-300">
-                Akış Hızı
-              </label>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold text-xs border border-emerald-200 dark:border-emerald-800">
-                {getSpeedLabel(currentSpeed)}
-              </span>
-            </div>
-
-            <input
-              type="range"
-              min="1"
-              max="5"
-              step="1"
-              value={getSpeedSliderValue(currentSpeed)}
-              onChange={handleSpeedSliderChange}
-              className="w-full accent-[#6246EA] cursor-pointer"
-            />
-
-            <div className="flex justify-between text-[10px] text-[#98A2B3] font-medium mt-1.5">
-              <span>Çok Yavaş</span>
-              <span>Yavaş</span>
-              <span>Normal</span>
-              <span className="font-bold text-[#6246EA]">Hızlı</span>
-              <span>Çok Hızlı</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. GÖRSEL BOYUTU & ORANI CARD */}
-        <div className="rounded-2xl border border-[#E4E7EC] dark:border-[#1E2742] bg-white dark:bg-[#0E1528] p-5 sm:p-6 shadow-sm space-y-5">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#6246EA]/10 text-[#6246EA]">
-              <Maximize2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-[#111827] dark:text-white">
-                Görsel Boyutu & Oranı
-              </h2>
-              <p className="text-xs text-[#667085] dark:text-slate-400">
-                Galeri ve portföy görsellerinin ekranda nasıl görüneceğini ayarlayın.
-              </p>
-            </div>
-          </div>
-
-          {/* Görsel Boyutu */}
-          <div>
-            <label className="block text-xs font-semibold text-[#344054] dark:text-slate-300 mb-2">
-              Görsel Boyutu
-            </label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-2 gap-2 border-t border-white/5 bg-black/40 p-3 text-[10px] text-slate-300 sm:grid-cols-4">
               {[
-                { id: "SMALL", label: "Küçük", hint: "~200px" },
-                { id: "MEDIUM", label: "Orta", hint: "~280px" },
-                { id: "LARGE", label: "Büyük", hint: "~360px" },
-                { id: "XLARGE", label: "XL", hint: "~450px" },
-                { id: "FULL", label: "Tam Ekran", hint: "" },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => handleSizeChange(s.id)}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-                    currentSize === s.id
-                      ? "border-[#6246EA] bg-[#ECE8FF] text-[#6246EA] dark:bg-[#6246EA]/20 dark:text-[#a89af8]"
-                      : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] text-[#667085] dark:text-slate-300 hover:bg-[#F8F9FC]"
-                  }`}
-                >
-                  <span>{s.label}</span>
-                  {s.hint && <span className="opacity-60 ml-1 text-[10px]">{s.hint}</span>}
-                </button>
-              ))}
+                [Users2, "Profesyonel ekip"],
+                [ShieldCheck, "Hijyenik ortam"],
+                [Scissors, "Modern ekipman"],
+                [Star, "%100 memnuniyet"],
+              ].map(([Icon, label]) => {
+                const I = Icon as typeof Star;
+                return (
+                  <span key={label as string} className="flex items-center gap-1.5 truncate">
+                    <I className="h-3 w-3 shrink-0 text-[#00C98D]" aria-hidden="true" />
+                    <span className="truncate">{label as string}</span>
+                  </span>
+                );
+              })}
             </div>
           </div>
+        </Panel>
 
-          {/* Görsel En/Boy Oranı */}
-          <div>
-            <label className="block text-xs font-semibold text-[#344054] dark:text-slate-300 mb-2">
-              Görsel En/Boy Oranı
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                { id: "4:5", label: "4:5", hint: "Dikey Portre" },
-                { id: "1:1", label: "1:1", hint: "Kare" },
-                { id: "3:2", label: "3:2", hint: "Klasik Foto" },
-                { id: "16:9", label: "16:9", hint: "Geniş Ekran" },
-                { id: "21:9", label: "21:9", hint: "Panoramik" },
-              ].map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => handleAspectChange(a.id)}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-                    currentAspect === a.id
-                      ? "border-[#6246EA] bg-[#ECE8FF] text-[#6246EA] dark:bg-[#6246EA]/20 dark:text-[#a89af8]"
-                      : "border-[#E4E7EC] dark:border-[#263152] bg-white dark:bg-[#151D36] text-[#667085] dark:text-slate-300 hover:bg-[#F8F9FC]"
-                  }`}
-                >
-                  <span className="font-bold">{a.label}</span>
-                  <span className="opacity-70 ml-1 text-[10px]">{a.hint}</span>
-                </button>
-              ))}
+        <Panel title="Hareket ve hız" description="Galeri akışının yönü ve hızı.">
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-ink-2">Hareket yönü</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "right-to-left", label: "Sağdan sola", icon: ArrowLeft },
+                  { id: "left-to-right", label: "Soldan sağa", icon: ArrowRight },
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    aria-pressed={currentDirection === d.id}
+                    onClick={() => handleDirectionChange(d.id)}
+                    className={choiceClasses(currentDirection === d.id, "flex h-9 items-center justify-center gap-2 px-3")}
+                  >
+                    <d.icon className="h-4 w-4" aria-hidden="true" />
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="gallery-speed" className="text-sm font-medium text-ink-2">
+                  Akış hızı
+                </label>
+                <span className="text-sm font-medium text-ink">{getSpeedLabel(currentSpeed)}</span>
+              </div>
+              <input
+                id="gallery-speed"
+                type="range"
+                min="1"
+                max="5"
+                step="1"
+                value={getSpeedSliderValue(currentSpeed)}
+                onChange={handleSpeedSliderChange}
+                className="w-full cursor-pointer accent-brand"
+              />
+              <div className="flex justify-between text-xs text-ink-3">
+                <span>Çok yavaş</span>
+                <span>Normal</span>
+                <span>Çok hızlı</span>
+              </div>
             </div>
           </div>
-        </div>
+        </Panel>
+
+        <Panel title="Görsel boyutu ve oranı" description="Galeri görsellerinin ekrandaki ölçüsü.">
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-ink-2">Görsel boyutu</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: "SMALL", label: "Küçük", hint: "~200px" },
+                  { id: "MEDIUM", label: "Orta", hint: "~280px" },
+                  { id: "LARGE", label: "Büyük", hint: "~360px" },
+                  { id: "XLARGE", label: "XL", hint: "~450px" },
+                  { id: "FULL", label: "Tam ekran", hint: "" },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    aria-pressed={currentSize === s.id}
+                    onClick={() => handleSizeChange(s.id)}
+                    className={choiceClasses(currentSize === s.id, "h-8 px-2.5 text-xs")}
+                  >
+                    {s.label}
+                    {s.hint && <span className="ml-1 text-ink-3">{s.hint}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-ink-2">En/boy oranı</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: "4:5", hint: "Dikey" },
+                  { id: "1:1", hint: "Kare" },
+                  { id: "3:2", hint: "Klasik" },
+                  { id: "16:9", hint: "Geniş" },
+                  { id: "21:9", hint: "Panoramik" },
+                ].map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    aria-pressed={currentAspect === a.id}
+                    onClick={() => handleAspectChange(a.id)}
+                    className={choiceClasses(currentAspect === a.id, "h-8 px-2.5 text-xs")}
+                  >
+                    <span className="font-medium tabular-nums">{a.id}</span>
+                    <span className="ml-1 text-ink-3">{a.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Panel>
       </div>
     </div>
   );

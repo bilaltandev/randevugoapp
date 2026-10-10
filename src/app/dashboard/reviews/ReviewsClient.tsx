@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Star,
-  MessageSquare,
-  Reply,
-  CheckCircle2,
-  Calendar,
-  User,
-  ShieldCheck,
-} from "lucide-react";
+import { Star, Reply, ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Modal } from "@/components/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Avatar } from "@/components/ui/Avatar";
+import { Field, Textarea } from "@/components/ui/Field";
 
 interface ReviewsClientProps {
   businessId: string;
@@ -61,146 +60,116 @@ export default function ReviewsClient({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Header & Average Rating Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-            Müşteri Değerlendirmeleri
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Sadece tamamlanmış gerçek randevu sahipleri yorum yapabilir. Yorumları buradan yanıtlayabilirsiniz.
-          </p>
-        </div>
-
-        {/* Rating Summary Card */}
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-3 backdrop-blur-xl">
-          <div className="flex text-amber-400">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star key={s} className="w-5 h-5 fill-amber-400" />
-            ))}
-          </div>
-          <div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-xl font-extrabold text-slate-100">{avgRating}</span>
-              <span className="text-xs text-slate-400">/ 5.0</span>
+    <div className="space-y-5">
+      <PageHeader
+        title="Yorumlar"
+        description="Yalnızca randevusu tamamlanmış müşteriler yorum yapabilir. Yorumları buradan yanıtlayın."
+        actions={
+          <div className="flex items-center gap-3 rounded-panel border border-line bg-surface px-4 py-2">
+            <span className="text-2xl font-semibold tracking-tight tabular-nums text-ink">{avgRating}</span>
+            <div>
+              <Stars rating={Math.round(Number(avgRating))} />
+              <p className="mt-0.5 text-xs text-ink-3">{reviews.length} değerlendirme</p>
             </div>
-            <span className="text-[11px] text-slate-400">{reviews.length} gerçek değerlendirme</span>
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Reviews List */}
-      <div className="space-y-4">
+      <Panel flush>
         {reviews.length === 0 ? (
-          <div className="p-12 text-center rounded-3xl border border-dashed border-slate-800 text-slate-400 text-xs">
-            <Star className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            Henüz tamamlanmış bir randevu değerlendirmesi bulunmuyor.
-          </div>
+          <EmptyState
+            icon={Star}
+            title="Henüz değerlendirme yok"
+            description="Tamamlanan randevulardan sonra gelen yorumlar burada görünür."
+          />
         ) : (
-          reviews.map((rev) => (
-            <div
-              key={rev.id}
-              className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl space-y-4 hover:border-slate-700 transition-colors"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400 font-bold text-sm">
-                    {rev.customerName.slice(0, 1)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-100 text-sm">{rev.customerName}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                        <ShieldCheck className="w-3 h-3" />
-                        Doğrulanmış Randevu
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                      <span>{rev.appointment?.service?.name}</span>
-                      <span>•</span>
-                      <span>{new Date(rev.createdAt).toLocaleDateString("tr-TR")}</span>
+          <ul className="divide-y divide-line">
+            {reviews.map((rev) => (
+              <li key={rev.id} className="space-y-3 px-4 py-4 sm:px-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <Avatar name={rev.customerName} />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-sm font-medium text-ink">{rev.customerName}</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-brand-ink">
+                          <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                          Doğrulanmış randevu
+                        </span>
+                      </div>
+                      <p className="text-sm text-ink-3">
+                        {[rev.appointment?.service?.name, new Date(rev.createdAt).toLocaleDateString("tr-TR")]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
                     </div>
                   </div>
+                  <Stars rating={rev.rating} />
                 </div>
 
-                <div className="flex items-center gap-1 text-amber-400 self-start sm:self-auto">
-                  {[...Array(rev.rating)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400" />
-                  ))}
-                </div>
-              </div>
+                <p className="text-sm leading-relaxed text-ink-2">{rev.comment}</p>
 
-              <p className="text-slate-200 text-sm leading-relaxed italic bg-slate-950/40 p-4 rounded-2xl border border-slate-800/80">
-                "{rev.comment}"
-              </p>
-
-              {/* Business Reply Display */}
-              {rev.businessReply ? (
-                <div className="ml-4 sm:ml-8 pl-4 border-l-2 border-indigo-500 py-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-indigo-400">İşletmenizin Yanıtı:</span>
-                    <button
-                      onClick={() => handleOpenReply(rev)}
-                      className="text-[11px] text-slate-500 hover:text-indigo-400 font-medium"
-                    >
-                      Düzenle
-                    </button>
+                {rev.businessReply ? (
+                  <div className="rounded-control border-l-2 border-brand bg-surface-muted px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-ink-2">Yanıtınız</span>
+                      <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => handleOpenReply(rev)}>
+                        Düzenle
+                      </Button>
+                    </div>
+                    <p className="mt-0.5 text-sm text-ink-2">{rev.businessReply}</p>
                   </div>
-                  <p className="text-xs text-slate-300">{rev.businessReply}</p>
-                </div>
-              ) : (
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => handleOpenReply(rev)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-950/60 px-3.5 py-1.5 text-xs font-semibold text-indigo-400 hover:bg-slate-800 transition-colors"
-                  >
-                    <Reply className="w-3.5 h-3.5" />
-                    <span>Bu Yorumu Yanıtla</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
+                ) : (
+                  <Button size="sm" onClick={() => handleOpenReply(rev)}>
+                    <Reply className="w-3.5 h-3.5" aria-hidden="true" />
+                    Yanıtla
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
+      </Panel>
 
       {/* Reply Modal */}
       {selectedReview && (
-        <Modal
-          isOpen={!!selectedReview}
-          onClose={() => setSelectedReview(null)}
-          title="Yoruma İşletme Cevabı Yaz"
-        >
-          <form onSubmit={handleSaveReply} className="space-y-4 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 text-slate-300 italic">
-              "{selectedReview.comment}"
-            </div>
+        <Modal isOpen={!!selectedReview} onClose={() => setSelectedReview(null)} title="Yorumu yanıtla">
+          <form onSubmit={handleSaveReply} className="space-y-4">
+            <blockquote className="rounded-control border border-line bg-surface-muted px-3 py-2 text-sm text-ink-2">
+              {selectedReview.comment}
+            </blockquote>
 
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">
-                İşletme Yanıtınız *
-              </label>
-              <textarea
+            <Field label="Yanıtınız *" htmlFor="review-reply">
+              <Textarea
+                id="review-reply"
                 rows={4}
                 required
                 placeholder="Müşterinize teşekkür edin veya deneyimini yanıtlayın..."
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                className="w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
               />
-            </div>
+            </Field>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-500 transition-all"
-            >
-              {submitting ? "Kaydediliyor..." : "Cevabı Yayınla"}
-            </button>
+            <Button type="submit" variant="primary" disabled={submitting} className="w-full">
+              {submitting ? "Kaydediliyor..." : "Yanıtı yayınla"}
+            </Button>
           </form>
         </Modal>
       )}
     </div>
+  );
+}
+
+function Stars({ rating }: { rating: number }) {
+  return (
+    <span className="flex shrink-0 items-center gap-0.5" aria-label={`5 üzerinden ${rating} yıldız`}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star
+          key={s}
+          className={cn("h-3.5 w-3.5", s <= rating ? "fill-amber-400 text-amber-400" : "fill-line text-line-strong")}
+          aria-hidden="true"
+        />
+      ))}
+    </span>
   );
 }

@@ -1,55 +1,72 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Clock,
-  User,
-  Phone,
-  MessageSquare,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Sparkles,
   CalendarDays,
-  Plus,
-  ArrowRight,
+  CalendarPlus,
+  CheckCircle2,
+  Clock,
+  Copy,
+  Check,
+  MessageSquare,
+  Palette,
+  Scissors,
+  UtensilsCrossed,
+  ChevronRight,
+  type LucideIcon,
 } from "lucide-react";
-import { formatCurrency, formatPhoneNumber } from "@/lib/utils";
-import { Modal } from "@/components/Modal";
+import { formatCurrency, cn } from "@/lib/utils";
+import { getSectorDetails } from "@/lib/appointmentStatus";
+import { Panel } from "@/components/ui/Panel";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button, buttonClasses } from "@/components/ui/Button";
 
 interface DashboardOverviewClientProps {
-  businessId: string;
   todayAppointments: any[];
+  pendingAppointments: any[];
+  pendingCount: number;
   upcomingAppointments: any[];
+  todayStr: string;
   businessSlug: string;
-  businessPhone: string;
+  showStaff: boolean;
+  isRestaurant: boolean;
 }
 
+const toMinutes = (hhmm: string) => {
+  const [h, m] = (hhmm || "0:0").split(":").map(Number);
+  return h * 60 + (m || 0);
+};
+
 export default function DashboardOverviewClient({
-  businessId,
   todayAppointments: initialToday,
+  pendingAppointments: initialPending,
+  pendingCount: initialPendingCount,
   upcomingAppointments: initialUpcoming,
+  todayStr,
   businessSlug,
-  businessPhone,
+  showStaff,
+  isRestaurant,
 }: DashboardOverviewClientProps) {
   const [todayAppts, setTodayAppts] = useState(initialToday);
+  const [pendingAppts, setPendingAppts] = useState(initialPending);
+  const [pendingCount, setPendingCount] = useState(initialPendingCount);
   const [upcomingAppts, setUpcomingAppts] = useState(initialUpcoming);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  // Read the clock only after mount so server and client markup match.
+  const [nowMinutes, setNowMinutes] = useState<number | null>(null);
 
-  // Status badge style helper
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "CONFIRMED":
-        return <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-xs font-medium">Onaylandı</span>;
-      case "COMPLETED":
-        return <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-xs font-medium">Tamamlandı</span>;
-      case "CANCELLED":
-        return <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full text-xs font-medium">İptal Edildi</span>;
-      default:
-        return <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full text-xs font-medium">Onay Bekliyor</span>;
-    }
-  };
+  useEffect(() => {
+    const tick = () => {
+      const d = new Date();
+      setNowMinutes(d.getHours() * 60 + d.getMinutes());
+    };
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleUpdateStatus = async (appointmentId: string, newStatus: string) => {
     setLoadingId(appointmentId);
@@ -60,12 +77,13 @@ export default function DashboardOverviewClient({
         body: JSON.stringify({ id: appointmentId, status: newStatus }),
       });
       if (res.ok) {
-        setTodayAppts((prev) =>
-          prev.map((a) => (a.id === appointmentId ? { ...a, status: newStatus } : a))
-        );
-        setUpcomingAppts((prev) =>
-          prev.map((a) => (a.id === appointmentId ? { ...a, status: newStatus } : a))
-        );
+        const update = (list: any[]) => list.map((a) => (a.id === appointmentId ? { ...a, status: newStatus } : a));
+        setTodayAppts(update);
+        setUpcomingAppts(update);
+        if (pendingAppts.some((a) => a.id === appointmentId) && newStatus !== "PENDING") {
+          setPendingAppts((prev) => prev.filter((a) => a.id !== appointmentId));
+          setPendingCount((c) => Math.max(0, c - 1));
+        }
       }
     } catch (e) {
       console.error(e);
@@ -74,249 +92,360 @@ export default function DashboardOverviewClient({
     }
   };
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left 2 Cols: Today's Appointments Table */}
-      <div className="lg:col-span-2 space-y-6">
-        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <span>Bugünkü Randevular</span>
-                <span className="rounded-full bg-indigo-500/15 text-indigo-400 px-2 py-0.5 text-xs font-semibold">
-                  {todayAppts.length}
-                </span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Onaylayabilir veya durumunu güncelleyebilirsiniz
-              </p>
-            </div>
-            <Link
-              href="/dashboard/appointments"
-              className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 font-medium"
-            >
-              <span>Tümünü Gör</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/${businessSlug}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-          {todayAppts.length === 0 ? (
-            <div className="p-8 text-center rounded-2xl border border-dashed border-slate-800 text-slate-400 text-xs">
-              <CalendarDays className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-              Bugün için planlanmış bir randevu bulunmuyor.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {todayAppts.map((appt) => (
-                <div
-                  key={appt.id}
-                  className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition-colors hover:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-800/80 border border-slate-700/80 font-bold text-sm text-indigo-400">
-                      {appt.startTime}
+  const tomorrowStr = (() => {
+    const d = new Date(`${todayStr}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().split("T")[0];
+  })();
+
+  const formatDay = (date: string) => {
+    if (date === todayStr) return "Bugün";
+    if (date === tomorrowStr) return "Yarın";
+    return new Date(`${date}T00:00:00Z`).toLocaleDateString("tr-TR", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    });
+  };
+
+  const describe = (appt: any) =>
+    [
+      appt.service?.name,
+      showStaff && appt.employee?.name ? appt.employee.name : null,
+      ...getSectorDetails(appt.sectorData),
+    ].filter(Boolean) as string[];
+
+  const shortcuts: { label: string; href: string; icon: LucideIcon }[] = [
+    { label: "Saat kapat veya mola ekle", href: "/dashboard/calendar", icon: Clock },
+    isRestaurant
+      ? { label: "Masa planını düzenle", href: "/dashboard/tables", icon: UtensilsCrossed }
+      : { label: "Hizmetleri yönet", href: "/dashboard/services", icon: Scissors },
+    { label: "Rezervasyon sayfasını düzenle", href: "/dashboard/page-builder", icon: Palette },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:grid-rows-[auto_auto_1fr] lg:items-start">
+      {/* Today's schedule */}
+      <Panel
+        className="lg:col-span-2 lg:row-span-3"
+        title="Bugünün akışı"
+        description={todayAppts.length > 0 ? "Saat sırasına göre bugünkü randevular ve kapalı saatler" : undefined}
+        action={
+          <Link href="/dashboard/appointments" className="text-sm font-medium text-brand hover:text-brand-hover">
+            Tüm rezervasyonlar
+          </Link>
+        }
+        flush
+      >
+        {todayAppts.length === 0 ? (
+          <div>
+            {upcomingAppts[0] && (
+              <Link
+                href="/dashboard/calendar"
+                className="mx-4 mt-4 flex items-center gap-4 rounded-panel border border-line bg-surface-muted/60 p-4 transition-colors hover:bg-surface-muted sm:mx-5"
+              >
+                <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control bg-surface text-center shadow-raised">
+                  <span className="font-display text-base font-bold leading-none text-ink tabular-nums">
+                    {upcomingAppts[0].startTime}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-ink-3">
+                    Sıradaki randevu: {formatDay(upcomingAppts[0].date)}
+                  </p>
+                  <p className="mt-0.5 truncate text-[15px] font-semibold text-ink">{upcomingAppts[0].customerName}</p>
+                  <p className="truncate text-sm text-ink-3">{describe(upcomingAppts[0]).join(" · ")}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+              </Link>
+            )}
+            <EmptyState
+              icon={CalendarDays}
+              title="Bugün için randevu yok"
+              description="Rezervasyon bağlantınızı müşterilerinizle paylaşın ya da takvimden kendiniz randevu ekleyin."
+              actions={
+                <>
+                  <Button onClick={handleCopyLink}>
+                    {copied ? <Check className="w-4 h-4 text-brand" /> : <Copy className="w-4 h-4" />}
+                    {copied ? "Bağlantı kopyalandı" : "Bağlantıyı kopyala"}
+                  </Button>
+                  <Button href="/dashboard/calendar?new=1" variant="primary">
+                    <CalendarPlus className="w-4 h-4" aria-hidden="true" />
+                    Randevu ekle
+                  </Button>
+                </>
+              }
+            />
+          </div>
+        ) : (
+          <ol className="py-2">
+            {todayAppts.map((appt) => {
+              const isPast = nowMinutes !== null && toMinutes(appt.endTime || appt.startTime) <= nowMinutes;
+              const isNow =
+                nowMinutes !== null &&
+                !appt.isBlockedSlot &&
+                toMinutes(appt.startTime) <= nowMinutes &&
+                nowMinutes < toMinutes(appt.endTime || appt.startTime);
+              const isCancelled = appt.status === "CANCELLED";
+              const busy = loadingId === appt.id;
+
+              if (appt.isBlockedSlot) {
+                return (
+                  <li
+                    key={appt.id}
+                    className={cn("flex items-center gap-3 px-4 py-3 sm:gap-4 sm:px-5", isPast && "opacity-60")}
+                  >
+                    <TimeCell start={appt.startTime} end={appt.endTime} />
+                    <Rail tone="blocked" />
+                    <div className="slot-blocked min-w-0 flex-1 rounded-control px-3 py-2">
+                      <p className="text-sm text-ink-2">{appt.notes || "Bu saat aralığı rezervasyona kapalı"}</p>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-slate-100 text-sm">
+                    <StatusBadge blocked />
+                  </li>
+                );
+              }
+
+              return (
+                <li
+                  key={appt.id}
+                  className={cn(
+                    "relative flex gap-3 px-4 py-3 sm:gap-4 sm:px-5",
+                    isPast && !isNow && "opacity-60",
+                    isNow && "bg-brand-soft/60",
+                  )}
+                >
+                  <TimeCell start={appt.startTime} end={appt.endTime} />
+                  <Rail tone={isNow ? "now" : appt.status} />
+                  <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className={cn("text-sm font-medium text-ink", isCancelled && "line-through text-ink-3")}>
                           {appt.customerName}
                         </span>
-                        {getStatusBadge(appt.status)}
+                        <StatusBadge status={appt.status} />
+                        {isNow && <span className="text-xs font-medium text-brand">Şu an</span>}
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                        <span>{appt.service?.name}</span>
-                        <span>•</span>
-                        <span>Uzman: {appt.employee?.name}</span>
-                        <span>•</span>
-                        <span className="text-emerald-400 font-medium">{formatCurrency(appt.price)}</span>
-                      </div>
+                      <p className="mt-0.5 text-sm text-ink-3 truncate">
+                        {describe(appt).join(" · ")}
+                        {appt.price > 0 && <span className="tabular-nums"> · {formatCurrency(appt.price)}</span>}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {appt.customerPhone && (
+                        <a
+                          href={`https://wa.me/${appt.customerPhone.replace(/\D/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={buttonClasses("ghost", "sm", "w-8 px-0")}
+                          aria-label={`${appt.customerName} ile WhatsApp'tan yazış`}
+                          title="WhatsApp'tan yaz"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                        </a>
+                      )}
+                      {appt.status === "PENDING" && (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          disabled={busy}
+                          onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}
+                        >
+                          Onayla
+                        </Button>
+                      )}
+                      {appt.status === "CONFIRMED" && (
+                        <Button size="sm" disabled={busy} onClick={() => handleUpdateStatus(appt.id, "COMPLETED")}>
+                          <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                          Tamamla
+                        </Button>
+                      )}
+                      {appt.status !== "CANCELLED" && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={busy}
+                          onClick={() => handleUpdateStatus(appt.id, "CANCELLED")}
+                        >
+                          İptal et
+                        </Button>
+                      )}
                     </div>
                   </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </Panel>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    {/* WhatsApp message link */}
-                    <a
-                      href={`https://wa.me/${appt.customerPhone.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-colors"
-                      title="Müşteriye WhatsApp'tan Yaz"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </a>
-
-                    {appt.status === "PENDING" && (
-                      <button
+      {/* Pending approvals – shown first on mobile when there is something to act on */}
+      <Panel
+        className={cn(pendingAppts.length > 0 && "order-first lg:order-none")}
+        title={
+          <span className="flex items-center gap-2">
+            Onay bekleyenler
+            {pendingCount > 0 && (
+              <span className="rounded-control bg-pending-soft px-1.5 text-xs font-medium text-pending tabular-nums">
+                {pendingCount}
+              </span>
+            )}
+          </span>
+        }
+        flush
+      >
+        {pendingAppts.length === 0 ? (
+          <p className="flex items-center gap-2 px-4 py-4 text-sm text-ink-3 sm:px-5">
+            <CheckCircle2 className="w-4 h-4 text-brand" aria-hidden="true" />
+            Onay bekleyen randevu yok.
+          </p>
+        ) : (
+          <>
+            <ul className="divide-y divide-line">
+              {pendingAppts.map((appt) => {
+                const busy = loadingId === appt.id;
+                return (
+                  <li key={appt.id} className="px-4 py-3 sm:px-5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="truncate text-sm font-medium text-ink">{appt.customerName}</span>
+                      <span className="shrink-0 text-xs text-ink-3 tabular-nums">
+                        {formatDay(appt.date)} · {appt.startTime}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-sm text-ink-3">{describe(appt).join(" · ")}</p>
+                    <div className="mt-2 flex gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        disabled={busy}
                         onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}
-                        disabled={loadingId === appt.id}
-                        className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 transition-colors"
                       >
                         Onayla
-                      </button>
-                    )}
-
-                    {appt.status === "CONFIRMED" && (
-                      <button
-                        onClick={() => handleUpdateStatus(appt.id, "COMPLETED")}
-                        disabled={loadingId === appt.id}
-                        className="rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors"
-                      >
-                        Tamamlandı
-                      </button>
-                    )}
-
-                    {appt.status !== "CANCELLED" && (
-                      <button
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
                         onClick={() => handleUpdateStatus(appt.id, "CANCELLED")}
-                        disabled={loadingId === appt.id}
-                        className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/20 transition-colors"
-                        title="İptal Et"
                       >
-                        İptal
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Upcoming Appointments */}
-        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-slate-100">Yaklaşan Rezervasyonlar</h3>
-            <Link
-              href="/dashboard/appointments"
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
-            >
-              Tüm Liste
-            </Link>
-          </div>
-
-          <div className="space-y-2.5">
-            {upcomingAppts.slice(0, 4).map((a) => (
-              <div
-                key={a.id}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-950/40 border border-slate-800/70 text-xs"
+                        İptal et
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            {pendingCount > pendingAppts.length && (
+              <Link
+                href="/dashboard/appointments"
+                className="flex items-center justify-between border-t border-line px-4 py-2.5 text-sm font-medium text-brand hover:bg-surface-muted sm:px-5"
               >
-                <div>
-                  <span className="font-semibold text-slate-200 block">{a.customerName}</span>
-                  <span className="text-slate-400 text-[11px]">{a.service?.name} • Uzman: {a.employee?.name}</span>
+                {pendingCount - pendingAppts.length} talep daha
+                <ChevronRight className="w-4 h-4" aria-hidden="true" />
+              </Link>
+            )}
+          </>
+        )}
+      </Panel>
+
+      {/* Upcoming (after today) */}
+      <Panel
+        title="Yaklaşan randevular"
+        action={
+          <Link href="/dashboard/calendar" className="text-sm font-medium text-brand hover:text-brand-hover">
+            Takvim
+          </Link>
+        }
+        flush
+      >
+        {upcomingAppts.length === 0 ? (
+          <p className="px-4 py-4 text-sm text-ink-3 sm:px-5">Önümüzdeki günler için randevu yok.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {upcomingAppts.map((appt) => (
+              <li key={appt.id} className="flex items-center gap-3 px-4 py-2.5 sm:px-5">
+                <div className="w-16 shrink-0 text-xs text-ink-3 tabular-nums">
+                  <div className="font-medium text-ink-2">{formatDay(appt.date)}</div>
+                  <div>{appt.startTime}</div>
                 </div>
-                <div className="text-right">
-                  <span className="font-medium text-indigo-400 block">{a.date}</span>
-                  <span className="text-slate-400 text-[11px]">{a.startTime}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-ink">{appt.customerName}</p>
+                  <p className="truncate text-xs text-ink-3">{describe(appt).join(" · ")}</p>
                 </div>
-              </div>
+                <StatusBadge status={appt.status} />
+              </li>
             ))}
-          </div>
-        </div>
-      </div>
+          </ul>
+        )}
+      </Panel>
 
-      {/* Right Column: AI Insights & Quick Shortcuts */}
-      <div className="space-y-6">
-        {/* AI Business Insights Card */}
-        <div className="rounded-3xl border-2 border-[#DDD6FE] dark:border-[#6246EA]/40 bg-gradient-to-br from-[#F5F3FF] via-[#FAF5FF] to-white dark:from-[#130E2E] dark:via-[#0F142A] dark:to-[#080D1B] p-5 sm:p-6 shadow-md shadow-[#6246EA]/10 dark:shadow-2xl relative overflow-hidden">
-          {/* Subtle Ambient Radial Glow */}
-          <div className="absolute -top-12 -right-12 w-36 h-36 bg-[#6246EA]/15 dark:bg-[#6246EA]/25 blur-2xl rounded-full pointer-events-none" />
+      {/* Shortcuts */}
+      <Panel title="Kısayollar" flush>
+        <ul className="divide-y divide-line">
+          {shortcuts.map(({ label, href, icon: Icon }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-2 hover:bg-surface-muted hover:text-ink sm:px-5"
+              >
+                <Icon className="w-4 h-4 text-ink-3" aria-hidden="true" />
+                <span className="flex-1">{label}</span>
+                <ChevronRight className="w-4 h-4 text-ink-3" aria-hidden="true" />
+              </Link>
+            </li>
+          ))}
+          <li>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink-2 hover:bg-surface-muted hover:text-ink sm:px-5"
+            >
+              {copied ? <Check className="w-4 h-4 text-brand" /> : <Copy className="w-4 h-4 text-ink-3" />}
+              <span className="flex-1">{copied ? "Bağlantı kopyalandı" : "Rezervasyon bağlantısını kopyala"}</span>
+            </button>
+          </li>
+        </ul>
+      </Panel>
+    </div>
+  );
+}
 
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-3.5 relative z-10">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#6246EA] to-[#8C75FF] text-white shadow-md shadow-[#6246EA]/30 shrink-0">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-bold text-[#111827] dark:text-white truncate">
-                  RandevuGo AI Analiz
-                </h3>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#00C98D]/15 text-[#00A874] border border-[#00C98D]/30 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00C98D] animate-ping" />
-                  Canlı
-                </span>
-              </div>
-              <p className="text-[11px] text-[#667085] dark:text-slate-400 mt-0.5">
-                Otomatik İşletme Zekası
-              </p>
-            </div>
-          </div>
+function TimeCell({ start, end }: { start: string; end?: string | null }) {
+  return (
+    <div className="w-12 shrink-0 pt-0.5 tabular-nums">
+      <div className="font-display text-sm font-bold text-ink">{start}</div>
+      {end && <div className="text-xs text-ink-3">{end}</div>}
+    </div>
+  );
+}
 
-          <p className="text-xs text-[#344054] dark:text-slate-200 leading-relaxed mb-4 relative z-10 font-medium">
-            Hafta sonu randevu talepleriniz{" "}
-            <span className="font-bold text-[#6246EA] dark:text-indigo-400">
-              %85 doluluğa
-            </span>{" "}
-            ulaştı. Boş geçen Salı sabahları için özel promosyon öneriliyor.
-          </p>
+const RAIL_TONES: Record<string, string> = {
+  PENDING: "bg-pending",
+  CONFIRMED: "bg-brand",
+  COMPLETED: "bg-ink-3",
+  CANCELLED: "bg-danger",
+  blocked: "bg-line-strong",
+  now: "bg-brand ring-brand/25",
+};
 
-          {/* AI Recommendation Box */}
-          <div className="space-y-2.5 pt-3 border-t border-[#E4E7EC] dark:border-slate-800/80 text-xs relative z-10">
-            <div className="p-3 rounded-2xl bg-white dark:bg-[#151D36] border border-[#E0DDFE] dark:border-[#6246EA]/30 shadow-xs">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-bold text-[#6246EA] dark:text-indigo-300 flex items-center gap-1.5 text-xs">
-                  <span>💡</span>
-                  <span>AI Büyüme Tavsiyesi:</span>
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0">
-                  +%24 Ciro
-                </span>
-              </div>
-              <p className="text-[#475467] dark:text-slate-300 text-[11px] leading-relaxed">
-                Saç kesimi alan müşterilerin %60'ı sakal tıraşını da seçiyor. İkili paket tanımlayarak cironuzu artırabilirsiniz.
-              </p>
-            </div>
-          </div>
-
-          {/* Action CTA */}
-          <Link
-            href="/dashboard/analytics"
-            className="mt-4 inline-flex items-center justify-center gap-2 w-full rounded-xl bg-gradient-to-r from-[#6246EA] to-[#7B61FF] hover:from-[#5337D9] hover:to-[#6C4FF5] py-2.5 px-4 text-xs font-bold text-white shadow-md shadow-[#6246EA]/25 transition-all active:scale-95 relative z-10"
-          >
-            <span>Detaylı AI Raporunu Gör</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {/* Quick Action Buttons Card */}
-        <div className="rounded-3xl border border-[#E4E7EC] dark:border-slate-800/80 bg-white dark:bg-slate-900/60 p-5 shadow-sm space-y-2.5">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#667085] dark:text-slate-400 mb-3">
-            Hızlı İşlemler
-          </h3>
-
-          <Link
-            href="/dashboard/calendar"
-            className="flex items-center justify-between p-3 rounded-xl bg-[#F8F9FC] dark:bg-slate-950/40 border border-[#E4E7EC] dark:border-slate-800 hover:border-[#6246EA]/40 hover:bg-[#F4F3FF] dark:hover:bg-slate-900 transition-colors text-xs font-semibold text-[#344054] dark:text-slate-200"
-          >
-            <span>Saat Kapat / Mola Ekle</span>
-            <span className="text-[#6246EA]">→</span>
-          </Link>
-
-          <Link
-            href="/dashboard/services"
-            className="flex items-center justify-between p-3 rounded-xl bg-[#F8F9FC] dark:bg-slate-950/40 border border-[#E4E7EC] dark:border-slate-800 hover:border-[#6246EA]/40 hover:bg-[#F4F3FF] dark:hover:bg-slate-900 transition-colors text-xs font-semibold text-[#344054] dark:text-slate-200"
-          >
-            <span>Yeni Hizmet Ekle</span>
-            <span className="text-[#6246EA]">→</span>
-          </Link>
-
-          <Link
-            href="/dashboard/page-builder"
-            className="flex items-center justify-between p-3 rounded-xl bg-[#F8F9FC] dark:bg-slate-950/40 border border-[#E4E7EC] dark:border-slate-800 hover:border-[#6246EA]/40 hover:bg-[#F4F3FF] dark:hover:bg-slate-900 transition-colors text-xs font-semibold text-[#344054] dark:text-slate-200"
-          >
-            <span>Sayfa Tasarımını Düzenle</span>
-            <span className="text-[#6246EA]">→</span>
-          </Link>
-
-          <Link
-            href="/dashboard/subscription"
-            className="flex items-center justify-between p-3 rounded-xl bg-[#F8F9FC] dark:bg-slate-950/40 border border-[#E4E7EC] dark:border-slate-800 hover:border-[#6246EA]/40 hover:bg-[#F4F3FF] dark:hover:bg-slate-900 transition-colors text-xs font-semibold text-[#344054] dark:text-slate-200"
-          >
-            <span>Abonelik & Ödeme Yönetimi</span>
-            <span className="text-[#6246EA]">→</span>
-          </Link>
-        </div>
-      </div>
+/** The day's spine: a continuous line with a node colored by the booking's status. */
+function Rail({ tone }: { tone: string }) {
+  return (
+    <div className="relative w-3 shrink-0 self-stretch" aria-hidden="true">
+      <span className="absolute -bottom-3 -top-3 left-1/2 w-px -translate-x-1/2 bg-line" />
+      <span
+        className={cn(
+          "absolute left-1/2 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full ring-4 ring-surface",
+          RAIL_TONES[tone] ?? "bg-ink-3",
+        )}
+      />
     </div>
   );
 }

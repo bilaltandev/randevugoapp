@@ -1,18 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Scissors,
-  Plus,
-  Edit2,
-  Trash2,
-  Clock,
-  Sparkles,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
+import { Scissors, Plus, Edit2, Trash2, Clock, Sparkles } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Modal } from "@/components/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Field, Input, Textarea } from "@/components/ui/Field";
 
 interface ServicesClientProps {
   businessId: string;
@@ -155,203 +151,184 @@ export default function ServicesClient({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#111827] dark:text-slate-100">
-            Hizmet & Fiyat Yönetimi
-          </h1>
-          <p className="text-xs sm:text-sm text-[#667085] dark:text-slate-400 mt-0.5">
-            İşletmenizin sunduğu tüm bakım, randevu ve paket hizmetlerini buradan düzenleyin.
-          </p>
-        </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Hizmetler"
+        description="Sunduğunuz hizmetleri, sürelerini ve fiyatlarını buradan yönetin."
+        actions={
+          <>
+            <Button onClick={handleGetAiSuggestions} disabled={loadingAi}>
+              <Sparkles className="w-4 h-4" aria-hidden="true" />
+              {loadingAi ? "Hazırlanıyor..." : "Öneri al"}
+            </Button>
+            <Button variant="primary" onClick={handleOpenAdd}>
+              <Plus className="w-4 h-4" aria-hidden="true" />
+              Hizmet ekle
+            </Button>
+          </>
+        }
+      />
 
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={handleGetAiSuggestions}
-            disabled={loadingAi}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 dark:border-indigo-500/30 bg-purple-50 dark:bg-indigo-950/40 px-3.5 py-2.5 text-xs font-semibold text-[#6246EA] dark:text-indigo-300 hover:bg-purple-100 dark:hover:bg-indigo-900/50 transition-colors shadow-xs"
-          >
-            <Sparkles className="w-4 h-4 shrink-0" />
-            <span className="truncate">{loadingAi ? "Analiz..." : "AI Öner"}</span>
-          </button>
-
-          <button
-            onClick={handleOpenAdd}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#6246EA] hover:bg-[#5136D6] px-3.5 sm:px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#6246EA]/25 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4 shrink-0" />
-            <span className="truncate">Hizmet Ekle</span>
-          </button>
-        </div>
-      </div>
-
-      {/* AI Suggestions Box (if fetched) */}
+      {/* AI suggestions (if fetched) */}
       {aiSuggestions.length > 0 && (
-        <div className="rounded-2xl sm:rounded-3xl border border-[#6246EA]/20 dark:border-indigo-500/30 bg-purple-50/50 dark:bg-indigo-950/20 p-4 sm:p-5 backdrop-blur-xl">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-[#6246EA] dark:text-indigo-400 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4" />
-              Sektörünüze Özel AI Hizmet Tavsiyeleri:
-            </span>
-            <button
-              onClick={() => setAiSuggestions([])}
-              className="text-[11px] text-[#667085] dark:text-slate-500 hover:text-[#111827] dark:hover:text-slate-300"
-            >
+        <Panel
+          title="Sektörünüze uygun hizmet önerileri"
+          description="Bir öneriyi seçtiğinizde form doldurulmuş olarak açılır; kaydetmeden önce düzenleyebilirsiniz."
+          action={
+            <Button size="sm" variant="ghost" onClick={() => setAiSuggestions([])}>
               Gizle
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            </Button>
+          }
+          flush
+        >
+          <ul className="divide-y divide-line">
             {aiSuggestions.map((s, i) => (
-              <div
-                key={i}
-                className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/80 border border-[#E4E7EC] dark:border-slate-800 text-xs flex flex-col justify-between shadow-xs"
-              >
-                <div>
-                  <h4 className="font-bold text-[#111827] dark:text-slate-100">{s.name}</h4>
-                  <p className="text-[11px] text-[#667085] dark:text-slate-400 mt-1 line-clamp-2">{s.description}</p>
-                  <div className="flex items-center gap-2 mt-2 font-medium">
-                    <span className="text-[#6246EA] dark:text-indigo-400 font-semibold">{s.durationMinutes} dk</span>
-                    <span className="text-[#98A2B3]">•</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatCurrency(s.price)}</span>
-                  </div>
+              <li key={i} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-ink">{s.name}</p>
+                  {s.description && <p className="line-clamp-1 text-sm text-ink-3">{s.description}</p>}
                 </div>
-                <button
-                  onClick={() => handleAddAiService(s)}
-                  className="mt-3 text-left text-xs font-bold text-[#6246EA] dark:text-indigo-400 hover:underline"
-                >
-                  + Bu Hizmeti Ekle
-                </button>
-              </div>
+                <span className="text-sm tabular-nums text-ink-2">
+                  {s.durationMinutes} dk · {formatCurrency(s.price)}
+                </span>
+                <Button size="sm" onClick={() => handleAddAiService(s)}>
+                  <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                  Ekle
+                </Button>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </Panel>
       )}
 
-      {/* Services Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-        {services.map((srv) => (
-          <div
-            key={srv.id}
-            className="flex flex-col justify-between rounded-2xl sm:rounded-3xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 sm:p-5 hover:border-[#6246EA]/30 transition-all shadow-sm"
-          >
-            <div>
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <h3 className="font-bold text-base text-[#111827] dark:text-slate-100">{srv.name}</h3>
-                <span className="shrink-0 font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
+      {/* Services list */}
+      <Panel flush>
+        {services.length === 0 ? (
+          <EmptyState
+            icon={Scissors}
+            title="Henüz hizmet eklenmemiş"
+            description="Müşterilerin rezervasyon sırasında seçebilmesi için en az bir hizmet ekleyin."
+            actions={
+              <Button variant="primary" size="sm" onClick={handleOpenAdd}>
+                <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                Hizmet ekle
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="divide-y divide-line">
+            {services.map((srv) => (
+              <li key={srv.id} className="flex items-start gap-3 px-4 py-3 sm:items-center sm:gap-4 sm:px-5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-ink">{srv.name}</p>
+                  {srv.description && <p className="mt-0.5 line-clamp-2 text-sm text-ink-3">{srv.description}</p>}
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-3 sm:hidden">
+                    <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                    {srv.durationMinutes} dk · {srv.price === 0 ? "Ücretsiz" : formatCurrency(srv.price)}
+                  </p>
+                </div>
+
+                <span className="hidden w-24 items-center gap-1.5 text-sm text-ink-3 tabular-nums sm:flex">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                  {srv.durationMinutes} dk
+                </span>
+                <span className="hidden w-24 text-right text-sm font-medium text-ink tabular-nums sm:block">
                   {srv.price === 0 ? "Ücretsiz" : formatCurrency(srv.price)}
                 </span>
-              </div>
 
-              {srv.description && (
-                <p className="text-xs text-[#667085] dark:text-slate-400 mb-4 line-clamp-2 leading-relaxed">
-                  {srv.description}
-                </p>
-              )}
-            </div>
-
-            <div className="pt-3.5 border-t border-[#E4E7EC] dark:border-slate-800/80 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 text-[#667085] dark:text-slate-400 font-medium">
-                <Clock className="w-3.5 h-3.5 text-[#6246EA] dark:text-indigo-400" />
-                <span>{srv.durationMinutes} dakika</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleOpenEdit(srv)}
-                  className="p-1.5 rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-800 text-[#667085] dark:text-slate-400 hover:text-[#111827] dark:hover:text-slate-100 hover:bg-[#F8F9FC] transition-colors shadow-xs"
-                  title="Düzenle"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleDelete(srv.id)}
-                  className="p-1.5 rounded-xl border border-rose-200 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition-colors shadow-xs"
-                  title="Sil"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-8 px-0"
+                    onClick={() => handleOpenEdit(srv)}
+                    title="Düzenle"
+                    aria-label={`${srv.name} hizmetini düzenle`}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-8 px-0 hover:text-danger"
+                    onClick={() => handleDelete(srv.id)}
+                    title="Sil"
+                    aria-label={`${srv.name} hizmetini sil`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
 
       {/* Add / Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingService ? "Hizmeti Düzenle" : "Yeni Hizmet Ekle"}
+        title={editingService ? "Hizmeti düzenle" : "Yeni hizmet"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div>
-            <label className="block font-semibold text-[#344054] dark:text-slate-300 mb-1">Hizmet Adı *</label>
-            <input
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="Hizmet adı *" htmlFor="srv-name">
+            <Input
+              id="srv-name"
               type="text"
               required
               placeholder="Örn: Klasik Saç Kesimi"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-[#111827] dark:text-slate-100 placeholder-[#98A2B3] dark:placeholder-slate-600 focus:border-[#6246EA] focus:outline-none transition-colors"
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="block font-semibold text-[#344054] dark:text-slate-300 mb-1">Açıklama</label>
-            <textarea
+          <Field label="Açıklama" htmlFor="srv-desc">
+            <Textarea
+              id="srv-desc"
               rows={2}
               placeholder="Hizmetin kapsamı ve müşteriye sunulan detaylar"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2 text-sm text-[#111827] dark:text-slate-100 placeholder-[#98A2B3] dark:placeholder-slate-600 focus:border-[#6246EA] focus:outline-none transition-colors"
             />
-          </div>
+          </Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-semibold text-[#344054] dark:text-slate-300 mb-1">Süre (Dakika) *</label>
-              <input
+            <Field label="Süre (dakika) *" htmlFor="srv-duration">
+              <Input
+                id="srv-duration"
                 type="number"
                 min={5}
                 step={5}
                 required
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 0)}
-                className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-[#111827] dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
               />
-            </div>
-            <div>
-              <label className="block font-semibold text-[#344054] dark:text-slate-300 mb-1">Fiyat (TL) *</label>
-              <input
+            </Field>
+            <Field label="Fiyat (TL) *" htmlFor="srv-price">
+              <Input
+                id="srv-price"
                 type="number"
                 min={0}
                 required
                 value={price}
                 onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
-                className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-[#111827] dark:text-slate-100 focus:border-[#6246EA] focus:outline-none transition-colors"
               />
-            </div>
+            </Field>
           </div>
 
-          <div>
-            <label className="block font-semibold text-[#344054] dark:text-slate-300 mb-1">Görsel URL (İsteğe bağlı)</label>
-            <input
+          <Field label="Görsel URL" htmlFor="srv-image" hint="İsteğe bağlı">
+            <Input
+              id="srv-image"
               type="url"
               placeholder="https://images.unsplash.com/..."
               value={image}
               onChange={(e) => setImage(e.target.value)}
-              className="w-full rounded-xl border border-[#E4E7EC] dark:border-slate-800 bg-white dark:bg-slate-950/60 px-4 py-2.5 text-sm text-[#111827] dark:text-slate-100 placeholder-[#98A2B3] dark:placeholder-slate-600 focus:border-[#6246EA] focus:outline-none transition-colors"
             />
-          </div>
+          </Field>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-[#6246EA] py-3 text-sm font-semibold text-white shadow-lg shadow-[#6246EA]/25 hover:bg-[#5235D9] transition-all disabled:opacity-50"
-          >
-            {submitting ? "Kaydediliyor..." : editingService ? "Değişiklikleri Kaydet" : "Hizmeti Ekle"}
-          </button>
+          <Button type="submit" variant="primary" disabled={submitting} className="w-full">
+            {submitting ? "Kaydediliyor..." : editingService ? "Değişiklikleri kaydet" : "Hizmeti ekle"}
+          </Button>
         </form>
       </Modal>
     </div>

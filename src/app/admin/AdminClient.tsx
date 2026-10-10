@@ -40,10 +40,16 @@ import {
   History,
   ShieldCheck,
   Zap,
+  UserCog,
+  Headset,
+  Ticket,
 } from "lucide-react";
 import { formatCurrency, formatPhoneNumber, SECTORS } from "@/lib/utils";
 import { SectorBadge } from "@/components/SectorBadge";
 import { AdminThemeManagement } from "@/components/admin/AdminThemeManagement";
+import { AdminProfileSettings, type AdminProfile } from "@/components/admin/AdminProfileSettings";
+import { AdminSupportAgents } from "@/components/admin/AdminSupportAgents";
+import { AdminCoupons } from "@/components/admin/AdminCoupons";
 import { Modal } from "@/components/Modal";
 
 interface AdminClientProps {
@@ -85,8 +91,25 @@ export default function AdminClient({
 }: AdminClientProps) {
   // Navigation tab
   const [activeTab, setActiveTab] = useState<
-    "overview" | "businesses" | "features" | "subscriptions" | "audit" | "themes"
+    "overview" | "businesses" | "features" | "subscriptions" | "audit" | "themes" | "coupons" | "agents" | "profile"
   >("overview");
+
+  // Admin profile (kept in state so header reflects edits from the profile tab)
+  const [adminProfile, setAdminProfile] = useState<AdminProfile>({
+    name: adminUser.name,
+    email: adminUser.email,
+    phone: adminUser.phone ?? null,
+  });
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.href = "/admin/login";
+    }
+  };
 
   // State
   const [businesses, setBusinesses] = useState(initialBusinesses);
@@ -237,12 +260,12 @@ export default function AdminClient({
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Yönetici: <span className="text-slate-200 font-semibold">{adminUser.name}</span> ({adminUser.email})
+              Yönetici: <span className="text-slate-200 font-semibold">{adminProfile.name}</span> ({adminProfile.email})
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition-colors shadow-xs"
@@ -259,6 +282,16 @@ export default function AdminClient({
             <span>Ana Sayfa</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors disabled:opacity-60"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>{loggingOut ? "Çıkılıyor..." : "Çıkış Yap"}</span>
+          </button>
         </div>
       </div>
 
@@ -357,6 +390,42 @@ export default function AdminClient({
         >
           <Palette className="w-4 h-4" />
           <span>Tema Yönetimi</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("coupons")}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+            activeTab === "coupons"
+              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+          }`}
+        >
+          <Ticket className="w-4 h-4" />
+          <span>Kuponlar</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("agents")}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+            activeTab === "agents"
+              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+          }`}
+        >
+          <Headset className="w-4 h-4" />
+          <span>Yetkililer</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("profile")}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+            activeTab === "profile"
+              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+          }`}
+        >
+          <UserCog className="w-4 h-4" />
+          <span>Profil Ayarları</span>
         </button>
       </div>
 
@@ -1102,6 +1171,27 @@ export default function AdminClient({
           TAB 6: TEMA YÖNETİMİ
       ═══════════════════════════════════════════════════════════════ */}
       {activeTab === "themes" && <AdminThemeManagement />}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          TAB 7: İNDİRİM KUPONLARI
+      ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === "coupons" && <AdminCoupons notify={showNotification} />}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          TAB 8: DESTEK YETKİLİLERİ
+      ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === "agents" && <AdminSupportAgents notify={showNotification} />}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          TAB 9: PROFİL AYARLARI
+      ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === "profile" && (
+        <AdminProfileSettings
+          admin={adminProfile}
+          onProfileUpdated={setAdminProfile}
+          notify={showNotification}
+        />
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════
           BUSINESS DETAIL & ACTIONS MODAL

@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Plus, Trash2, Edit2, Check, Loader2, Layers } from "lucide-react";
+import { X, Plus, Trash2, Edit2, Check } from "lucide-react";
 import { RestaurantArea } from "./types";
+import { Modal } from "@/components/Modal";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Field";
 
 interface AreaModalProps {
   isOpen: boolean;
@@ -79,132 +82,101 @@ export function AreaModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-md rounded-3xl border border-slate-700/80 bg-slate-900 shadow-2xl p-6 text-slate-100">
-        <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/20">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white">Mekan Alanları</h3>
-              <p className="text-xs text-slate-400">İç mekan, teras, bahçe vb. alanları yönetin.</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} title="Mekan alanları">
+      <div className="space-y-4">
+        <p className="text-sm text-ink-3">İç mekan, teras, bahçe gibi alanları yönetin.</p>
 
         {error && (
-          <div className="mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+          <p role="alert" className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
             {error}
-          </div>
+          </p>
         )}
 
-        {/* Add New Area Input */}
-        <form onSubmit={handleAdd} className="mt-4 flex gap-2">
-          <input
+        <form onSubmit={handleAdd} className="flex gap-2">
+          <Input
             type="text"
-            placeholder="Yeni Alan Adı (Örn: Teras, Bahçe, Balkon)"
+            aria-label="Yeni alan adı"
+            placeholder="Yeni alan (örn: Teras, Bahçe)"
             value={newAreaName}
             onChange={(e) => setNewAreaName(e.target.value)}
-            className="flex-1 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="flex-1"
           />
-          <button
-            type="submit"
-            disabled={loading || !newAreaName.trim()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-3.5 py-2.5 text-xs font-bold transition-all shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Ekle</span>
-          </button>
+          <Button type="submit" variant="primary" disabled={loading || !newAreaName.trim()}>
+            <Plus className="w-4 h-4" aria-hidden="true" />
+            Ekle
+          </Button>
         </form>
 
-        {/* Area List */}
-        <div className="mt-4 space-y-2 max-h-60 overflow-y-auto pr-1">
-          {areas.length === 0 ? (
-            <div className="py-6 text-center text-xs text-slate-500">
-              Henüz tanımlı alan bulunmuyor.
-            </div>
-          ) : (
-            areas.map((area) => (
-              <div
-                key={area.id}
-                className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-800/40 px-3.5 py-2.5 text-xs transition-colors hover:border-slate-700"
-              >
+        {areas.length === 0 ? (
+          <p className="py-6 text-center text-sm text-ink-3">Henüz tanımlı alan yok.</p>
+        ) : (
+          <ul className="max-h-64 divide-y divide-line overflow-y-auto rounded-control border border-line">
+            {areas.map((area) => (
+              <li key={area.id} className="flex items-center justify-between gap-2 px-3 py-2">
                 {editingId === area.id ? (
-                  <div className="flex items-center gap-2 flex-1 mr-2">
-                    <input
+                  <div className="flex flex-1 items-center gap-1.5">
+                    <Input
                       type="text"
+                      aria-label="Alan adı"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full rounded-lg border border-indigo-500 bg-slate-800 px-2 py-1 text-xs text-white focus:outline-none"
+                      className="h-8"
                       autoFocus
                     />
-                    <button
-                      type="button"
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      className="w-8 px-0"
                       onClick={() => handleSaveEdit(area.id)}
-                      className="p-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white"
+                      aria-label="Kaydet"
                     >
-                      <Check className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(null)}
-                      className="p-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="w-8 px-0" onClick={() => setEditingId(null)} aria-label="Vazgeç">
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-200">{area.name}</span>
+                    <span className="text-sm text-ink">
+                      {area.name}
                       {area._count?.tables !== undefined && (
-                        <span className="rounded-full bg-slate-700/60 px-2 py-0.5 text-[10px] text-slate-400">
-                          {area._count.tables} Masa
-                        </span>
+                        <span className="ml-2 text-xs text-ink-3 tabular-nums">{area._count.tables} masa</span>
                       )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
+                    </span>
+                    <div className="flex items-center">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-8 px-0"
                         onClick={() => handleStartEdit(area)}
-                        className="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
                         title="Düzenle"
+                        aria-label={`${area.name} alanını düzenle`}
                       >
                         <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-8 px-0 hover:text-danger"
                         onClick={() => handleDelete(area.id, area.name)}
-                        className="rounded-lg p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                         title="Sil"
+                        aria-label={`${area.name} alanını sil`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      </Button>
                     </div>
                   </>
                 )}
-              </div>
-            ))
-          )}
-        </div>
+              </li>
+            ))}
+          </ul>
+        )}
 
-        <div className="mt-5 pt-3 border-t border-slate-800 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 transition-colors"
-          >
-            Tamamla
-          </button>
+        <div className="flex justify-end border-t border-line pt-4">
+          <Button onClick={onClose}>Tamam</Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

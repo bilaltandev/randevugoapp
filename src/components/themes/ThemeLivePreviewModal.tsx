@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Monitor, Tablet, Smartphone, X, Check, Sparkles, ExternalLink } from "lucide-react";
+import { Monitor, Tablet, Smartphone, X, Check } from "lucide-react";
 import { ThemeConfig, ThemeOverrides } from "@/lib/themes/types";
+import { Button } from "@/components/ui/Button";
+import { Segmented } from "@/components/ui/Segmented";
 import { ThemedPageRenderer } from "./ThemedPageRenderer";
 
 interface ThemeLivePreviewModalProps {
@@ -49,97 +51,53 @@ export function ThemeLivePreviewModal({
   if (!isOpen || !theme) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col animate-fade-in">
-      {/* Top Controller Bar */}
-      <div className="px-4 py-3 sm:px-6 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-100">{theme.name}</span>
-              <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400 font-mono">
-                {theme.id}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 truncate max-w-xs sm:max-w-md">
-              Gerçek işletme verileriniz ({business.name}) ile canlı önizleme
-            </p>
-          </div>
+    <div className="fixed inset-0 z-50 flex flex-col bg-canvas" role="dialog" aria-modal="true" aria-label={`${theme.name} önizlemesi`}>
+      {/* Top bar */}
+      <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-3 py-2.5 sm:px-6">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-ink">{theme.name}</p>
+          <p className="hidden truncate text-xs text-ink-3 sm:block">
+            {business.name} verileriyle canlı önizleme
+          </p>
         </div>
 
-        {/* Viewport Switcher */}
-        <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-2xl">
-          <button
-            onClick={() => setDevice("desktop")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              device === "desktop"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Masaüstü</span>
-          </button>
+        <Segmented
+          aria-label="Cihaz"
+          value={device}
+          onChange={setDevice}
+          options={[
+            { value: "desktop", label: <span className="hidden sm:inline">Masaüstü</span>, icon: Monitor },
+            { value: "tablet", label: <span className="hidden sm:inline">Tablet</span>, icon: Tablet },
+            { value: "mobile", label: <span className="hidden sm:inline">Mobil</span>, icon: Smartphone },
+          ]}
+        />
 
-          <button
-            onClick={() => setDevice("tablet")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              device === "tablet"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Tablet className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Tablet</span>
-          </button>
-
-          <button
-            onClick={() => setDevice("mobile")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              device === "mobile"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mobil</span>
-          </button>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            variant={isActiveTheme ? "secondary" : "primary"}
             onClick={() => onApply(theme)}
             disabled={isActiveTheme || isApplying}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
-              isActiveTheme
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 cursor-default"
-                : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-md shadow-indigo-600/30 active:scale-95"
-            }`}
           >
             {isActiveTheme ? (
               <>
-                <Check className="w-3.5 h-3.5" />
-                <span>Aktif Tema</span>
+                <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">Aktif tema</span>
               </>
             ) : isApplying ? (
-              <span>Uygulanıyor...</span>
+              "Uygulanıyor..."
             ) : (
-              <span>Temayı Uygula</span>
+              "Uygula"
             )}
-          </button>
-
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
-            title="Kapat"
-          >
+          </Button>
+          <Button size="sm" variant="ghost" className="w-8 px-0" onClick={onClose} aria-label="Kapat" title="Kapat">
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Preview Viewport Canvas */}
-      <div className="flex-1 overflow-y-auto bg-slate-950 p-2 sm:p-6 flex justify-center items-start theme-live-preview-viewport">
+      {/* Preview canvas */}
+      <div className="theme-live-preview-viewport flex flex-1 items-start justify-center overflow-y-auto bg-surface-muted p-2 sm:p-6">
         <ThemedPageRenderer
           business={business}
           services={services}
