@@ -19,6 +19,7 @@ model User {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   businesses Business[]
+  mobileSessions MobileSession[]
 }
 
 model Business {
@@ -430,4 +431,35 @@ model CouponRedemption {
 
   @@unique([couponId, businessId])
   @@index([businessId])
+}
+
+// One row per signed-in mobile device. Only SHA-256 hashes of refresh tokens are stored.
+model MobileSession {
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash  String    @unique
+  previousTokenHash String?   @unique // last rotated-out token: concurrent-refresh detection and reuse detection
+  rotatedAt         DateTime?
+  deviceName        String?
+  platform          String?   // "ios" | "android"
+  appVersion        String?
+  createdAt         DateTime  @default(now())
+  lastUsedAt        DateTime  @default(now())
+  expiresAt         DateTime  // sliding 30 days, renewed on each refresh
+  absoluteExpiresAt DateTime  // hard cap (90 days from sign-in)
+  revokedAt         DateTime?
+  revokedReason     String?   // "LOGOUT" | "REUSE" | "PASSWORD_CHANGED" | "DEACTIVATED"
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Fixed-window counters for auth rate limiting (updated atomically with an upsert).
+model AuthRateLimit {
+  key         String   @id // e.g. "mlogin:ip:<ip>", "mlogin:email:<sha256>"
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+
+  @@index([windowStart])
 }

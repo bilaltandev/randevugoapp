@@ -1,7 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import prisma from "./prisma";
+import { authenticateMobileAccessToken, getBearerToken } from "./mobileAuth";
 
 export const SESSION_COOKIE_NAME = "randevugo_session";
 
@@ -49,6 +50,23 @@ export function verifyToken(token: string): SessionPayload | null {
 }
 
 export async function getCurrentUser() {
+  // Mobile app: an `Authorization: Bearer` header switches to mobile access tokens only. The cookie is then
+  // ignored entirely (no fallback), so one request can never mix the two credentials. Browsers never send
+  // this header on their own, so the web cookie flow below is unchanged.
+  const authorization = (await headers()).get("authorization");
+  if (authorization && /^bearer\b/i.test(authorization)) {
+    const token = getBearerToken(new Headers({ authorization }));
+    if (!token) return null;
+    try {
+      const auth = await authenticateMobileAccessToken(token);
+      return auth ? auth.user : null;
+    } catch (error) {
+      // e.g. MOBILE_JWT_SECRET not configured: deny instead of failing the whole request.
+      console.error("[auth] mobile bearer authentication unavailable", { name: (error as Error)?.name });
+      return null;
+    }
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
