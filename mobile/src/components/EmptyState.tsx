@@ -1,24 +1,32 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing, typography } from '@/theme';
+import { Icon, icons } from '@/components/Icon';
+import { makeStyles, radius, spacing, useTheme } from '@/theme';
 
 type EmptyStateProps = {
   title: string;
   description: string;
+  icon?: keyof typeof icons;
 };
 
-/** Placeholder card shown until a screen is connected to the API. */
-export function EmptyState({ title, description }: EmptyStateProps) {
+/** Card shown when a list has nothing to show yet. */
+export function EmptyState({ title, description, icon = 'sparkles' }: EmptyStateProps) {
+  const { colors, typography } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.card}>
-      <Text style={typography.heading}>{title}</Text>
-      <Text style={typography.body}>{description}</Text>
+      <View style={styles.icon}>
+        <Icon name={icons[icon]} size={22} color={colors.brand} />
+      </View>
+      <Text style={[typography.heading, styles.center]}>{title}</Text>
+      <Text style={[typography.body, styles.center]}>{description}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
+    alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.xl,
     borderRadius: radius.lg,
@@ -26,4 +34,6 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface,
   },
-});
+  icon: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.brandSoft, marginBottom: spacing.xs },
+  center: { textAlign: 'center' },
+}));

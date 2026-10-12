@@ -112,6 +112,23 @@ export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** "2026-10-10" → local Date at midnight; null for anything else. */
+export function fromDateKey(key: string | undefined | null): Date | null {
+  const m = key?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return dateKey(d) === key ? d : null;
+}
+
+/**
+ * Employees who may perform a service — the web booking wizard's rule: once anyone has explicit
+ * assignments, staff without assignments still count as "all services".
+ */
+export function employeesForService<E extends { employeeServices: { service: { id: string } }[] }>(employees: E[], serviceId: string): E[] {
+  if (!employees.some((e) => e.employeeServices.length > 0)) return employees;
+  return employees.filter((e) => e.employeeServices.length === 0 || e.employeeServices.some((es) => es.service.id === serviceId));
+}
+
 export function timeKey(d: Date): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

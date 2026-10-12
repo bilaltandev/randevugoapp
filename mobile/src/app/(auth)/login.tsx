@@ -1,26 +1,26 @@
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import appIcon from '../../../assets/images/icon.png';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { loginErrorMessage } from '@/auth/messages';
-import { colors, radius, spacing, typography } from '@/theme';
+import { Icon, icons } from '@/components/Icon';
+import { makeStyles, radius, spacing, useTheme } from '@/theme';
 
 const CONFIG_MISSING = 'Uygulamanın sunucu adresi yapılandırılmamış (EXPO_PUBLIC_API_URL).';
 
 export default function LoginScreen() {
+  const { colors, typography } = useTheme();
+  const styles = useStyles();
   const { signIn, client, notice, clearNotice } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(client ? null : CONFIG_MISSING);
   const passwordRef = useRef<TextInput>(null);
@@ -47,15 +47,16 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.container}>
-          <View style={styles.brand}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Animated.View entering={FadeInDown.duration(420)} style={styles.brand}>
+            <Image source={appIcon} style={styles.mark} contentFit="cover" alt="" />
             <Text style={styles.logo}>
               Randevu<Text style={styles.logoAccent}>Go</Text>
             </Text>
             <Text style={typography.body}>İşletme paneline giriş yapın</Text>
-          </View>
+          </Animated.View>
 
-          <View style={styles.form}>
+          <Animated.View entering={FadeInUp.delay(120).duration(420)} style={styles.form}>
             {message ? (
               <View style={[styles.alert, error ? styles.alertError : styles.alertNotice]} accessibilityRole="alert">
                 <Text style={[typography.label, { color: error ? colors.danger : colors.pending }]}>{message}</Text>
@@ -64,39 +65,53 @@ export default function LoginScreen() {
 
             <View style={styles.field}>
               <Text style={typography.label}>E-posta</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="ornek@isletme.com"
-                placeholderTextColor={colors.ink3}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="email"
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                returnKeyType="next"
-                editable={!submitting}
-                onSubmitEditing={() => passwordRef.current?.focus()}
-              />
+              <View style={styles.inputRow}>
+                <Icon name={icons.mail} size={18} color={colors.ink3} />
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="ornek@isletme.com"
+                  placeholderTextColor={colors.ink3}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  editable={!submitting}
+                />
+              </View>
             </View>
 
             <View style={styles.field}>
               <Text style={typography.label}>Şifre</Text>
-              <TextInput
-                ref={passwordRef}
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor={colors.ink3}
-                secureTextEntry
-                autoComplete="password"
-                textContentType="password"
-                returnKeyType="go"
-                editable={!submitting}
-                onSubmitEditing={handleSubmit}
-              />
+              <View style={styles.inputRow}>
+                <Icon name={icons.lock} size={18} color={colors.ink3} />
+                <TextInput
+                  ref={passwordRef}
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Şifreniz"
+                  placeholderTextColor={colors.ink3}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="current-password"
+                  textContentType="password"
+                  returnKeyType="go"
+                  onSubmitEditing={handleSubmit}
+                  editable={!submitting}
+                />
+                <Pressable
+                  onPress={() => setShowPassword((v) => !v)}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}>
+                  <Icon name={showPassword ? icons.eyeSlash : icons.eye} size={18} color={colors.ink3} />
+                </Pressable>
+              </View>
             </View>
 
             <Pressable
@@ -104,54 +119,51 @@ export default function LoginScreen() {
               disabled={!canSubmit}
               accessibilityRole="button"
               accessibilityState={{ disabled: !canSubmit, busy: submitting }}
-              style={({ pressed }) => [styles.button, pressed && styles.buttonPressed, !canSubmit && styles.buttonDisabled]}>
-              {submitting ? (
-                <ActivityIndicator color={colors.onBrand} />
-              ) : (
-                <Text style={styles.buttonText}>Giriş yap</Text>
-              )}
+              style={({ pressed }) => [styles.button, !canSubmit && styles.buttonDisabled, pressed && styles.pressed]}>
+              {submitting ? <ActivityIndicator color={colors.onBrand} /> : <Text style={styles.buttonText}>Giriş yap</Text>}
             </Pressable>
-          </View>
 
-          <Text style={[typography.caption, styles.footer]}>by VASTLAB</Text>
-        </View>
+            <View style={styles.registerRow}>
+              <Text style={typography.body}>Hesabınız yok mu?</Text>
+              <Pressable onPress={() => router.push('/register')} hitSlop={8} accessibilityRole="link" disabled={submitting}>
+                <Text style={[typography.body, { color: colors.brand, fontWeight: '700' }]}>Ücretsiz hesap oluşturun</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors, typography) => ({
   safe: { flex: 1, backgroundColor: colors.canvas },
   flex: { flex: 1 },
-  container: { flex: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.xxl },
-  brand: { gap: spacing.sm },
+  container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.xxl },
+  brand: { alignItems: 'center', gap: spacing.sm },
+  mark: { width: 76, height: 76, borderRadius: 20, marginBottom: spacing.xs },
   logo: { ...typography.display, fontSize: 34, lineHeight: 40 },
   logoAccent: { color: colors.brand },
   form: { gap: spacing.lg },
-  field: { gap: spacing.sm },
   alert: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1 },
-  alertError: { backgroundColor: colors.dangerSoft, borderColor: colors.danger },
-  alertNotice: { backgroundColor: colors.pendingSoft, borderColor: colors.pending },
-  input: {
-    ...typography.body,
-    color: colors.ink,
-    height: 50,
-    paddingHorizontal: spacing.lg,
+  alertError: { borderColor: colors.danger, backgroundColor: colors.dangerSoft },
+  alertNotice: { borderColor: colors.pending, backgroundColor: colors.pendingSoft },
+  field: { gap: spacing.xs },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    height: 52,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
   },
-  button: {
-    height: 52,
-    marginTop: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    backgroundColor: colors.brand,
-  },
-  buttonPressed: { backgroundColor: colors.brandHover },
+  input: { ...typography.body, flex: 1, height: '100%', color: colors.ink },
+  button: { height: 52, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, backgroundColor: colors.brand, marginTop: spacing.sm },
   buttonDisabled: { opacity: 0.5 },
+  pressed: { opacity: 0.85 },
   buttonText: { ...typography.heading, color: colors.onBrand },
-  footer: { textAlign: 'center' },
-});
+  registerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.xs },
+}));

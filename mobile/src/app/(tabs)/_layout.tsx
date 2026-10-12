@@ -1,8 +1,9 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-import { colors } from '@/theme';
+import { useTheme } from '@/theme';
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
   return (
     <NativeTabs
       backgroundColor={colors.surface}
@@ -16,7 +17,7 @@ export default function TabsLayout() {
 
       <NativeTabs.Trigger name="calendar">
         <NativeTabs.Trigger.Label>Takvim</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+        <NativeTabs.Trigger.Icon sf={{ default: 'calendar', selected: 'calendar' }} md="calendar_month" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="appointments">
@@ -24,9 +25,9 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: 'list.bullet.rectangle', selected: 'list.bullet.rectangle.fill' }} md="event_note" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="more">
-        <NativeTabs.Trigger.Label>Diğer</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'ellipsis.circle', selected: 'ellipsis.circle.fill' }} md="more_horiz" />
+      <NativeTabs.Trigger name="profile">
+        <NativeTabs.Trigger.Label>Profil</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} md="account_circle" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

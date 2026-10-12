@@ -2,11 +2,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StatusBadge } from '@/components/StatusBadge';
 import { formatPrice, shortDateFromKey, type Appointment } from '@/lib/appointments';
-import { colors, radius, spacing, typography } from '@/theme';
+import { makeStyles, radius, spacing, useTheme } from '@/theme';
 
 type Props = { appointment: Appointment; onPress: () => void; showDate?: boolean };
 
 export function AppointmentCard({ appointment: a, onPress, showDate }: Props) {
+  const { typography } = useTheme();
+  const styles = useStyles();
   const cancelled = a.status === 'CANCELLED';
   const title = a.isBlockedSlot ? a.notes || 'Kapalı saat' : a.customerName;
   const subtitle = a.isBlockedSlot
@@ -42,7 +44,7 @@ export function AppointmentCard({ appointment: a, onPress, showDate }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     flexDirection: 'row',
     gap: spacing.lg,
@@ -59,4 +61,4 @@ const styles = StyleSheet.create({
   body: { flex: 1, gap: spacing.xs },
   strike: { textDecorationLine: 'line-through' },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.xs },
-});
+}));

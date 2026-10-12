@@ -31,6 +31,18 @@ export interface RefreshTokenStore {
   clear(): Promise<void>;
 }
 
+export type RegisterInput = {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  businessName: string;
+  sector: string;
+  city?: string;
+  address?: string;
+  whatsappNumber?: string;
+};
+
 export type DeviceInfo = { deviceName?: string | null; platform?: string | null; appVersion?: string | null };
 
 /** The server answered with an error (wrong password, rate limit, …). `code` comes from the API. */
@@ -103,16 +115,18 @@ export function createAuthClient(options: Options) {
 
   async function send(path: string, init: { method: string; body?: unknown; token?: string }): Promise<Response> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    // Uploads (FormData) get more time and set their own multipart Content-Type.
+    const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
+    const timer = setTimeout(() => controller.abort(), isForm ? Math.max(timeoutMs, 60000) : timeoutMs);
     try {
       return await fetchFn(baseUrl + path, {
         method: init.method,
         headers: {
           Accept: "application/json",
-          ...(init.body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...(init.body !== undefined && !isForm ? { "Content-Type": "application/json" } : {}),
           ...(init.token ? { Authorization: `Bearer ${init.token}` } : {}),
         },
-        body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+        body: init.body === undefined ? undefined : isForm ? (init.body as FormData) : JSON.stringify(init.body),
         credentials: "omit",
         signal: controller.signal,
       });
@@ -210,6 +224,17 @@ export function createAuthClient(options: Options) {
     },
 
     /**
+     * Creates a business owner account through the same endpoint as the web sign-up, then signs in with
+     * it on this device. Throws ApiError (e.g. e-mail already used) or NetworkError.
+     */
+    async register(input: RegisterInput): Promise<Profile> {
+      const res = await send("/api/auth/register", { method: "POST", body: input });
+      const body = await readJson(res);
+      if (!res.ok) throw apiError(res, body);
+      return this.login(input.email, input.password);
+    },
+
+    /**
      * Resumes a stored session at app start. Returns null when there is none (or it was rejected);
      * throws NetworkError when the server can't be reached, so the app can offer a retry.
      */
@@ -224,7 +249,10 @@ export function createAuthClient(options: Options) {
       }
     },
 
-    /** Authenticated JSON request. Refreshes ahead of expiry and once more on a 401. */
+    /**
+     * Authenticated request with a JSON body, or a FormData body for file uploads.
+     * Refreshes ahead of expiry and once more on a 401.
+     */
     async request<T = unknown>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
       const method = init.method ?? "GET";
       let res = await send(path, { method, body: init.body, token: await accessToken() });

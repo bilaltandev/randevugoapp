@@ -1,14 +1,17 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppointmentCard } from '@/components/AppointmentCard';
 import { AppointmentSheet } from '@/components/AppointmentSheet';
 import { EmptyState } from '@/components/EmptyState';
-import { Screen } from '@/components/Screen';
+import { Icon, icons } from '@/components/Icon';
+import { BarButton, Screen } from '@/components/Screen';
+import { Button } from '@/components/ui';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useAppointments } from '@/hooks/useAppointments';
 import { matchesSearch, type AppointmentStatus } from '@/lib/appointments';
-import { colors, radius, spacing, typography } from '@/theme';
+import { makeStyles, radius, spacing, useTheme } from '@/theme';
 
 type Tab = AppointmentStatus | 'ALL';
 const TABS: { value: Tab; label: string }[] = [
@@ -20,17 +23,37 @@ const TABS: { value: Tab; label: string }[] = [
 ];
 
 export default function AppointmentsScreen() {
+  const { colors, typography } = useTheme();
+  const styles = useStyles();
   const [tab, setTab] = useState<Tab>('PENDING');
   const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { items, loading, error, refreshing, refresh, retry, setStatus } = useAppointments({ status: tab });
+  const { items, loading, error, refreshing, refresh, retry, setStatus, hasMore, loadingMore, loadMore } = useAppointments({
+    status: tab,
+    search,
+    paged: true,
+  });
+
+  // The server searches all pages; wait until typing pauses before asking it.
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(query.trim()), 350);
+    return () => clearTimeout(t);
+  }, [query]);
 
   // Closed slots are calendar entries, not bookings; they are managed from the calendar tab.
+  // matchesSearch keeps the list in step while the debounced server search catches up.
   const visible = (items ?? []).filter((a) => !a.isBlockedSlot && (tab === 'ALL' || a.status === tab) && matchesSearch(a, query));
   const selected = items?.find((a) => a.id === selectedId) ?? null;
 
   return (
-    <Screen title="Randevular" subtitle="Tüm rezervasyonlar" onRefresh={refresh} refreshing={refreshing}>
+    <Screen
+      title="Randevular"
+      subtitle="Tüm rezervasyonlar"
+      onRefresh={refresh}
+      refreshing={refreshing}
+      right={<BarButton icon="add" label="Yeni randevu" onPress={() => router.push('/appointment/new')} />}>
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
         {TABS.map((t) => {
           const active = t.value === tab;
@@ -47,16 +70,19 @@ export default function AppointmentsScreen() {
         })}
       </ScrollView>
 
-      <TextInput
-        style={styles.search}
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Müşteri adı veya telefon ara"
-        placeholderTextColor={colors.ink3}
-        autoCorrect={false}
-        clearButtonMode="while-editing"
-        returnKeyType="search"
-      />
+      <View style={styles.searchRow}>
+        <Icon name={icons.search} size={18} color={colors.ink3} />
+        <TextInput
+          style={styles.search}
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Müşteri adı veya telefon ara"
+          placeholderTextColor={colors.ink3}
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+          returnKeyType="search"
+        />
+      </View>
 
       {loading ? <LoadingView /> : null}
       {error ? <ErrorView message={error} onRetry={retry} /> : null}
@@ -74,13 +100,16 @@ export default function AppointmentsScreen() {
           </View>
         )
       ) : null}
+      {items && !error && hasMore ? (
+        <Button label="Daha fazla göster" variant="secondary" onPress={loadMore} busy={loadingMore} />
+      ) : null}
 
       <AppointmentSheet appointment={selected} onClose={() => setSelectedId(null)} onChangeStatus={setStatus} />
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors, typography) => ({
   tabs: { gap: spacing.sm },
   tab: {
     paddingHorizontal: spacing.lg,
@@ -91,15 +120,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   tabActive: { backgroundColor: colors.brand, borderColor: colors.brand },
-  search: {
-    ...typography.body,
-    color: colors.ink,
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     height: 46,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
   },
+  search: { ...typography.body, flex: 1, height: '100%', color: colors.ink },
   list: { gap: spacing.md },
-});
+}));

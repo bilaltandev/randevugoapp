@@ -3,7 +3,7 @@ import * as Device from 'expo-device';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 
-import { createAuthClient, type AuthClient, type Profile } from '@/api/authClient';
+import { createAuthClient, type AuthClient, type Profile, type RegisterInput } from '@/api/authClient';
 import { secureTokenStore } from '@/auth/tokenStore';
 import { API_URL } from '@/config';
 
@@ -24,6 +24,10 @@ type AuthContextValue = {
   /** null when EXPO_PUBLIC_API_URL is missing: the app cannot sign in at all. */
   client: AuthClient | null;
   signIn: (email: string, password: string) => Promise<void>;
+  /** Creates an owner account (web sign-up endpoint) and signs in with it. */
+  register: (input: RegisterInput) => Promise<void>;
+  /** Re-reads the signed-in user and business, e.g. after editing the profile or settings. */
+  reloadProfile: () => Promise<void>;
   signOut: () => Promise<void>;
   retryRestore: () => void;
 };
@@ -90,6 +94,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [client]
   );
 
+  const register = useCallback(
+    async (input: RegisterInput) => {
+      if (!client) throw new Error('API adresi yapılandırılmamış.');
+      const signedIn = await client.register(input);
+      setNotice(null);
+      setProfile(signedIn);
+      setStatus('signedIn');
+    },
+    [client]
+  );
+
+  const reloadProfile = useCallback(async () => {
+    if (!client) return;
+    try {
+      setProfile(await client.request<Profile>('/api/mobile/auth/me'));
+    } catch {
+      // Keep the current profile; a lost session is handled by onSessionExpired.
+    }
+  }, [client]);
+
   const signOut = useCallback(async () => {
     signingOut.current = true;
     try {
@@ -109,10 +133,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearNotice: () => setNotice(null),
       client,
       signIn,
+      register,
+      reloadProfile,
       signOut,
       retryRestore: () => setRestoreAttempt((n) => n + 1),
     }),
-    [status, profile, notice, client, signIn, signOut]
+    [status, profile, notice, client, signIn, register, reloadProfile, signOut]
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

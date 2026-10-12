@@ -1,11 +1,13 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { colors, radius, spacing, typography } from '@/theme';
+import { makeStyles, radius, spacing, useTheme } from '@/theme';
 
 /** Shown at launch when a saved session exists but the server can't be reached. Nothing is signed out. */
 export function UnreachableScreen() {
+  const { typography } = useTheme();
+  const styles = useStyles();
   const { retryRestore, signOut } = useAuth();
   return (
     <SafeAreaView style={styles.safe}>
@@ -28,7 +30,7 @@ export function UnreachableScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors, typography) => ({
   safe: { flex: 1, backgroundColor: colors.canvas },
   container: { flex: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.lg },
   button: {
@@ -43,4 +45,4 @@ const styles = StyleSheet.create({
   buttonText: { ...typography.heading, color: colors.onBrand },
   linkButton: { alignItems: 'center', padding: spacing.sm },
   link: { ...typography.label, color: colors.ink3 },
-});
+}));
