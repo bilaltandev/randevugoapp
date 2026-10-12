@@ -114,6 +114,9 @@ export default function ServicesClient({
       const res = await fetch(`/api/services?id=${id}`, { method: "DELETE" });
       if (res.ok) {
         setServices((prev) => prev.filter((s) => s.id !== id));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Silme işlemi tamamlanamadı.");
       }
     } catch (e) {
       console.error(e);

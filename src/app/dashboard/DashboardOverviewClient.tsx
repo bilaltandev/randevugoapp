@@ -84,9 +84,13 @@ export default function DashboardOverviewClient({
           setPendingAppts((prev) => prev.filter((a) => a.id !== appointmentId));
           setPendingCount((c) => Math.max(0, c - 1));
         }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Durum güncellenemedi.");
       }
     } catch (e) {
       console.error(e);
+      alert("Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
     } finally {
       setLoadingId(null);
     }

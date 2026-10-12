@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { businessNow } from "@/lib/appointmentRules";
 import { getCurrentUser } from "@/lib/auth";
 
 // Helper: check if two time ranges overlap (HH:mm strings)
@@ -65,7 +66,8 @@ export async function GET(req: Request) {
     }
 
     // Target date for appointments check: either dateParam or today for owner
-    const targetDate = dateParam || (isOwner ? new Date().toISOString().split("T")[0] : null);
+    // "Today" is Türkiye time, not the server's UTC day.
+    const targetDate = dateParam || (isOwner ? businessNow().dateKey : null);
 
     let appointmentsForDate: any[] = [];
     if (targetDate) {

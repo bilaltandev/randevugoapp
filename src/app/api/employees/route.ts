@@ -50,12 +50,17 @@ export async function POST(req: Request) {
       },
     });
 
-    if (Array.isArray(serviceIds)) {
-      for (const sId of serviceIds) {
+    // Link only this business's own services.
+    if (Array.isArray(serviceIds) && serviceIds.length > 0) {
+      const own = await prisma.service.findMany({
+        where: { id: { in: serviceIds.filter((v: unknown) => typeof v === "string") }, businessId: user.business.id },
+        select: { id: true },
+      });
+      for (const svc of own) {
         await prisma.employeeService.create({
           data: {
             employeeId: employee.id,
-            serviceId: sId,
+            serviceId: svc.id,
           },
         });
       }
@@ -75,22 +80,42 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
 
-    const { id, name, specialty, photo, phone, email, isActive } = await req.json();
+    const { id, name, specialty, photo, phone, email, isActive, serviceIds } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: "Çalışan ID'si gereklidir." }, { status: 400 });
     }
 
-    const updated = await prisma.employee.update({
-      where: { id, businessId: user.business.id },
-      data: {
-        ...(name ? { name } : {}),
-        ...(specialty ? { specialty } : {}),
-        ...(photo !== undefined ? { photo } : {}),
-        ...(phone !== undefined ? { phone } : {}),
-        ...(email !== undefined ? { email } : {}),
-        ...(isActive !== undefined ? { isActive } : {}),
-      },
+    const businessId = user.business.id;
+    const updated = await prisma.$transaction(async (tx) => {
+      const employee = await tx.employee.update({
+        where: { id, businessId },
+        data: {
+          ...(name ? { name } : {}),
+          ...(specialty ? { specialty } : {}),
+          ...(photo !== undefined ? { photo } : {}),
+          ...(phone !== undefined ? { phone } : {}),
+          ...(email !== undefined ? { email } : {}),
+          ...(isActive !== undefined ? { isActive } : {}),
+        },
+      });
+
+      // When given, `serviceIds` replaces the employee's services (only this business's own services).
+      if (Array.isArray(serviceIds)) {
+        const own = await tx.service.findMany({
+          where: { id: { in: serviceIds.filter((v: unknown) => typeof v === "string") }, businessId },
+          select: { id: true },
+        });
+        await tx.employeeService.deleteMany({ where: { employeeId: employee.id } });
+        if (own.length > 0) {
+          await tx.employeeService.createMany({ data: own.map((s) => ({ employeeId: employee.id, serviceId: s.id })) });
+        }
+      }
+
+      return tx.employee.findUniqueOrThrow({
+        where: { id: employee.id },
+        include: { employeeServices: { include: { service: true } } },
+      });
     });
 
     return NextResponse.json({ success: true, employee: updated });
@@ -112,6 +137,16 @@ export async function DELETE(req: Request) {
 
     if (!id) {
       return NextResponse.json({ error: "Çalışan ID'si gereklidir." }, { status: 400 });
+    }
+
+    // Deleting cascades to the appointments that reference it, so a record with booking history is
+    // kept; deactivating it hides it from new bookings instead.
+    const bookings = await prisma.appointment.count({ where: { employeeId: id, businessId: user.business.id } });
+    if (bookings > 0) {
+      return NextResponse.json(
+        { error: "Bu çalışana ait randevu kayıtları olduğu için silinemez (silmek geçmiş randevuları da siler). Bunun yerine çalışanı pasife alabilirsiniz.", code: "HAS_APPOINTMENTS" },
+        { status: 409 }
+      );
     }
 
     await prisma.employee.delete({

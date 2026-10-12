@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { businessNow } from "@/lib/appointmentRules";
 import { TableManagementClient } from "@/components/restaurant/TableManagementClient";
 import { TableShape, TableStatus } from "@/components/restaurant/types";
 import { UtensilsCrossed } from "lucide-react";
@@ -56,7 +57,7 @@ export default async function TableManagementPage() {
   });
 
   // Fetch today's active appointments with tables
-  const today = new Date().toISOString().split("T")[0];
+  const today = businessNow().dateKey; // Türkiye time, not the server's UTC day
   const todayAppointments = await prisma.appointment.findMany({
     where: {
       businessId: business.id,

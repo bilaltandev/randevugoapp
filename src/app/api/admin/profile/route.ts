@@ -115,6 +115,8 @@ export async function POST(req: Request) {
       where: { id: admin.id },
       data: { password: await hashPassword(newPassword) },
     });
+    // The change ends every other session of this account; keep the one that made it signed in.
+    await setSessionCookie({ userId: admin.id, email: admin.email, role: admin.role });
 
     await createAuditLog({
       adminEmail: admin.email,

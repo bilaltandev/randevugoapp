@@ -1,6 +1,23 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import {
+  OCCUPYING_STATUSES,
+  businessNow,
+  dayOfWeekFromKey,
+  employeesForService,
+  findOverlap,
+  fitsWorkingHour,
+  isValidDateKey,
+  minutesToTime,
+  storedTimeToMinutes,
+} from "@/lib/appointmentRules";
 
+/** Slots start every 30 minutes. */
+const STEP_MINUTES = 30;
+/** Today's slots must start at least this far in the future. */
+const LEAD_MINUTES = 15;
+
+// Same rules as POST /api/appointments (appointmentRules), so a slot offered here is one the booking accepts.
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -15,153 +32,76 @@ export async function GET(req: Request) {
         { status: 400 }
       );
     }
+    if (!isValidDateKey(dateStr)) {
+      return NextResponse.json({ error: "Geçersiz tarih.", code: "INVALID_DATE_TIME" }, { status: 400 });
+    }
 
-    const targetDate = new Date(dateStr + "T00:00:00");
-    const dayOfWeek = targetDate.getDay(); // 0 is Sunday, 1 is Monday ...
+    // "Today" and the current time are Türkiye time, not the server's (UTC on Vercel).
+    const now = businessNow();
+    if (dateStr < now.dateKey) {
+      return NextResponse.json({ slots: [], message: "Geçmiş bir tarih seçildi." });
+    }
 
-    // Get business working hours for this day
+    const dayOfWeek = dayOfWeekFromKey(dateStr);
+
     const workingHour = await prisma.workingHour.findFirst({
-      where: {
-        businessId,
-        dayOfWeek,
-        employeeId: null, // Business overall hours
-      },
+      where: { businessId, dayOfWeek, employeeId: null }, // business-wide hours
     });
 
-    if (!workingHour || !workingHour.isOpen) {
+    const openMin = workingHour ? storedTimeToMinutes(workingHour.openTime) : null;
+    const closeMin = workingHour ? storedTimeToMinutes(workingHour.closeTime) : null;
+    if (!workingHour || !workingHour.isOpen || openMin === null || closeMin === null) {
       return NextResponse.json({ slots: [], message: "Bu gün işletme kapalıdır." });
     }
 
-    // Get service duration
     let durationMinutes = 30;
     if (serviceId) {
-      const service = await prisma.service.findUnique({
-        where: { id: serviceId },
-      });
+      const service = await prisma.service.findFirst({ where: { id: serviceId, businessId } });
       if (service) durationMinutes = service.durationMinutes;
     }
 
-    // Get employees for this business
-    let activeEmployees = await prisma.employee.findMany({
+    const employees = await prisma.employee.findMany({
       where: {
         businessId,
         isActive: true,
         ...(employeeId && employeeId !== "any" ? { id: employeeId } : {}),
       },
       include: {
-        employeeServices: true,
-        workingHours: {
-          where: { dayOfWeek },
-        },
+        employeeServices: { select: { serviceId: true } },
+        workingHours: { where: { dayOfWeek } },
       },
     });
-
-    // If a service is specified, filter to employees that offer this service
-    if (serviceId) {
-      const hasSpecificAssignments = activeEmployees.some(
-        (e) => Array.isArray(e.employeeServices) && e.employeeServices.length > 0
-      );
-      if (hasSpecificAssignments) {
-        activeEmployees = activeEmployees.filter(
-          (e) =>
-            !e.employeeServices ||
-            e.employeeServices.length === 0 ||
-            e.employeeServices.some((es) => es.serviceId === serviceId)
-        );
-      }
-    }
+    const activeEmployees = serviceId ? employeesForService(employees, serviceId) : employees;
 
     if (activeEmployees.length === 0) {
       return NextResponse.json({ slots: [], message: "Seçilen kriterde uygun çalışan bulunamadı." });
     }
 
-    // Get existing appointments for this date
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         businessId,
         date: dateStr,
-        status: { in: ["PENDING", "CONFIRMED"] },
+        status: { in: [...OCCUPYING_STATUSES] },
       },
+      select: { employeeId: true, startTime: true, endTime: true, status: true },
     });
 
-    // Helper: convert "HH:mm" to minutes from midnight
-    const timeToMinutes = (time: string) => {
-      const [h, m] = time.split(":").map(Number);
-      return h * 60 + m;
-    };
-
-    const minutesToTime = (minutes: number) => {
-      const h = Math.floor(minutes / 60).toString().padStart(2, "0");
-      const m = (minutes % 60).toString().padStart(2, "0");
-      return `${h}:${m}`;
-    };
-
-    const openMin = timeToMinutes(workingHour.openTime);
-    const closeMin = timeToMinutes(workingHour.closeTime);
-    const breakStartMin = workingHour.breakStartTime ? timeToMinutes(workingHour.breakStartTime) : null;
-    const breakEndMin = workingHour.breakEndTime ? timeToMinutes(workingHour.breakEndTime) : null;
-
-    // Check if targetDate is today, filter past hours
-    const now = new Date();
-    const isToday =
-      targetDate.getFullYear() === now.getFullYear() &&
-      targetDate.getMonth() === now.getMonth() &&
-      targetDate.getDate() === now.getDate();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
+    const earliestStart = dateStr === now.dateKey ? now.minutes + LEAD_MINUTES : -1;
     const availableSlots: string[] = [];
 
-    // Step by 30 minutes
-    const step = 30;
+    for (let slotStart = openMin; slotStart + durationMinutes <= closeMin; slotStart += STEP_MINUTES) {
+      if (slotStart <= earliestStart) continue;
+      const range = { start: slotStart, end: slotStart + durationMinutes };
+      if (!fitsWorkingHour(workingHour, range)) continue; // business break
 
-    for (let slotStart = openMin; slotStart + durationMinutes <= closeMin; slotStart += step) {
-      const slotEnd = slotStart + durationMinutes;
+      // At least one employee must be working (own hours, when set) and free.
+      const isSlotAvailable = activeEmployees.some(
+        (emp) =>
+          (emp.workingHours.length === 0 || fitsWorkingHour(emp.workingHours[0], range)) &&
+          !findOverlap(existingAppointments.filter((a) => a.employeeId === emp.id), range)
+      );
 
-      // If today, slot must be at least 15 mins in future
-      if (isToday && slotStart <= currentMinutes + 15) {
-        continue;
-      }
-
-      // Check business break overlap
-      if (breakStartMin !== null && breakEndMin !== null) {
-        if (slotStart < breakEndMin && slotEnd > breakStartMin) {
-          continue; // Overlaps with lunch break
-        }
-      }
-
-      // Check if at least one employee is available during this slot
-      const isSlotAvailable = activeEmployees.some((emp) => {
-        // 1. Check employee personal working hours if configured
-        if (emp.workingHours && emp.workingHours.length > 0) {
-          const empWh = emp.workingHours[0];
-          if (!empWh.isOpen) return false;
-          const empOpenMin = timeToMinutes(empWh.openTime);
-          const empCloseMin = timeToMinutes(empWh.closeTime);
-          if (slotStart < empOpenMin || slotEnd > empCloseMin) {
-            return false;
-          }
-          if (empWh.breakStartTime && empWh.breakEndTime) {
-            const empBreakStart = timeToMinutes(empWh.breakStartTime);
-            const empBreakEnd = timeToMinutes(empWh.breakEndTime);
-            if (slotStart < empBreakEnd && slotEnd > empBreakStart) {
-              return false;
-            }
-          }
-        }
-
-        // 2. Check employee appointment conflicts
-        const empAppointments = existingAppointments.filter((a) => a.employeeId === emp.id);
-        const hasConflict = empAppointments.some((a) => {
-          const aStart = timeToMinutes(a.startTime);
-          const aEnd = timeToMinutes(a.endTime);
-          return slotStart < aEnd && slotEnd > aStart;
-        });
-        return !hasConflict;
-      });
-
-      if (isSlotAvailable) {
-        availableSlots.push(minutesToTime(slotStart));
-      }
+      if (isSlotAvailable) availableSlots.push(minutesToTime(slotStart));
     }
 
     return NextResponse.json({

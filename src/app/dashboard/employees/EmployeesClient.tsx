@@ -78,6 +78,7 @@ export default function EmployeesClient({
             photo,
             phone,
             email,
+            serviceIds: selectedServiceIds,
           }),
         });
         const data = await res.json();
@@ -120,6 +121,9 @@ export default function EmployeesClient({
       const res = await fetch(`/api/employees?id=${id}`, { method: "DELETE" });
       if (res.ok) {
         setEmployees((prev) => prev.filter((e) => e.id !== id));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Silme işlemi tamamlanamadı.");
       }
     } catch (e) {
       console.error(e);

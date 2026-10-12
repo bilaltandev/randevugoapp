@@ -12,6 +12,46 @@ async function getOwnTicket(id: string) {
   return { user, ticket };
 }
 
+// Business owner: one own ticket with its conversation (same fields as the web ticket page)
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getCurrentUser();
+    if (!user || !user.business) {
+      return NextResponse.json({ error: "Oturum bulunamadı." }, { status: 401 });
+    }
+    const { id } = await params;
+    const ticket = await prisma.supportTicket.findFirst({
+      where: { id, businessId: user.business.id },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+    });
+    if (!ticket) {
+      return NextResponse.json({ error: "Destek talebi bulunamadı." }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      ticket: {
+        id: ticket.id,
+        subject: ticket.subject,
+        category: ticket.category,
+        priority: ticket.priority,
+        status: ticket.status,
+        createdAt: ticket.createdAt.toISOString(),
+        assignedToName: ticket.assignedToName,
+      },
+      messages: ticket.messages.map((m) => ({
+        id: m.id,
+        authorName: m.authorName,
+        authorRole: m.authorRole,
+        body: m.body,
+        createdAt: m.createdAt.toISOString(),
+      })),
+    });
+  } catch (error: unknown) {
+    console.error("Get ticket error:", error);
+    return NextResponse.json({ error: "Destek talebi alınırken bir hata oluştu." }, { status: 500 });
+  }
+}
+
 // Business owner reply; a reply on a resolved/closed ticket reopens it
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

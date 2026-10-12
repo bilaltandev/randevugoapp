@@ -250,3 +250,31 @@ export async function revokeAllMobileSessions(userId: string, reason: RevokeReas
   });
   return count;
 }
+
+// ---- Web hand-off: open a web panel page inside the app with the app's session ----
+
+const WEB_HANDOFF_TYPE = "web-handoff";
+const WEB_HANDOFF_TTL_SECONDS = 60;
+
+/** Short-lived code (60 s) that turns into a normal web session cookie once, for the signed-in owner. */
+export function signWebHandoff(userId: string) {
+  return jwt.sign({ typ: WEB_HANDOFF_TYPE, jti: crypto.randomBytes(16).toString("hex") }, getMobileJwtSecret(), {
+    algorithm: JWT_ALGORITHM,
+    expiresIn: WEB_HANDOFF_TTL_SECONDS,
+    issuer: ISSUER,
+    audience: AUDIENCE,
+    subject: userId,
+  });
+}
+
+export function verifyWebHandoff(code: string): { userId: string; jti: string } | null {
+  const secret = getMobileJwtSecret();
+  try {
+    const payload = jwt.verify(code, secret, { algorithms: [JWT_ALGORITHM], issuer: ISSUER, audience: AUDIENCE });
+    if (typeof payload !== "object" || payload.typ !== WEB_HANDOFF_TYPE) return null;
+    if (typeof payload.sub !== "string" || typeof payload.jti !== "string") return null;
+    return { userId: payload.sub, jti: payload.jti };
+  } catch {
+    return null;
+  }
+}

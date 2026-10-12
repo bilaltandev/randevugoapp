@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { cookies, headers } from "next/headers";
 import prisma from "./prisma";
@@ -24,6 +25,17 @@ export interface SessionPayload {
   role: string;
   businessId?: string;
   businessSlug?: string;
+  /** Password stamp at sign-in (see passwordStamp); set by setSessionCookie. */
+  pwd?: string;
+}
+
+/**
+ * Short keyed fingerprint of the stored password hash. Web sessions carry it, so changing or resetting a
+ * password ends every existing web session without a session table. Keyed with the JWT secret so the
+ * cookie reveals nothing about the hash.
+ */
+function passwordStamp(passwordHash: string): string {
+  return crypto.createHmac("sha256", getJwtSecret()).update(passwordHash, "utf8").digest("base64url").slice(0, 16);
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -85,8 +97,10 @@ export async function getCurrentUser() {
     },
   });
 
-  // A deactivated account loses every existing session immediately, not when its token expires.
+  // A deactivated account loses every existing session immediately, not when its token expires,
+  // and so does a session signed in with a password that has since been changed or reset.
   if (!user || !user.isActive) return null;
+  if (payload.pwd !== passwordStamp(user.password)) return null;
 
   const activeBusiness = user.businesses[0] || null;
 
@@ -100,7 +114,9 @@ export async function getCurrentUser() {
 }
 
 export async function setSessionCookie(payload: SessionPayload) {
-  const token = signToken(payload);
+  const user = await prisma.user.findUnique({ where: { id: payload.userId }, select: { password: true } });
+  if (!user) throw new Error("Cannot start a session for an unknown user.");
+  const token = signToken({ ...payload, pwd: passwordStamp(user.password) });
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,

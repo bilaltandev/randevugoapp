@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { table } from "@/components/ui/table";
+import { localDateKey } from "../calendar/TimeGrid";
 
 interface AppointmentsClientProps {
   businessId: string;
@@ -37,10 +38,11 @@ export default function AppointmentsClient({
   const [phone, setPhone] = useState("");
   const [serviceId, setServiceId] = useState(services[0]?.id || "");
   const [employeeId, setEmployeeId] = useState(employees[0]?.id || "");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => localDateKey(new Date()));
   const [time, setTime] = useState("11:00");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
@@ -51,15 +53,20 @@ export default function AppointmentsClient({
       });
       if (res.ok) {
         setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Durum güncellenemedi.");
       }
     } catch (e) {
       console.error(e);
+      alert("Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
     }
   };
 
   const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFormError(null);
     try {
       const res = await fetch("/api/appointments", {
         method: "POST",
@@ -81,9 +88,14 @@ export default function AppointmentsClient({
         setIsNewModalOpen(false);
         setName("");
         setPhone("");
+        setNotes("");
+      } else {
+        // e.g. 409 EMPLOYEE_TIME_CONFLICT: the API explains what to change.
+        setFormError(data.error || "Rezervasyon oluşturulamadı.");
       }
     } catch (e) {
       console.error(e);
+      setFormError("Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
     } finally {
       setSubmitting(false);
     }
@@ -145,7 +157,7 @@ export default function AppointmentsClient({
         title="Rezervasyonlar"
         description="Geçmiş ve gelecek tüm randevuları filtreleyin, onaylayın veya iptal edin."
         actions={
-          <Button onClick={() => setIsNewModalOpen(true)}>
+          <Button onClick={() => { setFormError(null); setIsNewModalOpen(true); }}>
             <Plus className="w-4 h-4" aria-hidden="true" />
             Manuel randevu ekle
           </Button>
@@ -407,6 +419,12 @@ export default function AppointmentsClient({
           <Field label="Not" htmlFor="appt-notes">
             <Textarea id="appt-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
+
+          {formError && (
+            <p role="alert" className="text-sm text-danger">
+              {formError}
+            </p>
+          )}
 
           <Button type="submit" variant="primary" disabled={submitting} className="w-full">
             {submitting ? "Oluşturuluyor..." : "Rezervasyonu kaydet"}

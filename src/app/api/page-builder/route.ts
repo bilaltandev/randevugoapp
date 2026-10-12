@@ -1,6 +1,32 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { THEME_REGISTRY, getSectorRecommendations } from "@/lib/themes/registry";
+import { LAYOUTS } from "@/lib/themes/layouts";
+import { DEFAULT_HERO_ACTION_ITEMS, HERO_ITEM_METADATA } from "@/lib/hero/types";
+
+const DEFAULT_SECTION_ORDER = ["Hero", "Services", "Staff", "Gallery", "Reviews", "Booking", "Location"];
+
+function parseList(value: string | null | undefined): string[] | null {
+  try {
+    const parsed = value ? JSON.parse(value) : null;
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Same normalization as the web page builder page: older pages get "Gallery" after "Staff". */
+function normalizedSectionOrder(value: string | null | undefined): string[] {
+  const order = parseList(value);
+  if (!order) return [...DEFAULT_SECTION_ORDER];
+  if (!order.includes("Gallery")) {
+    const staffIndex = order.indexOf("Staff");
+    if (staffIndex !== -1) order.splice(staffIndex + 1, 0, "Gallery");
+    else order.push("Gallery");
+  }
+  return order;
+}
 
 export async function GET() {
   try {
@@ -75,7 +101,33 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ page, business: user.business });
+    // Compact editor data for clients without the web theme registry (the mobile app).
+    const editor = {
+      activeThemeId: user.business.themeId || page.themeId || "premium-dark",
+      sectionOrder: normalizedSectionOrder(page.sectionOrder),
+      hiddenSections: parseList(page.hiddenSections) ?? [],
+      recommendedThemeIds: getSectorRecommendations(user.business.sector),
+      themes: Object.values(THEME_REGISTRY)
+        .sort((a, b) => a.orderIndex - b.orderIndex)
+        .map((t) => ({
+          id: t.id,
+          name: t.name,
+          tagline: t.tagline,
+          badge: t.badge ?? null,
+          colors: { background: t.colors.background, surface: t.colors.surface, primary: t.colors.primary, text: t.colors.text },
+          suggestedAccents: t.suggestedAccents.map((a) => ({ hex: a.hex, label: a.label })),
+        })),
+      layouts: LAYOUTS.map((l) => ({ id: l.id, name: l.name, description: l.description })),
+      heroItems: Object.values(HERO_ITEM_METADATA).map((m) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        restaurantOnly: m.restaurantOnly ?? false,
+      })),
+      defaultHeroActions: DEFAULT_HERO_ACTION_ITEMS,
+    };
+
+    return NextResponse.json({ page, business: user.business, editor });
   } catch (error) {
     console.error("GET page error:", error);
     return NextResponse.json({ error: "Sayfa bilgisi alınamadı." }, { status: 500 });

@@ -9,6 +9,41 @@ import {
   TICKET_PRIORITIES,
 } from "@/lib/support";
 
+// Business owner: own tickets, newest activity first (same fields as the web support page)
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (!user || !user.business) {
+      return NextResponse.json({ error: "Oturum bulunamadı." }, { status: 401 });
+    }
+
+    const tickets = await prisma.supportTicket.findMany({
+      where: { businessId: user.business.id },
+      include: {
+        _count: { select: { messages: true } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1, select: { authorRole: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return NextResponse.json({
+      tickets: tickets.map((t) => ({
+        id: t.id,
+        subject: t.subject,
+        category: t.category,
+        priority: t.priority,
+        status: t.status,
+        updatedAt: t.updatedAt.toISOString(),
+        messageCount: t._count.messages,
+        awaitingOwner: t.messages[0]?.authorRole === "SUPPORT" && t.status !== "CLOSED",
+      })),
+    });
+  } catch (error: unknown) {
+    console.error("List tickets error:", error);
+    return NextResponse.json({ error: "Destek talepleri alınırken bir hata oluştu." }, { status: 500 });
+  }
+}
+
 // Business owner: open a new support ticket with its first message
 export async function POST(req: Request) {
   try {

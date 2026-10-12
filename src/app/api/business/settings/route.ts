@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { storedTimeToMinutes } from "@/lib/appointmentRules";
 
 export async function GET() {
   try {
@@ -63,21 +64,32 @@ export async function PUT(req: Request) {
       },
     });
 
-    // Update working hours if provided
+    // Update working hours if provided. Rows are matched by id *and* business, so a request can never
+    // change another business's hours; times must be valid "HH:mm" with opening before closing.
     if (Array.isArray(workingHours)) {
+      const isTime = (v: unknown) => typeof v === "string" && storedTimeToMinutes(v) !== null;
+      const isOptionalTime = (v: unknown) => v === null || v === undefined || v === "" || isTime(v);
       for (const wh of workingHours) {
-        if (wh.id) {
-          await prisma.workingHour.update({
-            where: { id: wh.id },
-            data: {
-              isOpen: wh.isOpen,
-              openTime: wh.openTime,
-              closeTime: wh.closeTime,
-              breakStartTime: wh.breakStartTime,
-              breakEndTime: wh.breakEndTime,
-            },
-          });
+        if (!wh?.id) continue;
+        if (!isTime(wh.openTime) || !isTime(wh.closeTime) || !isOptionalTime(wh.breakStartTime) || !isOptionalTime(wh.breakEndTime)) {
+          return NextResponse.json({ error: "Çalışma saatleri SS:DD biçiminde olmalıdır." }, { status: 400 });
         }
+        if (wh.isOpen && storedTimeToMinutes(wh.openTime)! >= storedTimeToMinutes(wh.closeTime)!) {
+          return NextResponse.json({ error: "Açılış saati kapanış saatinden önce olmalıdır." }, { status: 400 });
+        }
+      }
+      for (const wh of workingHours) {
+        if (!wh?.id) continue;
+        await prisma.workingHour.updateMany({
+          where: { id: wh.id, businessId: user.business.id },
+          data: {
+            isOpen: Boolean(wh.isOpen),
+            openTime: wh.openTime,
+            closeTime: wh.closeTime,
+            breakStartTime: wh.breakStartTime || null,
+            breakEndTime: wh.breakEndTime || null,
+          },
+        });
       }
     }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { revokeAllMobileSessions } from "@/lib/mobileAuth";
 import {
   generateTemporaryPassword,
   getSupportAgent,
@@ -82,6 +83,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         where: { id: business.user.id },
         data: { password: await hashPassword(temporaryPassword) },
       });
+      // Sign the owner out everywhere: web sessions end with the password change (see lib/auth),
+      // mobile sessions are revoked here so no device keeps working with the old password.
+      const revokedDevices = await revokeAllMobileSessions(business.user.id, "PASSWORD_CHANGED");
 
       await createAuditLog({
         adminEmail: agent.email,
@@ -89,7 +93,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         action: "SUPPORT_PASSWORD_RESET",
         target: business.name,
         targetId: businessId,
-        details: `İşletme sahibinin (${business.user.email}) şifresi yetkili tarafından sıfırlandı.`,
+        details: `İşletme sahibinin (${business.user.email}) şifresi yetkili tarafından sıfırlandı. Tüm oturumlar kapatıldı (${revokedDevices} mobil cihaz).`,
       });
 
       // Returned once so the agent can pass it to the owner; only the hash is stored.

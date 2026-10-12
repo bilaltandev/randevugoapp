@@ -56,13 +56,16 @@ export default function CalendarClient({
   const [newCustPhone, setNewCustPhone] = useState("");
   const [newServiceId, setNewServiceId] = useState(services[0]?.id || "");
   const [newEmployeeId, setNewEmployeeId] = useState(employees[0]?.id || "");
-  const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
+  const [newDate, setNewDate] = useState(() => localDateKey(new Date()));
   const [newStartTime, setNewStartTime] = useState("10:00");
   const [newNotes, setNewNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Block slot form state
-  const [blockDate, setBlockDate] = useState(new Date().toISOString().split("T")[0]);
+  const [blockDate, setBlockDate] = useState(() => localDateKey(new Date()));
+  const [blockEmployeeId, setBlockEmployeeId] = useState(employees[0]?.id || "");
+  const [blockError, setBlockError] = useState<string | null>(null);
   const [blockTime, setBlockTime] = useState("12:00");
   const [blockReason, setBlockReason] = useState("Öğle Molası / Kişisel İş");
 
@@ -92,6 +95,7 @@ export default function CalendarClient({
   const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setFormError(null);
     try {
       const res = await fetch("/api/appointments", {
         method: "POST",
@@ -113,9 +117,14 @@ export default function CalendarClient({
         closeNewModal();
         setNewCustName("");
         setNewCustPhone("");
+        setNewNotes("");
+      } else {
+        // e.g. 409 EMPLOYEE_TIME_CONFLICT: the API explains what to change.
+        setFormError(data.error || "Rezervasyon oluşturulamadı.");
       }
     } catch (e) {
       console.error(e);
+      setFormError("Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
     } finally {
       setSubmitting(false);
     }
@@ -124,11 +133,15 @@ export default function CalendarClient({
   // Submit block slot
   const handleBlockSlot = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBlockError(null);
+    const srv = services[0];
+    const emp = employees.find((x) => x.id === blockEmployeeId) ?? employees[0];
+    if (!srv || !emp) {
+      setBlockError("Saat kapatmak için en az bir hizmet ve bir çalışan tanımlı olmalıdır.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const srv = services[0];
-      const emp = employees[0];
-      if (!srv || !emp) return;
 
       const res = await fetch("/api/appointments", {
         method: "POST",
@@ -149,9 +162,12 @@ export default function CalendarClient({
       if (data.appointment) {
         setAppointments((prev) => [data.appointment, ...prev]);
         setIsBlockModalOpen(false);
+      } else {
+        setBlockError(data.error || "Saat kapatılamadı.");
       }
     } catch (e) {
       console.error(e);
+      setBlockError("Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
     } finally {
       setSubmitting(false);
     }
@@ -172,9 +188,13 @@ export default function CalendarClient({
         if (selectedAppt) {
           setSelectedAppt((prev: any) => ({ ...prev, status: newStatus }));
         }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Durum güncellenemedi.");
       }
     } catch (e) {
       console.error(e);
+      alert("Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
     }
   };
 
@@ -202,6 +222,7 @@ export default function CalendarClient({
   const handleCreateAt = (dateKey: string, time: string) => {
     setNewDate(dateKey);
     setNewStartTime(time);
+    setFormError(null);
     setIsNewModalOpen(true);
   };
 
@@ -229,7 +250,7 @@ export default function CalendarClient({
         description="Randevuları gün, hafta veya ay görünümünde takip edin."
         actions={
           <>
-            <Button onClick={() => setIsBlockModalOpen(true)}>
+            <Button onClick={() => { setBlockError(null); setIsBlockModalOpen(true); }}>
               <Lock className="w-4 h-4" aria-hidden="true" />
               Saat kapat
             </Button>
@@ -420,6 +441,12 @@ export default function CalendarClient({
             <Textarea id="cal-notes" rows={2} value={newNotes} onChange={(e) => setNewNotes(e.target.value)} />
           </Field>
 
+          {formError && (
+            <p role="alert" className="text-sm text-danger">
+              {formError}
+            </p>
+          )}
+
           <Button type="submit" variant="primary" disabled={submitting} className="w-full">
             {submitting ? "Ekleniyor..." : "Rezervasyonu kaydet"}
           </Button>
@@ -440,6 +467,18 @@ export default function CalendarClient({
             </Field>
           </div>
 
+          {employees.length > 1 && (
+            <Field label="Uzman" htmlFor="block-employee">
+              <Select id="block-employee" value={blockEmployeeId} onChange={(e) => setBlockEmployeeId(e.target.value)}>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+
           <Field label="Kapatma sebebi" htmlFor="block-reason">
             <Input
               id="block-reason"
@@ -449,6 +488,12 @@ export default function CalendarClient({
               onChange={(e) => setBlockReason(e.target.value)}
             />
           </Field>
+
+          {blockError && (
+            <p role="alert" className="text-sm text-danger">
+              {blockError}
+            </p>
+          )}
 
           <Button type="submit" variant="primary" disabled={submitting} className="w-full">
             <Lock className="w-4 h-4" aria-hidden="true" />
