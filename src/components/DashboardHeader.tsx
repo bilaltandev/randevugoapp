@@ -73,7 +73,7 @@ export function DashboardHeader({
             className="flex h-full items-center gap-1.5 px-3 text-ink-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
             title="Rezervasyon sayfanızı yeni sekmede açın"
           >
-            <span className="text-ink-3">randevugo.com/</span>
+            <span className="text-ink-3">calendlygo.com/</span>
             <span className="font-medium max-w-[180px] truncate text-ink">{business.slug}</span>
             <ExternalLink className="w-3.5 h-3.5 text-ink-3" aria-hidden="true" />
           </Link>

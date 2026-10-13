@@ -15,11 +15,11 @@ export async function generateMetadata({
   });
 
   if (!business) {
-    return { title: "İşletme Bulunamadı | RandevuGo" };
+    return { title: "İşletme Bulunamadı | CalendlyGo" };
   }
 
   return {
-    title: business.page?.seoTitle || `${business.name} - Online Randevu Al | RandevuGo`,
+    title: business.page?.seoTitle || `${business.name} - Online Randevu Al | CalendlyGo`,
     description:
       business.page?.seoDescription ||
       `${business.name} için 7/24 online rezervasyon yapın. Sıra beklemeden randevunuzu oluşturun.`,

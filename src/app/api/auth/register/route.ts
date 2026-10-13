@@ -131,7 +131,7 @@ export async function POST(req: Request) {
             },
             notifications: {
               create: {
-                title: "RandevuGo'ya Hoş Geldiniz! 🎉",
+                title: "CalendlyGo'ya Hoş Geldiniz! 🎉",
                 message: "3 günlük ücretsiz deneme süreniz başladı. Hemen hizmetlerinizi ve sayfanızı özelleştirin.",
                 type: "SYSTEM",
                 link: "/dashboard",

@@ -641,7 +641,7 @@ export function PageRenderer({
         <p>
           © {new Date().getFullYear()} {business.name}. Bu sayfa{" "}
           <Link href="/" className={`${theme.text} hover:underline font-semibold`}>
-            RandevuGo SaaS
+            CalendlyGo SaaS
           </Link>{" "}
           altyapısı ile oluşturulmuştur.
         </p>

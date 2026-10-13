@@ -194,7 +194,7 @@ export default function RegisterPage() {
             htmlFor="reg-business"
             hint={
               <>
-                Rezervasyon adresiniz: <span className="font-medium text-ink-2">randevugo.com/{previewSlug}</span>
+                Rezervasyon adresiniz: <span className="font-medium text-ink-2">calendlygo.com/{previewSlug}</span>
               </>
             }
           >

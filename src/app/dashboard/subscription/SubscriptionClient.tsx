@@ -189,7 +189,7 @@ export default function SubscriptionClient({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base font-semibold text-ink">
-                {isActive ? "RandevuGo Pro" : "Ücretsiz deneme"}
+                {isActive ? "CalendlyGo Pro" : "Ücretsiz deneme"}
               </h2>
               <span
                 className={cn(
@@ -256,7 +256,7 @@ export default function SubscriptionClient({
           <ul className="space-y-2.5">
             {[
               "Sınırsız online rezervasyon",
-              "Özel rezervasyon sayfası (randevugo.com/adiniz)",
+              "Özel rezervasyon sayfası (calendlygo.com/adiniz)",
               "Sürükle-bırak sayfa düzenleyici",
               "Sınırsız hizmet ve çalışan",
               "Müşteri yönetimi (CRM)",

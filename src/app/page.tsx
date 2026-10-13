@@ -32,7 +32,7 @@ const HERO_STRIP: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: CalendarCheck2, title: "Online rezervasyon", text: "7/24 açık randevu sayfası" },
   { icon: MessageCircle, title: "WhatsApp ile iletişim", text: "Müşteriye tek dokunuşla ulaşın" },
   { icon: Contact2, title: "Müşteri yönetimi", text: "Ziyaret geçmişi ve notlar" },
-  { icon: Globe, title: "Kendi sayfanız", text: "randevugo.com/isletmeniz" },
+  { icon: Globe, title: "Kendi sayfanız", text: "calendlygo.com/isletmeniz" },
 ];
 
 // Photos are the per-sector presets already used by the gallery (lib/gallery/types.ts).
@@ -65,7 +65,7 @@ const SECTORS = [
 ];
 
 const CORE_FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
-  { icon: Globe, title: "Online rezervasyon sayfası", text: "randevugo.com/isletmeniz adresinde müşterileriniz 7/24 randevu alır." },
+  { icon: Globe, title: "Online rezervasyon sayfası", text: "calendlygo.com/isletmeniz adresinde müşterileriniz 7/24 randevu alır." },
   { icon: MessageCircle, title: "WhatsApp ile hızlı iletişim", text: "Randevu sahibine tek dokunuşla WhatsApp'tan yazın." },
   { icon: CalendarClock, title: "Esnek çalışma düzeni", text: "Çalışma saatlerinizi, molalarınızı ve kapalı saatlerinizi siz belirleyin." },
   { icon: Contact2, title: "Müşteri yönetimi", text: "Her müşterinin ziyaretleri, harcaması ve özel notları tek yerde." },
@@ -95,12 +95,12 @@ const PLAN_ITEMS = [
 
 function Wordmark() {
   return (
-    <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5BE38F]" aria-label="RandevuGo ana sayfa">
+    <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5BE38F]" aria-label="CalendlyGo ana sayfa">
       <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-black">
-        <Image src="/brand/mascot-logo.png" alt="" fill sizes="32px" className="object-cover" unoptimized priority />
+        <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="32px" className="object-cover" unoptimized priority />
       </span>
       <span className="flex flex-col items-start gap-0.5">
-        <Image src="/brand/randevugo-text-logo.png" alt="RandevuGo" width={124} height={20} className="h-5 w-auto object-contain" unoptimized priority />
+        <Image src="/brand/calendlygo-text-logo.png" alt="CalendlyGo" width={124} height={20} className="h-5 w-auto object-contain" unoptimized priority />
         <span className="pl-0.5 text-[9px] font-semibold tracking-[0.22em] text-white/50">by VASTLAB</span>
       </span>
     </Link>
@@ -212,7 +212,7 @@ export default function LandingPage() {
             Çalışma şeklinize göre tasarlandı.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-base text-[#555E6C]">
-            RandevuGo sektörünüze uyum sağlar: restoranda kişi sayısı ve masa, oto serviste plaka, salonda uzman seçimi.
+            CalendlyGo sektörünüze uyum sağlar: restoranda kişi sayısı ve masa, oto serviste plaka, salonda uzman seçimi.
           </p>
           <ul className="mt-12 grid grid-cols-2 gap-4 text-left sm:grid-cols-3 lg:grid-cols-5">
             {SECTORS.map((s) => (
@@ -357,7 +357,7 @@ export default function LandingPage() {
             <Link href="/ahmetberber" target="_blank" className="hover:text-white">Canlı örnek</Link>
             <a href="#fiyatlandirma" className="hover:text-white">Fiyatlandırma</a>
           </nav>
-          <p className="text-xs text-white/40">© {new Date().getFullYear()} RandevuGo, bir VastLab ürünüdür. Tüm hakları saklıdır.</p>
+          <p className="text-xs text-white/40">© {new Date().getFullYear()} CalendlyGo, bir VastLab ürünüdür. Tüm hakları saklıdır.</p>
         </div>
       </footer>
     </div>

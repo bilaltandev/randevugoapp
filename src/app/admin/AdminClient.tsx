@@ -253,7 +253,7 @@ export default function AdminClient({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                RandevuGo Süper Yönetici
+                CalendlyGo Süper Yönetici
               </h1>
               <span className="rounded-full bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black text-amber-300 tracking-wider uppercase">
                 SUPER ADMIN
