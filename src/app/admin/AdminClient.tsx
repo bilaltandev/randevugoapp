@@ -1195,112 +1195,91 @@ export default function AdminClient({
 
       {/* ═══════════════════════════════════════════════════════════════
           BUSINESS DETAIL & ACTIONS MODAL
+          Uses the business panel tokens; the `dark` wrapper matches the dark admin page.
       ═══════════════════════════════════════════════════════════════ */}
       {selectedBusiness && (
+        <div className="dark">
         <Modal
           isOpen={Boolean(selectedBusiness)}
           onClose={() => setSelectedBusiness(null)}
           title={`İşletme Yönetimi: ${selectedBusiness.name}`}
         >
-          <div className="space-y-4 text-xs">
+          <div className="space-y-4 text-xs text-ink-2">
             {/* Modal Internal Tabs */}
-            <div className="flex items-center gap-1.5 border-b border-slate-800 pb-2 overflow-x-auto scrollbar-none">
-              <button
-                onClick={() => setDetailTab("info")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
-                  detailTab === "info" ? "bg-amber-500 text-slate-950" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Genel Bilgiler
-              </button>
-              <button
-                onClick={() => setDetailTab("subscription")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
-                  detailTab === "subscription" ? "bg-amber-500 text-slate-950" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Abonelik & Fiyat
-              </button>
-              <button
-                onClick={() => setDetailTab("features")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
-                  detailTab === "features" ? "bg-amber-500 text-slate-950" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Özellik Bayrakları
-              </button>
-              <button
-                onClick={() => setDetailTab("sector")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
-                  detailTab === "sector" ? "bg-amber-500 text-slate-950" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Sektör Değiştir
-              </button>
+            <div className="flex items-center gap-1 rounded-control bg-surface-muted p-1 overflow-x-auto scrollbar-none" role="tablist">
+              {(
+                [
+                  ["info", "Genel Bilgiler"],
+                  ["subscription", "Abonelik & Fiyat"],
+                  ["features", "Özellik Bayrakları"],
+                  ["sector", "Sektör Değiştir"],
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  role="tab"
+                  aria-selected={detailTab === tab}
+                  onClick={() => setDetailTab(tab)}
+                  className={`flex-1 whitespace-nowrap px-3 py-1.5 rounded-[6px] font-semibold transition-colors ${
+                    detailTab === tab ? "bg-surface text-ink shadow-raised" : "text-ink-3 hover:text-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* TAB: INFO */}
             {detailTab === "info" && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2.5 p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+                <div className="grid grid-cols-2 gap-3 p-3.5 rounded-panel bg-surface-muted border border-line">
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Sahibi:</span>
-                    <span className="font-semibold text-slate-200">{selectedBusiness.user?.name}</span>
+                    <span className="text-[10px] text-ink-3 block">Sahibi</span>
+                    <span className="font-semibold text-ink">{selectedBusiness.user?.name}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-ink-3 block">E-Posta</span>
+                    <span className="font-semibold text-ink break-all">{selectedBusiness.user?.email}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">E-Posta:</span>
-                    <span className="font-semibold text-slate-200">{selectedBusiness.user?.email}</span>
+                    <span className="text-[10px] text-ink-3 block">Telefon</span>
+                    <span className="font-semibold text-ink">{selectedBusiness.phone}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Telefon:</span>
-                    <span className="font-semibold text-slate-200">{selectedBusiness.phone}</span>
+                    <span className="text-[10px] text-ink-3 block">Şehir / Adres</span>
+                    <span className="font-semibold text-ink">{selectedBusiness.city}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Şehir / Adres:</span>
-                    <span className="font-semibold text-slate-200">{selectedBusiness.city}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 block">Kayıt Tarihi:</span>
-                    <span className="font-semibold text-slate-200">
+                    <span className="text-[10px] text-ink-3 block">Kayıt Tarihi</span>
+                    <span className="font-semibold text-ink">
                       {new Date(selectedBusiness.createdAt).toLocaleDateString("tr-TR")}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Sektör:</span>
+                    <span className="text-[10px] text-ink-3 block mb-0.5">Sektör</span>
                     <SectorBadge sector={selectedBusiness.sector} size="sm" />
                   </div>
                 </div>
 
                 {/* Metrics Breakdown */}
                 <div className="grid grid-cols-4 gap-2 text-center">
-                  <div className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800">
-                    <span className="text-[10px] text-slate-500 block">Randevu</span>
-                    <span className="font-black text-indigo-400 text-sm">
-                      {selectedBusiness._count?.appointments || 0}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800">
-                    <span className="text-[10px] text-slate-500 block">Müşteri</span>
-                    <span className="font-black text-emerald-400 text-sm">
-                      {selectedBusiness._count?.customers || 0}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800">
-                    <span className="text-[10px] text-slate-500 block">Hizmet</span>
-                    <span className="font-black text-amber-400 text-sm">
-                      {selectedBusiness._count?.services || 0}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800">
-                    <span className="text-[10px] text-slate-500 block">Yorum</span>
-                    <span className="font-black text-rose-400 text-sm">
-                      {selectedBusiness._count?.reviews || 0}
-                    </span>
-                  </div>
+                  {(
+                    [
+                      ["Randevu", selectedBusiness._count?.appointments],
+                      ["Müşteri", selectedBusiness._count?.customers],
+                      ["Hizmet", selectedBusiness._count?.services],
+                      ["Yorum", selectedBusiness._count?.reviews],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label} className="p-2.5 rounded-panel bg-surface border border-line">
+                      <span className="text-[10px] text-ink-3 block">{label}</span>
+                      <span className="font-display font-bold text-ink text-base tabular-nums">{value || 0}</span>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Quick Toggle Actions */}
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-line">
                   <button
                     onClick={() =>
                       handleApiAction({
@@ -1309,10 +1288,10 @@ export default function AdminClient({
                         isActive: selectedBusiness.isActive === false ? true : false,
                       })
                     }
-                    className={`py-2.5 px-3 rounded-xl font-bold transition-all ${
+                    className={`py-2.5 px-3 rounded-control font-semibold border transition-colors ${
                       selectedBusiness.isActive !== false
-                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30"
-                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
+                        ? "bg-danger-soft text-danger border-danger-line hover:brightness-110"
+                        : "bg-brand-soft text-brand-ink border-brand-line hover:brightness-110"
                     }`}
                   >
                     {selectedBusiness.isActive !== false ? "İşletmeyi Pasife Al" : "İşletmeyi Aktif Et"}
@@ -1321,7 +1300,7 @@ export default function AdminClient({
                   <Link
                     href={`/${selectedBusiness.slug}`}
                     target="_blank"
-                    className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:text-white font-bold"
+                    className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-control border border-line bg-surface text-ink-2 hover:bg-surface-muted hover:text-ink font-semibold transition-colors"
                   >
                     <span>Public Sayfayı Aç</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1332,41 +1311,52 @@ export default function AdminClient({
 
             {/* TAB: SUBSCRIPTION */}
             {detailTab === "subscription" && (
-              <div className="space-y-4">
-                <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Mevcut Durum:</span>
-                    <span className="font-bold text-amber-400 uppercase">
-                      {selectedBusiness.subscription?.status || "trial"}
-                    </span>
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-panel bg-surface-muted border border-line space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink-3">Mevcut Durum</span>
+                    {(() => {
+                      const status = selectedBusiness.subscription?.status || "trial";
+                      const tone =
+                        status === "active"
+                          ? "bg-brand-soft text-brand-ink border-brand-line"
+                          : status === "trial"
+                            ? "bg-pending-soft text-pending border-pending-line"
+                            : "bg-danger-soft text-danger border-danger-line";
+                      return (
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone}`}>
+                          {status}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Trial Bitiş:</span>
-                    <span className="text-slate-200 font-mono">
+                    <span className="text-ink-3">Trial Bitiş</span>
+                    <span className="text-ink tabular-nums">
                       {selectedBusiness.subscription?.trialEndDate
                         ? new Date(selectedBusiness.subscription.trialEndDate).toLocaleDateString("tr-TR")
                         : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Abonelik Bitiş:</span>
-                    <span className="text-slate-200 font-mono">
+                    <span className="text-ink-3">Abonelik Bitiş</span>
+                    <span className="text-ink tabular-nums">
                       {selectedBusiness.subscription?.subscriptionEndDate
                         ? new Date(selectedBusiness.subscription.subscriptionEndDate).toLocaleDateString("tr-TR")
                         : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Aylık Fiyat:</span>
-                    <span className="text-emerald-400 font-bold">
+                    <span className="text-ink-3">Aylık Fiyat</span>
+                    <span className="text-ink font-bold tabular-nums">
                       {formatCurrency(selectedBusiness.subscription?.monthlyPrice || 89)} / ay
                     </span>
                   </div>
                 </div>
 
                 {/* 1. Trial Uzatma */}
-                <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/20 space-y-2.5">
-                  <span className="font-bold text-amber-300 block">Trial Süresini Uzat</span>
+                <div className="p-3.5 rounded-panel bg-surface border border-line space-y-2.5">
+                  <span className="font-semibold text-ink block">Trial Süresini Uzat</span>
                   <div className="flex items-center gap-2">
                     {[7, 14, 30].map((d) => (
                       <button
@@ -1378,7 +1368,7 @@ export default function AdminClient({
                             days: d,
                           })
                         }
-                        className="flex-1 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold"
+                        className="flex-1 py-1.5 rounded-control border border-pending-line bg-pending-soft text-pending font-semibold hover:brightness-110 transition-colors"
                       >
                         +{d} Gün
                       </button>
@@ -1387,8 +1377,8 @@ export default function AdminClient({
                 </div>
 
                 {/* 2. Manuel Abonelik Aktif Etme */}
-                <div className="p-3.5 rounded-2xl bg-indigo-950/20 border border-indigo-500/20 space-y-2.5">
-                  <span className="font-bold text-indigo-300 block">Aboneliği Manuel Aktif Et</span>
+                <div className="p-3.5 rounded-panel bg-surface border border-line space-y-2.5">
+                  <span className="font-semibold text-ink block">Aboneliği Manuel Aktif Et</span>
                   <div className="flex items-center gap-2">
                     {[1, 3, 6, 12].map((m) => (
                       <button
@@ -1400,7 +1390,7 @@ export default function AdminClient({
                             months: m,
                           })
                         }
-                        className="flex-1 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-bold"
+                        className="flex-1 py-1.5 rounded-control border border-brand-line bg-brand-soft text-brand-ink font-semibold hover:brightness-110 transition-colors"
                       >
                         {m} Ay
                       </button>
@@ -1409,24 +1399,24 @@ export default function AdminClient({
                 </div>
 
                 {/* 3. Özel Fiyat & Durum Güncelleme */}
-                <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
-                  <span className="font-bold text-slate-200 block">Özel Aylık Fiyat & Durum</span>
+                <div className="p-3.5 rounded-panel bg-surface border border-line space-y-3">
+                  <span className="font-semibold text-ink block">Özel Aylık Fiyat & Durum</span>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] text-slate-400 block mb-1">Aylık Fiyat (TL)</label>
+                      <label className="text-[10px] text-ink-3 block mb-1">Aylık Fiyat (TL)</label>
                       <input
                         type="number"
                         defaultValue={selectedBusiness.subscription?.monthlyPrice || 89}
                         onChange={(e) => setSubPrice(Number(e.target.value))}
-                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs text-slate-100"
+                        className="w-full rounded-control border border-line bg-surface-muted px-3 py-2 text-xs text-ink outline-none focus:border-brand"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-400 block mb-1">Durum</label>
+                      <label className="text-[10px] text-ink-3 block mb-1">Durum</label>
                       <select
                         defaultValue={selectedBusiness.subscription?.status || "trial"}
                         id="modal-sub-status"
-                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs text-slate-100"
+                        className="w-full rounded-control border border-line bg-surface-muted px-3 py-2 text-xs text-ink outline-none focus:border-brand"
                       >
                         <option value="trial">Deneme (trial)</option>
                         <option value="active">Aktif (active)</option>
@@ -1446,7 +1436,7 @@ export default function AdminClient({
                         monthlyPrice: subPrice,
                       });
                     }}
-                    className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                    className="w-full py-2.5 rounded-control bg-brand hover:bg-brand-hover text-on-brand font-semibold transition-colors"
                   >
                     Fiyat & Durumu Kaydet
                   </button>
@@ -1457,7 +1447,7 @@ export default function AdminClient({
             {/* TAB: FEATURES (PER BUSINESS) */}
             {detailTab === "features" && (
               <div className="space-y-3">
-                <p className="text-slate-400 text-xs">
+                <p className="text-ink-3 text-xs">
                   Aşağıdaki özellikleri bu işletme için özel olarak açıp kapatabilirsiniz:
                 </p>
 
@@ -1468,11 +1458,11 @@ export default function AdminClient({
                     return (
                       <div
                         key={flag.id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800"
+                        className="flex items-center justify-between gap-3 p-3 rounded-panel bg-surface-muted border border-line"
                       >
-                        <div>
-                          <span className="font-bold text-slate-200 block text-xs">{flag.key}</span>
-                          <span className="text-[10px] text-slate-400 block">{flag.description}</span>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-ink block text-xs">{flag.key}</span>
+                          <span className="text-[10px] text-ink-3 block">{flag.description}</span>
                         </div>
 
                         <button
@@ -1484,10 +1474,10 @@ export default function AdminClient({
                               enable: !isEnabled,
                             })
                           }
-                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                          className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
                             isEnabled
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : "bg-slate-800 text-slate-400 border border-slate-700"
+                              ? "bg-brand-soft text-brand-ink border-brand-line"
+                              : "bg-surface text-ink-3 border-line hover:text-ink"
                           }`}
                         >
                           {isEnabled ? "Açık (ON)" : "Kapalı (OFF)"}
@@ -1502,16 +1492,16 @@ export default function AdminClient({
             {/* TAB: SECTOR */}
             {detailTab === "sector" && (
               <div className="space-y-4">
-                <p className="text-slate-400 text-xs">
+                <p className="text-ink-3 text-xs">
                   İşletmenin sektörünü değiştirdiğinizde, rezervasyon motoru varsayılan ayarları ve temaları güncellenir:
                 </p>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1.5">Yeni Sektör:</label>
+                  <label className="text-xs font-semibold text-ink-2 block mb-1.5">Yeni Sektör</label>
                   <select
                     value={newSector}
                     onChange={(e) => setNewSector(e.target.value)}
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-slate-100"
+                    className="w-full rounded-control border border-line bg-surface-muted p-2.5 text-xs text-ink outline-none focus:border-brand"
                   >
                     {SECTORS.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -1529,7 +1519,7 @@ export default function AdminClient({
                       newSector,
                     })
                   }
-                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
+                  className="w-full py-2.5 rounded-control bg-brand hover:bg-brand-hover text-on-brand font-semibold transition-colors"
                 >
                   Sektörü Güncelle
                 </button>
@@ -1537,6 +1527,7 @@ export default function AdminClient({
             )}
           </div>
         </Modal>
+        </div>
       )}
     </div>
   );
