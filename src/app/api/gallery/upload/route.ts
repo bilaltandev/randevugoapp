@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import fs from "fs/promises";
 import path from "path";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -20,6 +21,8 @@ export async function POST(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

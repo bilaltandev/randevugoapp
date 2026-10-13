@@ -101,6 +101,8 @@ export async function getCurrentUser() {
   // and so does a session signed in with a password that has since been changed or reset.
   if (!user || !user.isActive) return null;
   if (payload.pwd !== passwordStamp(user.password)) return null;
+  // Team members use the mobile app only (web login refuses them); never give them a web session.
+  if (user.role === "TEAM_MEMBER") return null;
 
   const activeBusiness = user.businesses[0] || null;
 

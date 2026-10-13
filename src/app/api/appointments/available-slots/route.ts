@@ -11,6 +11,7 @@ import {
   minutesToTime,
   storedTimeToMinutes,
 } from "@/lib/appointmentRules";
+import { subscriptionAccess } from "@/lib/subscriptionAccess";
 
 /** Slots start every 30 minutes. */
 const STEP_MINUTES = 30;
@@ -40,6 +41,11 @@ export async function GET(req: Request) {
     const now = businessNow();
     if (dateStr < now.dateKey) {
       return NextResponse.json({ slots: [], message: "Geçmiş bir tarih seçildi." });
+    }
+
+    const subscription = await prisma.subscription.findUnique({ where: { businessId } });
+    if (!subscriptionAccess(subscription).active) {
+      return NextResponse.json({ slots: [], closed: true, message: "Bu işletme şu an online randevu almıyor." });
     }
 
     const dayOfWeek = dayOfWeekFromKey(dateStr);

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { DashboardShell } from "@/components/DashboardShell";
+import { subscriptionAccess } from "@/lib/subscriptionAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -30,13 +31,16 @@ export default async function DashboardLayout({
     redirect("/register");
   }
 
-  const subscriptionStatus = user.business.subscription?.status || "trial";
+  // No trial or paid period left: every page but the subscription and support pages shows the lock screen.
+  const locked = !subscriptionAccess(user.business.subscription).active;
+  const subscriptionStatus = locked ? "expired" : user.business.subscription?.status || "trial";
 
   return (
     <DashboardShell
       business={user.business}
       user={user}
       subscriptionStatus={subscriptionStatus}
+      locked={locked}
     >
       {children}
     </DashboardShell>

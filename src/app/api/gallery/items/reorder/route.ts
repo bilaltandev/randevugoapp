@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 export async function PUT(req: Request) {
   try {
@@ -8,6 +9,8 @@ export async function PUT(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const business = user.business;
     const { itemIds } = await req.json();

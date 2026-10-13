@@ -71,7 +71,7 @@ export default function SupportLoginForm() {
             required
             autoComplete="email"
             inputMode="email"
-            placeholder="yetkili@randevugo.com"
+            placeholder="yetkili@calendlygo.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={AUTH_INPUT}

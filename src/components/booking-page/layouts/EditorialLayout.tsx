@@ -420,7 +420,7 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
         <div className={cn(shell, "flex flex-col gap-6 py-12 @3xl:flex-row @3xl:items-end @3xl:justify-between")}>
           <p className={cn(display, "text-[clamp(2.5rem,7cqi,5rem)] leading-none text-ink")}>{p.name}</p>
           <p className="text-xs text-ink-3">
-            © {p.footerYear ?? ""} {p.name}. Online randevu altyapısı RandevuGo.
+            © {p.footerYear ?? ""} {p.name}. Online randevu altyapısı CalendlyGo.
           </p>
         </div>
       </footer>

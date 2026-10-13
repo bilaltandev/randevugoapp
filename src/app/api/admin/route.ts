@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { PLAN_PRICES, formatUSD, isBillingPeriod, isPlan, monthlyEquivalent, periodOf, planOf, PERIOD_SUFFIX, type BillingPeriod } from "@/lib/plans";
+import { confirmPayment, rejectPayment } from "@/lib/subscriptionPayments";
 
 // 9 Standard Platform Features
 export const DEFAULT_FEATURE_FLAGS = [
@@ -102,7 +104,8 @@ export async function GET() {
     // Monthly Recurring Revenue: sum of active subscriptions' monthly prices
     const monthlyRecurringRevenue = businesses
       .filter((b) => b.subscription?.status === "active")
-      .reduce((sum, b) => sum + (b.subscription?.monthlyPrice || 89.0), 0);
+      // USD per month: yearly prices count as a twelfth.
+      .reduce((sum, b) => sum + monthlyEquivalent(b.subscription?.monthlyPrice ?? 0, periodOf(b.subscription)), 0);
 
     // Platform GMV (Total revenue from completed reservations)
     const completedAppointments = await prisma.appointment.findMany({
@@ -322,33 +325,11 @@ export async function PATCH(req: Request) {
 
     // 5. ACTIVATE SUBSCRIPTION
     if (action === "ACTIVATE_SUBSCRIPTION") {
-      const months = Number(body.months) || 1;
-      const now = new Date();
-      const newEndDate = new Date(now.getTime() + months * 30 * 24 * 60 * 60 * 1000);
-      const monthlyPrice = body.monthlyPrice !== undefined ? Number(body.monthlyPrice) : (business!.subscription?.monthlyPrice || 89.0);
-
-      const updatedSub = await prisma.subscription.upsert({
-        where: { businessId },
-        create: {
-          businessId,
-          status: "active",
-          planType: "PRO",
-          trialStartDate: now,
-          trialEndDate: now,
-          subscriptionStartDate: now,
-          subscriptionEndDate: newEndDate,
-          monthlyPrice,
-          paymentStatus: "paid",
-        },
-        update: {
-          status: "active",
-          planType: "PRO",
-          subscriptionStartDate: now,
-          subscriptionEndDate: newEndDate,
-          monthlyPrice,
-          paymentStatus: "paid",
-        },
-      });
+      // Without `months`: one billing period of the business (1 month, or 12 for yearly).
+      const months = Number(body.months) || undefined;
+      const pending = business!.subscription?.paymentStatus === "pending";
+      // Confirms an open bank transfer request too: clears it and uses up its coupon month.
+      const updatedSub = await confirmPayment(businessId, months);
 
       await createAuditLog({
         adminEmail: user.email,
@@ -357,10 +338,26 @@ export async function PATCH(req: Request) {
         target: business!.name,
         targetId: businessId,
         oldValue: business!.subscription?.status || "Yok",
-        newValue: `active (${months} ay - ${monthlyPrice} TL/ay)`,
-        details: `Abonelik yönetici tarafından manuel aktif edildi. Bitiş: ${newEndDate.toISOString().split("T")[0]}`,
+        newValue: `active (${months ?? (periodOf(updatedSub) === "YEARLY" ? 12 : 1)} ay - ${formatUSD(updatedSub.monthlyPrice)} ${PERIOD_SUFFIX[periodOf(updatedSub)]})`,
+        details: `${pending ? "Havale/EFT ödemesi onaylandı" : "Abonelik yönetici tarafından manuel aktif edildi"}. Bitiş: ${updatedSub.subscriptionEndDate?.toISOString().split("T")[0]}`,
       });
 
+      return NextResponse.json({ success: true, subscription: updatedSub });
+    }
+
+    // 6a. REJECT an open bank transfer request (no matching transfer arrived)
+    if (action === "REJECT_PAYMENT") {
+      const updatedSub = await rejectPayment(businessId);
+      await createAuditLog({
+        adminEmail: user.email,
+        adminName: user.name,
+        action: "SUBSCRIPTION_CHANGE",
+        target: business!.name,
+        targetId: businessId,
+        oldValue: "Ödeme bekleniyor",
+        newValue: "Ödeme talebi reddedildi",
+        details: "Havale/EFT ödeme talebi yönetici tarafından reddedildi.",
+      });
       return NextResponse.json({ success: true, subscription: updatedSub });
     }
 
@@ -381,7 +378,7 @@ export async function PATCH(req: Request) {
           trialStartDate: new Date(),
           trialEndDate: new Date(),
           subscriptionEndDate: subscriptionEndDate ? new Date(subscriptionEndDate) : null,
-          monthlyPrice: monthlyPrice !== undefined ? Number(monthlyPrice) : 89.0,
+          monthlyPrice: monthlyPrice !== undefined ? Number(monthlyPrice) : PLAN_PRICES.PERSON.MONTHLY,
         },
         update: dataToUpdate,
       });
@@ -392,9 +389,69 @@ export async function PATCH(req: Request) {
         action: "SUBSCRIPTION_CHANGE",
         target: business!.name,
         targetId: businessId,
-        oldValue: `${business!.subscription?.status || "trial"} (${business!.subscription?.monthlyPrice || 89} TL)`,
-        newValue: `${status || business!.subscription?.status} (${monthlyPrice ?? business!.subscription?.monthlyPrice} TL)`,
+        oldValue: `${business!.subscription?.status || "trial"} (${formatUSD(business!.subscription?.monthlyPrice ?? 0)})`,
+        newValue: `${status || business!.subscription?.status} (${formatUSD(Number(monthlyPrice ?? business!.subscription?.monthlyPrice ?? 0))})`,
         details: `Abonelik detayları güncellendi.`,
+      });
+
+      return NextResponse.json({ success: true, subscription: updatedSub });
+    }
+
+    // 6b. SET PLAN (Person / Team) and the TEAM member limit, by hand
+    if (action === "SET_PLAN") {
+      const sub = business!.subscription;
+      const plan = body.plan === undefined ? planOf(sub) : body.plan;
+      if (!isPlan(plan)) {
+        return NextResponse.json({ error: "Geçersiz plan." }, { status: 400 });
+      }
+      const memberLimit = body.memberLimit === undefined ? (sub?.memberLimit ?? 5) : Number(body.memberLimit);
+      if (!Number.isInteger(memberLimit) || memberLimit < 1 || memberLimit > 100) {
+        return NextResponse.json({ error: "Ekip üyesi sınırı 1–100 arası bir sayı olmalıdır." }, { status: 400 });
+      }
+
+      const [members, staff] = await Promise.all([
+        prisma.employee.count({ where: { businessId, userId: { not: null } } }),
+        prisma.employee.count({ where: { businessId } }),
+      ]);
+      if (memberLimit < members) {
+        return NextResponse.json({ error: `Sınır mevcut üye sayısından (${members}) küçük olamaz.` }, { status: 409 });
+      }
+      if (plan === "PERSON" && (members > 0 || staff > 1)) {
+        return NextResponse.json(
+          { error: "Person planı için işletmenin ekip üyesi olmamalı ve en fazla bir çalışanı olmalı." },
+          { status: 409 }
+        );
+      }
+
+      const billingPeriod: BillingPeriod = isBillingPeriod(body.billingPeriod) ? body.billingPeriod : periodOf(sub);
+
+      // A plan or period change moves the price to the list price (USD), unless a price is given.
+      const changed = plan !== planOf(sub) || billingPeriod !== periodOf(sub);
+      const listPrice = PLAN_PRICES[plan][billingPeriod];
+      const monthlyPrice =
+        body.monthlyPrice !== undefined ? Number(body.monthlyPrice) : changed ? listPrice : (sub?.monthlyPrice ?? listPrice);
+      if (!Number.isFinite(monthlyPrice) || monthlyPrice < 0) {
+        return NextResponse.json({ error: "Geçersiz ücret." }, { status: 400 });
+      }
+
+      const updatedSub = await prisma.subscription.upsert({
+        where: { businessId },
+        create: { businessId, plan, billingPeriod, memberLimit, monthlyPrice, trialEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
+        update: { plan, billingPeriod, memberLimit, monthlyPrice },
+      });
+      if (plan === "PERSON") {
+        await prisma.teamInvite.updateMany({ where: { businessId, acceptedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });
+      }
+
+      await createAuditLog({
+        adminEmail: user.email,
+        adminName: user.name,
+        action: "SUBSCRIPTION_CHANGE",
+        target: business!.name,
+        targetId: businessId,
+        oldValue: `${planOf(sub)} ${periodOf(sub)} (limit ${sub?.memberLimit ?? 5}, ${formatUSD(sub?.monthlyPrice ?? 0)})`,
+        newValue: `${plan} ${billingPeriod} (limit ${memberLimit}, ${formatUSD(monthlyPrice)})`,
+        details: "Plan ve ekip üyesi sınırı yönetici tarafından güncellendi.",
       });
 
       return NextResponse.json({ success: true, subscription: updatedSub });

@@ -14,12 +14,13 @@ model User {
   password   String
   name       String
   phone      String?
-  role       String     @default("BUSINESS_OWNER") // "BUSINESS_OWNER" | "ADMIN" | "SUPER_ADMIN" | "SUPPORT"
+  role       String     @default("BUSINESS_OWNER") // "BUSINESS_OWNER" | "TEAM_MEMBER" | "ADMIN" | "SUPER_ADMIN" | "SUPPORT"
   isActive   Boolean    @default(true) // Support agents can be deactivated by a super admin
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   businesses Business[]
   mobileSessions MobileSession[]
+  employee   Employee?  // TEAM_MEMBER: the staff record this account works as
 }
 
 model Business {
@@ -58,6 +59,7 @@ model Business {
   restaurantTables RestaurantTable[]
   supportTickets  SupportTicket[]
   couponRedemptions CouponRedemption[]
+  teamInvites     TeamInvite[]
 }
 
 model Category {
@@ -99,10 +101,13 @@ model Employee {
   phone       String?
   email       String?
   isActive    Boolean           @default(true)
+  userId      String?           @unique // TEAM plan: the member account that accepted this record's invite
+  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
   employeeServices EmployeeService[]
+  teamInvites      TeamInvite[]
   appointments     Appointment[]
   workingHours     WorkingHour[]
   reviews          Review[]
@@ -223,14 +228,25 @@ model Subscription {
   businessId             String    @unique
   business               Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   planType               String    @default("TRIAL") // "TRIAL" | "PRO" | "ENTERPRISE"
+  plan                   String    @default("PERSON") // "PERSON" (one person) | "TEAM" (owner + invited members)
+  memberLimit            Int       @default(5)        // TEAM: member accounts allowed (owner and account-less staff not counted); admin can raise
   trialStartDate         DateTime  @default(now())
   trialEndDate           DateTime
   subscriptionStartDate  DateTime?
   subscriptionEndDate    DateTime?
   status                 String    @default("trial") // "trial" | "active" | "expired" | "cancelled"
   paymentStatus          String    @default("paid")  // "paid" | "pending" | "failed"
-  monthlyPrice           Float     @default(89.0)
+  // Price in US dollars for one billing period (name kept from when it was a monthly TL price).
+  monthlyPrice           Float     @default(1.49)
+  billingPeriod          String    @default("MONTHLY") // "MONTHLY" | "YEARLY": what one payment buys
   paymentProvider        String?   @default("PayTR")
+  // Bank transfer request waiting for the admin: set by the owner ("Satın al"), cleared when the admin
+  // confirms or rejects it. paymentStatus is "pending" while it is open.
+  paymentRequestedAt     DateTime?
+  pendingAmount          Float?    // USD
+  pendingAmountTry       Float?    // TL to transfer, at pendingRate
+  pendingRate            Float?    // USD→TRY (TCMB selling) when the request was made
+  pendingCouponCode      String?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 }
@@ -462,4 +478,23 @@ model AuthRateLimit {
   windowStart DateTime @default(now())
 
   @@index([windowStart])
+}
+
+// TEAM plan invite, single use: a link for an existing Employee record, or a short code typed in at sign-up
+// (the member's Employee record is then created on joining). Only the SHA-256 hash of the token/code is stored.
+model TeamInvite {
+  id         String    @id @default(uuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  kind       String    @default("LINK") // "LINK" | "CODE"
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([businessId])
+  @@index([employeeId])
 }

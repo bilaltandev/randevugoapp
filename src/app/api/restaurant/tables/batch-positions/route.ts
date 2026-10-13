@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 // POST /api/restaurant/tables/batch-positions
 // Update positions of multiple tables simultaneously
@@ -10,6 +11,8 @@ export async function POST(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const body = await req.json();
     const { positions } = body; // Array of { id: string, positionX: number, positionY: number }

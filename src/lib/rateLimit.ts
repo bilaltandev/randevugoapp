@@ -17,6 +17,10 @@ export const RATE_LIMITS = {
   mobileRefresh: { limit: 30, windowSeconds: 60 },
   /** Refresh/logout calls per IP with a token that matches no session (guessing or stale clients). */
   mobileUnknownTokenIp: { limit: 60, windowSeconds: 60 },
+  /** Team invite page lookups and accept attempts per client IP (links are unguessable; this caps abuse). */
+  teamInviteIp: { limit: 30, windowSeconds: 15 * 60 },
+  /** Invite e-mails one business may send (Gmail caps the whole account at ~500 a day). */
+  teamInviteEmail: { limit: 20, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitResult = { allowed: boolean; count: number; retryAfterSeconds: number };
@@ -57,7 +61,7 @@ export async function pruneRateLimits() {
 }
 
 /** Keys never contain raw emails: the address is normalized and hashed. */
-export function rateLimitKey(scope: string, kind: "ip" | "email" | "session", value: string) {
+export function rateLimitKey(scope: string, kind: "ip" | "email" | "session" | "business", value: string) {
   const v = kind === "email" ? crypto.createHash("sha256").update(value.trim().toLowerCase()).digest("hex") : value;
   return `${scope}:${kind}:${v}`;
 }

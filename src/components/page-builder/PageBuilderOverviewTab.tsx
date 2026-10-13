@@ -502,7 +502,7 @@ export function PageBuilderOverviewTab({
           {/* Mock of the public page's hero (uses the public page's own colors) */}
           <div className="overflow-hidden rounded-control border border-line bg-[#0B0F19] text-white">
             <div className="flex items-center justify-between border-b border-white/10 bg-black/60 px-3 py-2">
-              <span className="max-w-[140px] truncate text-xs font-semibold">{business.name || "RandevuGo"}</span>
+              <span className="max-w-[140px] truncate text-xs font-semibold">{business.name || "CalendlyGo"}</span>
               <div className="hidden items-center gap-3 text-[10px] text-slate-300 sm:flex">
                 <span>Hizmetler</span>
                 <span>Ekibimiz</span>

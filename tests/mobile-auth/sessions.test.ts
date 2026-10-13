@@ -37,7 +37,7 @@ test("a session stores only the refresh token hash, and the access token authent
 
   const auth = await authenticateMobileAccessToken(s.accessToken);
   assert.equal(auth?.user.id, user.id);
-  assert.equal(auth?.user.business.userId, user.id);
+  assert.equal(auth?.user.business?.userId, user.id);
 });
 
 test("rotation issues a new pair and each refresh token works only once", async () => {

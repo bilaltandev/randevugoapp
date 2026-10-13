@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import confetti from "canvas-confetti";
-import { CreditCard, CheckCircle2, Check, ShieldCheck, Lock, Tag, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, CheckCircle2, Clock, Copy, Landmark, Lock, Tag, X } from "lucide-react";
 import { Modal } from "@/components/Modal";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -10,6 +10,43 @@ import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 import { applyPercentOff, formatTL, normalizeCouponCode } from "@/lib/couponOptions";
+import {
+  BILLING_PERIODS,
+  PERIOD_NAMES,
+  PERIOD_SUFFIX,
+  PLAN_NAMES,
+  PLAN_PRICES,
+  PLANS,
+  formatUSD,
+  periodOf,
+  planOf,
+  yearlySavingPercent,
+  type BillingPeriod,
+  type Plan,
+} from "@/lib/plans";
+
+const PLAN_INFO: Record<Plan, { tagline: string; features: string[] }> = {
+  PERSON: {
+    tagline: "Tek başına çalışanlar için",
+    features: [
+      "Sınırsız online randevu",
+      "Kendi rezervasyon sayfanız",
+      "Sayfa düzenleyici ve galeri",
+      "Müşteri yönetimi",
+      "Mobil uygulama",
+    ],
+  },
+  TEAM: {
+    tagline: "Ekibiyle çalışan işletmeler için",
+    features: [
+      "Person paketindeki her şey",
+      "Ekibinizi davet edin (5 üyeye kadar)",
+      "Her üye kendi randevularını görür",
+      "Siz tüm randevuları yönetirsiniz",
+      "Tek ödeme: ücreti yalnızca siz ödersiniz",
+    ],
+  },
+};
 
 interface ActiveDiscount {
   code: string;
@@ -17,49 +54,100 @@ interface ActiveDiscount {
   monthsRemaining: number;
 }
 
-interface CouponQuote {
-  code: string;
-  percentOff: number;
-  durationMonths: number;
-  discountedPrice: number;
+interface Subscription {
+  plan: string;
+  status: string;
+  monthlyPrice: number;
+  billingPeriod: string;
+  paymentStatus: string;
+  paymentRequestedAt: string | null;
+  pendingAmount: number | null;
+  pendingAmountTry: number | null;
+  pendingRate: number | null;
+  subscriptionEndDate: string | null;
+  trialEndDate: string;
+}
+
+interface Bank {
+  iban: string;
+  accountName: string;
+  bankName: string;
+}
+
+interface Rate {
+  rate: number;
+  date: string;
+  source: string;
 }
 
 interface SubscriptionClientProps {
-  business: any;
-  initialSubscription: any;
-  basePrice: number;
+  welcome: boolean;
+  initialSubscription: Subscription | null;
+  access: { active: true; kind: "trial" | "paid"; endsAt: string | null } | { active: false };
+  daysLeft: number;
+  bank: Bank | null;
+  reference: string;
   initialActiveDiscount: ActiveDiscount | null;
+  /** USD price per plan and period for this business (custom admin prices included). */
+  prices: Record<Plan, Record<BillingPeriod, number>>;
+  /** USD→TRY for the transfer amount; null when the rate couldn't be fetched. */
+  rate: Rate | null;
 }
 
 export default function SubscriptionClient({
-  business,
+  welcome,
   initialSubscription,
-  basePrice,
+  access,
+  daysLeft,
+  bank,
+  reference,
   initialActiveDiscount,
+  prices,
+  rate,
 }: SubscriptionClientProps) {
+  const router = useRouter();
   const [sub, setSub] = useState(initialSubscription);
-  const [activeDiscount, setActiveDiscount] = useState<ActiveDiscount | null>(initialActiveDiscount);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [gateway, setGateway] = useState<"PayTR" | "iyzico">("PayTR");
-  const [loading, setLoading] = useState(false);
-  const [successNotice, setSuccessNotice] = useState("");
-  const [checkoutError, setCheckoutError] = useState("");
+  const currentPlan = planOf(sub);
+  const [chosen, setChosen] = useState<Plan>(currentPlan);
+  const [period, setPeriod] = useState<BillingPeriod>(periodOf(initialSubscription));
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  // Coupon entry (only when no discount is already running)
+  // Bank transfer dialog
+  const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null);
   const [couponInput, setCouponInput] = useState("");
-  const [couponQuote, setCouponQuote] = useState<CouponQuote | null>(null);
+  const [couponPercent, setCouponPercent] = useState<{ code: string; percentOff: number } | null>(null);
   const [couponError, setCouponError] = useState("");
-  const [checkingCoupon, setCheckingCoupon] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [copied, setCopied] = useState("");
 
-  // What this payment will charge: a running discount wins, else a validated new code.
-  const appliedPercent = activeDiscount?.percentOff ?? couponQuote?.percentOff ?? 0;
-  const chargeAmount = appliedPercent ? applyPercentOff(basePrice, appliedPercent) : basePrice;
-  const basePriceText = formatTL(basePrice);
+  const pending = sub?.paymentStatus === "pending" && sub.paymentRequestedAt ? sub : null;
 
-  const handleApplyCoupon = async () => {
+  /** Price for a plan: the admin's custom price while the plan stays the same, otherwise the list price. */
+  const priceOf = (plan: Plan) => prices[plan][period];
+  const discountPercent = initialActiveDiscount?.percentOff ?? couponPercent?.percentOff ?? 0;
+  const amountFor = (plan: Plan) => (discountPercent ? applyPercentOff(priceOf(plan), discountPercent) : priceOf(plan));
+
+  const copy = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(label);
+      setTimeout(() => setCopied(""), 1500);
+    } catch {
+      // Clipboard blocked: the value is still on screen to copy by hand.
+    }
+  };
+
+  const openCheckout = (plan: Plan) => {
+    setChosen(plan);
+    setCheckoutPlan(plan);
+    setCheckoutError("");
+  };
+
+  const applyCoupon = async () => {
     const code = normalizeCouponCode(couponInput);
     if (!code) return;
-    setCheckingCoupon(true);
     setCouponError("");
     try {
       const res = await fetch("/api/subscription/coupon", {
@@ -67,385 +155,428 @@ export default function SubscriptionClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setCouponQuote(null);
+        setCouponPercent(null);
         setCouponError(data.error || "İndirim kodu uygulanamadı.");
         return;
       }
-      setCouponQuote(data);
+      setCouponPercent({ code: data.code, percentOff: data.percentOff });
     } catch {
       setCouponError("Bağlantı hatası oluştu.");
-    } finally {
-      setCheckingCoupon(false);
     }
   };
 
-  const clearCoupon = () => {
-    setCouponQuote(null);
-    setCouponInput("");
-    setCouponError("");
-  };
-
-  // Card simulation fields
-  const [cardNumber, setCardNumber] = useState("5428 •••• •••• 9012");
-  const [cardHolder, setCardHolder] = useState(business.name);
-  const [cardExpiry, setCardExpiry] = useState("12/28");
-  const [cardCvc, setCardCvc] = useState("342");
-
-  const now = new Date();
-  let daysRemaining = 0;
-  if (sub?.status === "trial" && sub?.trialEndDate) {
-    const diff = new Date(sub.trialEndDate).getTime() - now.getTime();
-    daysRemaining = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  } else if (sub?.status === "active" && sub?.subscriptionEndDate) {
-    const diff = new Date(sub.subscriptionEndDate).getTime() - now.getTime();
-    daysRemaining = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  }
-
-  // Handle Pro Checkout (PayTR / iyzico mock)
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setSuccessNotice("");
+  const sendPaymentRequest = async () => {
+    if (!checkoutPlan) return;
+    setBusy(true);
     setCheckoutError("");
-
     try {
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: gateway, planType: "PRO", couponCode: couponQuote?.code }),
+        body: JSON.stringify({ plan: checkoutPlan, billingPeriod: period, couponCode: couponPercent?.code }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setCheckoutError(data.error || "Ödeme tamamlanamadı.");
+        setCheckoutError(data.error || "Ödeme bildirimi gönderilemedi.");
         return;
       }
-      if (data.subscription) {
-        setSub(data.subscription);
-        setActiveDiscount(data.activeDiscount);
-        clearCoupon();
-        setIsCheckoutOpen(false);
-        setSuccessNotice(
-          data.appliedCode
-            ? `${gateway} 3D Secure doğrulaması onaylandı! ${data.appliedCode} kodu ile %${data.percentOff} indirimli ${formatTL(data.chargedAmount)} ödemeniz alındı.`
-            : `${gateway} 3D Secure doğrulaması onaylandı! Aboneliğiniz ${formatTL(data.chargedAmount)} / ay olarak aktif edildi.`
-        );
-        confetti({ particleCount: 100, spread: 70 });
-      }
-    } catch (e) {
-      console.error(e);
+      setSub((s) =>
+        s
+          ? {
+              ...s,
+              plan: data.plan,
+              monthlyPrice: priceOf(checkoutPlan),
+              billingPeriod: period,
+              pendingAmountTry: data.amountTry ?? null,
+              pendingRate: data.rate?.rate ?? null,
+              paymentStatus: "pending",
+              paymentRequestedAt: new Date().toISOString(),
+              pendingAmount: data.amount,
+            }
+          : s
+      );
+      setCheckoutPlan(null);
+      setNotice("Ödeme bildiriminiz alındı. Havaleniz kontrol edilip onaylanınca aboneliğiniz aktif olur.");
+      router.refresh();
+    } catch {
+      setCheckoutError("Bağlantı hatası oluştu.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
-  // Test status switcher
-  const handleSimulateStatus = async (status: string) => {
+  // During the trial or a paid period the owner may switch plans; the next payment uses the new price.
+  const switchPlan = async (plan: Plan) => {
+    setBusy(true);
+    setError("");
     try {
       const res = await fetch("/api/subscription", {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ plan }),
       });
-      const data = await res.json();
-      if (data.subscription) {
-        setSub(data.subscription);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Plan değiştirilemedi.");
+        return false;
       }
-    } catch (e) {
-      console.error(e);
+      setSub((s) => (s ? { ...s, plan: data.plan, monthlyPrice: data.monthlyPrice } : s));
+      return true;
+    } catch {
+      setError("Bağlantı hatası oluştu.");
+      return false;
+    } finally {
+      setBusy(false);
     }
   };
 
-  const isActive = sub?.status === "active";
-  const isExpired = sub?.status === "expired";
+  const startTrial = async () => {
+    if (chosen !== currentPlan && !(await switchPlan(chosen))) return;
+    router.push("/dashboard");
+    router.refresh();
+  };
 
-  const statusBadge = isActive
-    ? { label: "Aktif", cls: "bg-brand-soft text-brand-ink border-brand-line" }
-    : isExpired
+  const status = !access.active
     ? { label: "Süresi doldu", cls: "bg-danger-soft text-danger border-danger-line" }
-    : { label: "Deneme sürümü", cls: "bg-pending-soft text-pending border-pending-line" };
+    : access.kind === "paid"
+      ? { label: "Aktif", cls: "bg-brand-soft text-brand-ink border-brand-line" }
+      : { label: "Ücretsiz deneme", cls: "bg-pending-soft text-pending border-pending-line" };
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Abonelik"
-        description="Planınızı, deneme sürenizi ve ödeme yöntemlerinizi yönetin."
+        title={welcome ? "Paketinizi seçin" : "Abonelik"}
+        description={
+          welcome
+            ? "Kaydınız tamamlandı. Hemen satın alabilir ya da önce 3 gün ücretsiz deneyebilirsiniz."
+            : "Paketinizi, deneme sürenizi ve ödemelerinizi buradan yönetin."
+        }
       />
 
-      {successNotice && (
-        <div
-          role="status"
-          className="flex items-center gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink"
-        >
+      {notice && (
+        <div role="status" className="flex items-center gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
           <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {successNotice}
+          {notice}
         </div>
       )}
+      {error && (
+        <p role="alert" className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
-      {/* Current plan */}
-      <Panel>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-base font-semibold text-ink">
-                {isActive ? "RandevuGo Pro" : "Ücretsiz deneme"}
-              </h2>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-control border px-1.5 py-0.5 text-xs font-medium leading-4",
-                  statusBadge.cls
-                )}
-              >
-                {statusBadge.label}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-ink-3">
-              {isActive
-                ? `Sınırsız randevu, çalışan yönetimi ve sayfa düzenleyici dahil. Yenilemeye ${daysRemaining} gün.`
-                : isExpired
-                ? "Deneme süreniz sona erdi. Rezervasyon almaya devam etmek için Pro'ya geçin."
-                : `Deneme sürenizin bitmesine ${daysRemaining} gün kaldı.`}
-            </p>
-          </div>
-
-          <Button variant="primary" onClick={() => setIsCheckoutOpen(true)}>
-            {isActive ? "Planı yönet" : `Pro'ya geç · ${basePriceText}/ay`}
-          </Button>
-        </div>
-
-        {activeDiscount && (
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4 text-sm">
-            <Tag className="h-4 w-4 text-brand" aria-hidden="true" />
-            <span className="font-medium text-ink">{activeDiscount.code}</span>
-            <span className="text-ink-3">
-              · %{activeDiscount.percentOff} indirim · sonraki {activeDiscount.monthsRemaining} aylık ödemede{" "}
-              {formatTL(applyPercentOff(basePrice, activeDiscount.percentOff))}
+      {!welcome && (
+        <Panel>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-semibold text-ink">CalendlyGo {PLAN_NAMES[currentPlan]}</h2>
+            <span className={cn("inline-flex items-center rounded-control border px-1.5 py-0.5 text-xs font-medium leading-4", status.cls)}>
+              {status.label}
             </span>
           </div>
-        )}
+          <p className="mt-1 text-sm text-ink-3">
+            {!access.active
+              ? "Panel ve randevu sayfanız kapalı. Devam etmek için aşağıdan bir paket satın alın."
+              : access.kind === "paid"
+                ? `Aboneliğiniz ${access.endsAt ? new Date(access.endsAt).toLocaleDateString("tr-TR") : ""} tarihine kadar aktif (${daysLeft} gün).`
+                : `Ücretsiz denemenizin bitmesine ${daysLeft} gün kaldı. Süre bitince panel ve randevu sayfanız kapanır.`}
+          </p>
+          {initialActiveDiscount && (
+            <p className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-3 text-sm text-ink-3">
+              <Tag className="h-4 w-4 text-brand" aria-hidden="true" />
+              <span className="font-medium text-ink">{initialActiveDiscount.code}</span>· %{initialActiveDiscount.percentOff} indirim, kalan{" "}
+              {initialActiveDiscount.monthsRemaining} ay
+            </p>
+          )}
+        </Panel>
+      )}
 
-        {sub?.status === "trial" && (
-          <div className="mt-5 space-y-1.5 border-t border-line pt-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-ink-3">Deneme süresi</span>
-              <span className="tabular-nums text-ink">{daysRemaining} / 3 gün kaldı</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
-              <div
-                className="h-full rounded-full bg-pending"
-                style={{ width: `${Math.max(4, (daysRemaining / 3) * 100)}%` }}
-              />
+      {pending && (
+        <Panel>
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pending-soft text-pending">
+              <Clock className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[15px] font-semibold text-ink">Ödemeniz kontrol ediliyor</h2>
+              <p className="mt-0.5 text-sm text-ink-3">
+                {PLAN_NAMES[currentPlan]} ({PERIOD_NAMES[periodOf(pending)].toLowerCase()}) paketi için{" "}
+                {formatUSD(pending.pendingAmount ?? pending.monthlyPrice)}
+                {pending.pendingAmountTry ? ` (${formatTL(pending.pendingAmountTry)})` : ""} havale bildiriminiz{" "}
+                {new Date(pending.paymentRequestedAt!).toLocaleDateString("tr-TR")} tarihinde alındı. Ödeme hesabımıza geçip
+                onaylandığında aboneliğiniz otomatik olarak aktif olur.
+              </p>
+              <BankDetails bank={bank} reference={reference} copied={copied} onCopy={copy} className="mt-3" />
             </div>
           </div>
-        )}
-      </Panel>
-
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {/* Pro plan */}
-        <Panel
-          title="İşletme Pro"
-          description="Randevu, müşteri ve web sayfası ihtiyaçlarınız için hepsi bir arada."
-          action={
-            <p className="text-right">
-              <span className="text-xl font-semibold tabular-nums text-ink">{basePriceText}</span>
-              <span className="text-sm text-ink-3"> / ay</span>
-            </p>
-          }
-        >
-          <ul className="space-y-2.5">
-            {[
-              "Sınırsız online rezervasyon",
-              "Özel rezervasyon sayfası (randevugo.com/adiniz)",
-              "Sürükle-bırak sayfa düzenleyici",
-              "Sınırsız hizmet ve çalışan",
-              "Müşteri yönetimi (CRM)",
-              "WhatsApp bildirim bağlantısı",
-              "Doğrulanmış müşteri yorumları",
-              "Yapay zeka destekli yoğunluk analizi",
-            ].map((f) => (
-              <li key={f} className="flex items-center gap-2.5 text-sm text-ink-2">
-                <Check className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
-                {f}
-              </li>
-            ))}
-          </ul>
-
-          <Button variant="primary" className="mt-5 w-full" onClick={() => setIsCheckoutOpen(true)}>
-            Abone ol
-          </Button>
         </Panel>
+      )}
 
-        <div className="space-y-5">
-          <Panel title="Ödeme altyapısı" description="PayTR ve iyzico ile 3D Secure ödeme.">
-            <ul className="divide-y divide-line rounded-control border border-line">
-              {[
-                ["PayTR", "Sanal POS ve 3D Secure"],
-                ["iyzico", "Korumalı alışveriş"],
-              ].map(([name, desc]) => (
-                <li key={name} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                  <div>
-                    <p className="text-sm font-medium text-ink">{name}</p>
-                    <p className="text-xs text-ink-3">{desc}</p>
-                  </div>
-                  <ShieldCheck className="h-4 w-4 text-ink-3" aria-hidden="true" />
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          {/* Test status simulator (developer / tester) */}
-          <Panel
-            title="Test simülatörü"
-            description="Farklı abonelik durumlarını ve kısıtlamaları anında denemek için."
-          >
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              <Button size="sm" onClick={() => handleSimulateStatus("trial")}>
-                Deneme yap
-              </Button>
-              <Button size="sm" onClick={() => handleSimulateStatus("active")}>
-                Pro aktif yap
-              </Button>
-              <Button size="sm" variant="danger" onClick={() => handleSimulateStatus("expired")}>
-                Süresi doldur
-              </Button>
-            </div>
-          </Panel>
+      <div className="flex justify-center">
+        <div className="inline-flex gap-1 rounded-control border border-line bg-surface-muted p-1" role="radiogroup" aria-label="Ödeme dönemi">
+          {BILLING_PERIODS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={period === option}
+              onClick={() => setPeriod(option)}
+              className={cn(
+                "rounded-[6px] px-4 py-1.5 text-sm font-medium transition-colors",
+                period === option ? "bg-surface text-ink shadow-raised" : "text-ink-3 hover:text-ink"
+              )}
+            >
+              {PERIOD_NAMES[option]}
+              {option === "YEARLY" && (
+                <span className="ml-1.5 rounded-full bg-brand-soft px-1.5 py-0.5 text-[11px] font-semibold text-brand-ink">
+                  %{yearlySavingPercent("PERSON")} indirim
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* PayTR / iyzico Checkout Modal */}
-      <Modal isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} title={`Güvenli ödeme · ${basePriceText} / ay`}>
-        <form onSubmit={handleCheckout} className="space-y-4">
-          <fieldset>
-            <legend className="mb-1.5 text-sm font-medium text-ink-2">Ödeme altyapısı</legend>
-            <div className="grid grid-cols-2 gap-2">
-              {(["PayTR", "iyzico"] as const).map((g) => (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2" role="radiogroup" aria-label="Paket">
+        {PLANS.map((plan) => {
+          const selected = chosen === plan;
+          const isCurrent = plan === currentPlan;
+          return (
+            <div
+              key={plan}
+              role="radio"
+              aria-checked={selected}
+              tabIndex={0}
+              onClick={() => setChosen(plan)}
+              onKeyDown={(e) => {
+                if (e.key === " " || e.key === "Enter") {
+                  e.preventDefault();
+                  setChosen(plan);
+                }
+              }}
+              className={cn(
+                "flex cursor-pointer flex-col rounded-panel border bg-surface p-5 shadow-panel transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                selected ? "border-brand ring-1 ring-brand" : "border-line hover:border-line-strong"
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-ink">{PLAN_NAMES[plan]}</h3>
+                  <p className="text-sm text-ink-3">{PLAN_INFO[plan].tagline}</p>
+                </div>
+                {isCurrent && !welcome && (
+                  <span className="rounded-full border border-brand-line bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-ink">
+                    Mevcut paket
+                  </span>
+                )}
+              </div>
+              <p className="mt-4">
+                <span className="font-display text-3xl font-bold tabular-nums text-ink">{formatUSD(priceOf(plan))}</span>
+                <span className="text-sm text-ink-3"> {PERIOD_SUFFIX[period]}</span>
+                {period === "YEARLY" && (
+                  <span className="mt-0.5 block text-xs text-ink-3">
+                    Ayda {formatUSD(priceOf(plan) / 12)} · aylık ödemeye göre {formatUSD(PLAN_PRICES[plan].MONTHLY * 12 - priceOf(plan))} tasarruf
+                  </span>
+                )}
+              </p>
+              <ul className="mt-4 flex-1 space-y-2">
+                {PLAN_INFO[plan].features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2 text-sm text-ink-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                variant={selected ? "primary" : "secondary"}
+                className="mt-5 w-full"
+                disabled={busy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCheckout(plan);
+                }}
+              >
+                Satın al
+              </Button>
+              {!welcome && access.active && !isCurrent && (
                 <button
-                  key={g}
                   type="button"
-                  aria-pressed={gateway === g}
-                  onClick={() => setGateway(g)}
-                  className={cn(
-                    "h-10 rounded-control border text-sm font-medium transition-colors",
-                    gateway === g
-                      ? "border-brand bg-brand-soft text-brand-ink"
-                      : "border-line-strong bg-surface text-ink-2 hover:bg-surface-muted"
-                  )}
+                  disabled={busy}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (await switchPlan(plan)) setNotice(`Paketiniz ${PLAN_NAMES[plan]} olarak değiştirildi.`);
+                  }}
+                  className="mt-2 text-sm font-medium text-ink-3 hover:text-ink disabled:opacity-50"
                 >
-                  {g === "PayTR" ? "PayTR Sanal POS" : "iyzico"}
+                  {access.kind === "trial" ? "Denemeye bu paketle devam et" : "Sonraki ödemeden itibaren bu pakete geç"}
                 </button>
-              ))}
+              )}
             </div>
-          </fieldset>
+          );
+        })}
+      </div>
 
-          <Field label="Kart numarası" htmlFor="card-number">
-            <div className="relative">
-              <CreditCard className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
-              <Input
-                id="card-number"
-                type="text"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                className="pl-9 font-mono"
-              />
-            </div>
-          </Field>
+      {welcome && (
+        <div className="flex flex-col items-center gap-1 pt-1 text-center">
+          <button
+            type="button"
+            onClick={startTrial}
+            disabled={busy}
+            className="text-base font-semibold text-brand hover:text-brand-hover hover:underline disabled:opacity-50"
+          >
+            3 gün ücretsiz deneyin →
+          </button>
+          <p className="text-xs text-ink-3">
+            Seçtiğiniz {PLAN_NAMES[chosen]} paketiyle başlar. Kart bilgisi gerekmez; süre bitince panel kapanır.
+          </p>
+        </div>
+      )}
 
-          <Field label="Kart üzerindeki isim" htmlFor="card-holder">
-            <Input id="card-holder" type="text" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Son kullanma (AA/YY)" htmlFor="card-expiry">
-              <Input
-                id="card-expiry"
-                type="text"
-                value={cardExpiry}
-                onChange={(e) => setCardExpiry(e.target.value)}
-                className="font-mono"
-              />
-            </Field>
-            <Field label="CVV" htmlFor="card-cvc">
-              <Input
-                id="card-cvc"
-                type="text"
-                value={cardCvc}
-                onChange={(e) => setCardCvc(e.target.value)}
-                className="font-mono"
-              />
-            </Field>
-          </div>
-
-          {activeDiscount ? (
-            <p className="flex items-center gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
-              <Tag className="h-4 w-4 shrink-0" aria-hidden="true" />
-              {activeDiscount.code} indiriminiz bu ödemeye otomatik uygulanır (%{activeDiscount.percentOff}, {activeDiscount.monthsRemaining} ay kaldı).
-            </p>
-          ) : couponQuote ? (
-            <div className="flex items-center justify-between gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
-              <span className="flex items-center gap-2">
-                <Tag className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>
-                  <span className="font-medium">{couponQuote.code}</span> · %{couponQuote.percentOff} indirim · ilk{" "}
-                  {couponQuote.durationMonths} ay
-                </span>
+      {/* Bank transfer (havale/EFT) */}
+      <Modal
+        isOpen={checkoutPlan !== null}
+        onClose={() => setCheckoutPlan(null)}
+        title={checkoutPlan ? `${PLAN_NAMES[checkoutPlan]} paketi · Havale/EFT` : ""}
+      >
+        {checkoutPlan && (
+          <div className="space-y-4 text-sm">
+            <div className="flex items-baseline justify-between rounded-control bg-surface-muted px-3 py-2.5">
+              <span className="text-ink-2">Ödenecek tutar ({period === "YEARLY" ? "1 yıl" : "1 ay"})</span>
+              <span className="text-right">
+                {discountPercent > 0 && (
+                  <span className="mr-1.5 text-xs text-ink-3 line-through">{formatUSD(priceOf(checkoutPlan))}</span>
+                )}
+                <span className="font-display text-lg font-bold tabular-nums text-ink">{formatUSD(amountFor(checkoutPlan))}</span>
               </span>
-              <button type="button" onClick={clearCoupon} className="rounded-control p-1 hover:bg-brand/10" aria-label="İndirim kodunu kaldır">
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
             </div>
-          ) : (
-            <Field label="İndirim kodu" htmlFor="coupon-code">
-              <div className="flex gap-2">
-                <Input
-                  id="coupon-code"
-                  type="text"
-                  autoComplete="off"
-                  placeholder="Kodunuz varsa girin"
-                  value={couponInput}
-                  onChange={(e) => {
-                    setCouponInput(e.target.value);
-                    setCouponError("");
-                  }}
-                  onKeyDown={(e) => {
-                    // Enter here should apply the code, not submit the payment form.
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleApplyCoupon();
-                    }
-                  }}
-                  className="font-mono uppercase"
-                />
-                <Button type="button" onClick={handleApplyCoupon} disabled={checkingCoupon || !couponInput.trim()}>
-                  {checkingCoupon ? "Kontrol..." : "Uygula"}
-                </Button>
-              </div>
-              {couponError && <p className="text-xs text-danger">{couponError}</p>}
-            </Field>
-          )}
+            <p className="-mt-2 text-xs text-ink-3">
+              {rate ? (
+                <>
+                  Havale tutarı:{" "}
+                  <span className="font-semibold text-ink">{formatTL(usdToTryDisplay(amountFor(checkoutPlan), rate.rate))}</span> (TCMB
+                  döviz satış kuru {rate.rate.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
+                  {rate.date ? `, ${rate.date}` : ""}). Kesin tutar bildirimi gönderdiğiniz andaki kurla sabitlenir.
+                </>
+              ) : (
+                "Güncel kur şu an alınamadı; bildirim gönderilirken o günün kuruyla TL tutarı hesaplanır."
+              )}
+            </p>
 
-          <div className="space-y-1 rounded-control bg-surface-muted px-3 py-2 text-sm">
-            {appliedPercent > 0 && (
-              <div className="flex items-center justify-between text-ink-3">
-                <span>Aylık ücret</span>
-                <span className="tabular-nums line-through">{basePriceText}</span>
-              </div>
+            {!initialActiveDiscount &&
+              (couponPercent ? (
+                <div className="flex items-center justify-between rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-brand-ink">
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="h-4 w-4" aria-hidden="true" />
+                    {couponPercent.code} · %{couponPercent.percentOff} indirim
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="İndirim kodunu kaldır"
+                    onClick={() => {
+                      setCouponPercent(null);
+                      setCouponInput("");
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <Field label="İndirim kodu (isteğe bağlı)" htmlFor="coupon">
+                  <div className="flex gap-2">
+                    <Input id="coupon" value={couponInput} onChange={(e) => setCouponInput(e.target.value)} placeholder="KOD" />
+                    <Button onClick={applyCoupon} disabled={!couponInput.trim()}>
+                      Uygula
+                    </Button>
+                  </div>
+                  {couponError && <p className="mt-1 text-xs text-danger">{couponError}</p>}
+                </Field>
+              ))}
+
+            <div>
+              <p className="mb-2 font-medium text-ink">1. Tutarı aşağıdaki hesaba gönderin</p>
+              <BankDetails bank={bank} reference={reference} copied={copied} onCopy={copy} />
+            </div>
+            <div>
+              <p className="font-medium text-ink">2. Ödeme bildirimini gönderin</p>
+              <p className="mt-0.5 text-ink-3">
+                Açıklamaya <span className="font-semibold text-ink">{reference}</span> kodunu yazmayı unutmayın. Ödemeniz
+                onaylanınca aboneliğiniz 30 gün için aktif olur ve size bildirim gelir.
+              </p>
+            </div>
+
+            {checkoutError && (
+              <p role="alert" className="rounded-control border border-danger-line bg-danger-soft px-3 py-2 text-danger">
+                {checkoutError}
+              </p>
             )}
-            <div className="flex items-center justify-between">
-              <span className="text-ink-3">Çekilecek tutar</span>
-              <span className="font-semibold tabular-nums text-ink">{formatTL(chargeAmount)}</span>
-            </div>
+            <Button variant="primary" className="w-full" onClick={sendPaymentRequest} disabled={busy || !bank}>
+              {busy ? "Gönderiliyor…" : "Ödemeyi yaptım, bildirimi gönder"}
+            </Button>
           </div>
-
-          {checkoutError && <p className="text-sm text-danger">{checkoutError}</p>}
-
-          <Button type="submit" variant="primary" disabled={loading} className="w-full">
-            <Lock className="w-4 h-4" aria-hidden="true" />
-            {loading ? "3D Secure onaylanıyor..." : `${formatTL(chargeAmount)} ile abone ol (${gateway})`}
-          </Button>
-        </form>
+        )}
       </Modal>
     </div>
   );
+}
+
+function BankDetails({
+  bank,
+  reference,
+  copied,
+  onCopy,
+  className,
+}: {
+  bank: Bank | null;
+  reference: string;
+  copied: string;
+  onCopy: (label: string, value: string) => void;
+  className?: string;
+}) {
+  if (!bank) {
+    return (
+      <p className={cn("flex items-start gap-2 rounded-control border border-pending-line bg-pending-soft px-3 py-2 text-sm text-ink-2", className)}>
+        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-pending" aria-hidden="true" />
+        Banka bilgileri henüz eklenmedi. Lütfen destek talebi oluşturun, size hemen iletelim.
+      </p>
+    );
+  }
+  const rows: [string, string][] = [
+    ["Alıcı", bank.accountName],
+    ["Banka", bank.bankName],
+    ["IBAN", bank.iban],
+    ["Açıklama", reference],
+  ];
+  return (
+    <dl className={cn("divide-y divide-line rounded-control border border-line", className)}>
+      {rows
+        .filter(([, value]) => value)
+        .map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between gap-3 px-3 py-2">
+            <dt className="flex items-center gap-1.5 text-xs text-ink-3">
+              {label === "Banka" && <Landmark className="h-3.5 w-3.5" aria-hidden="true" />}
+              {label}
+            </dt>
+            <dd className="flex min-w-0 items-center gap-2">
+              <span className="truncate font-medium text-ink tabular-nums">{value}</span>
+              {(label === "IBAN" || label === "Açıklama") && (
+                <button
+                  type="button"
+                  onClick={() => onCopy(label, value)}
+                  className="shrink-0 text-ink-3 hover:text-ink"
+                  aria-label={`${label} kopyala`}
+                >
+                  {copied === label ? <Check className="h-4 w-4 text-brand" /> : <Copy className="h-4 w-4" />}
+                </button>
+              )}
+            </dd>
+          </div>
+        ))}
+    </dl>
+  );
+}
+
+/** Same rounding as the server (exchangeRate.usdToTry): up to the kuruş. */
+function usdToTryDisplay(usd: number, rate: number) {
+  return Math.ceil(usd * rate * 100 - 1e-6) / 100;
 }

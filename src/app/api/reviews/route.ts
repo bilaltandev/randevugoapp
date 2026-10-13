@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 // GET: List reviews for business
 export async function GET(req: Request) {
@@ -121,6 +122,8 @@ export async function PATCH(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const { id, businessReply } = await req.json();
 

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import fs from "fs/promises";
 import path from "path";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 // Add or Update Gallery Item
 export async function POST(req: Request) {
@@ -11,6 +12,8 @@ export async function POST(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const business = user.business;
     const body = await req.json();
@@ -95,6 +98,8 @@ export async function DELETE(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

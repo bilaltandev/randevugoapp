@@ -1,4 +1,6 @@
 import type { MobileUser } from "@/lib/mobileAuth";
+import { planOf } from "@/lib/plans";
+import { subscriptionAccess } from "@/lib/subscriptionAccess";
 import type { RateLimitResult } from "@/lib/rateLimit";
 
 // Shared response helpers for /api/mobile/auth/*. Not a route (only route.ts files are routes).
@@ -38,11 +40,15 @@ export async function readJsonObject(request: Request): Promise<Record<string, u
   }
 }
 
-/** The profile a mobile client may see: no password hash, no internal flags. */
+/**
+ * The profile a mobile client may see: no password hash, no internal flags. A team member gets their
+ * business here too (for its name and plan) plus `member`, which tells the app to show the member view.
+ */
 export function toMobileProfile(user: MobileUser) {
-  const { business } = user;
+  const business = user.business ?? user.member!.business;
   return {
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    member: user.member ? { employeeId: user.member.employeeId, employeeName: user.member.employeeName } : null,
     business: {
       id: business.id,
       name: business.name,
@@ -54,8 +60,11 @@ export function toMobileProfile(user: MobileUser) {
         ? {
             status: business.subscription.status,
             planType: business.subscription.planType,
+            plan: planOf(business.subscription),
             trialEndDate: business.subscription.trialEndDate,
             subscriptionEndDate: business.subscription.subscriptionEndDate,
+            // False once the trial or paid period is over: the app then shows only the lock screen.
+            active: subscriptionAccess(business.subscription).active,
           }
         : null,
     },

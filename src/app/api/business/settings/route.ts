@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { storedTimeToMinutes } from "@/lib/appointmentRules";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 export async function GET() {
   try {
@@ -32,6 +33,8 @@ export async function PUT(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const body = await req.json();
     const {

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { THEME_REGISTRY, getSectorRecommendations } from "@/lib/themes/registry";
 import { LAYOUTS } from "@/lib/themes/layouts";
 import { DEFAULT_HERO_ACTION_ITEMS, HERO_ITEM_METADATA } from "@/lib/hero/types";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 const DEFAULT_SECTION_ORDER = ["Hero", "Services", "Staff", "Gallery", "Reviews", "Booking", "Location"];
 
@@ -140,6 +141,8 @@ export async function POST(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const body = await req.json();
     const {

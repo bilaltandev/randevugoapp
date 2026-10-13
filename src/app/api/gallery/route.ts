@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { SECTOR_SAMPLE_IMAGES } from "@/lib/gallery/types";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 // Helper to check if gallery feature is active for this business
 export async function isGalleryFeatureEnabled(businessId: string, sector: string): Promise<boolean> {
@@ -144,6 +145,8 @@ export async function POST(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const business = user.business;
     const body = await req.json();

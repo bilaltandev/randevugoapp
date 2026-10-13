@@ -6,8 +6,10 @@ const appointmentInclude = { service: true, employee: true } as const;
 /**
  * Data of the panel overview ("Özet"), shared by the web dashboard page and GET /api/dashboard/summary
  * (mobile). "Today" is Türkiye time; appointment dates are "YYYY-MM-DD" strings, so a month is a prefix.
+ * With `employeeId` (a team member's own overview) every figure counts only that staff member's bookings.
  */
-export async function getDashboardSummary(businessId: string) {
+export async function getDashboardSummary(businessId: string, employeeId?: string) {
+  const scope = employeeId ? { businessId, employeeId } : { businessId };
   const todayStr = businessNow().dateKey;
   const monthPrefix = todayStr.slice(0, 7);
 
@@ -28,22 +30,22 @@ export async function getDashboardSummary(businessId: string) {
     lastWeek,
   ] = await Promise.all([
     prisma.appointment.findMany({
-      where: { businessId, date: todayStr },
+      where: { ...scope, date: todayStr },
       include: appointmentInclude,
       orderBy: { startTime: "asc" },
     }),
     prisma.appointment.findMany({
-      where: { businessId, status: "PENDING", isBlockedSlot: false, date: { gte: todayStr } },
+      where: { ...scope, status: "PENDING", isBlockedSlot: false, date: { gte: todayStr } },
       include: appointmentInclude,
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
       take: 6,
     }),
     prisma.appointment.count({
-      where: { businessId, status: "PENDING", isBlockedSlot: false, date: { gte: todayStr } },
+      where: { ...scope, status: "PENDING", isBlockedSlot: false, date: { gte: todayStr } },
     }),
     prisma.appointment.findMany({
       where: {
-        businessId,
+        ...scope,
         date: { gt: todayStr },
         status: { in: ["PENDING", "CONFIRMED"] },
         isBlockedSlot: false,
@@ -53,16 +55,16 @@ export async function getDashboardSummary(businessId: string) {
       take: 5,
     }),
     prisma.appointment.findMany({
-      where: { businessId, status: "COMPLETED", isBlockedSlot: false, date: { startsWith: monthPrefix } },
+      where: { ...scope, status: "COMPLETED", isBlockedSlot: false, date: { startsWith: monthPrefix } },
       select: { price: true },
     }),
     prisma.review.aggregate({
-      where: { businessId },
+      where: scope,
       _avg: { rating: true },
       _count: { _all: true },
     }),
     prisma.appointment.findMany({
-      where: { businessId, isBlockedSlot: false, date: { gte: last7[0], lte: todayStr }, status: { not: "CANCELLED" } },
+      where: { ...scope, isBlockedSlot: false, date: { gte: last7[0], lte: todayStr }, status: { not: "CANCELLED" } },
       select: { date: true, status: true, price: true },
     }),
   ]);

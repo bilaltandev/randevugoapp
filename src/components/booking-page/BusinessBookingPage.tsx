@@ -518,7 +518,7 @@ export function BusinessBookingPage({
             <p className="mt-1">
               Online randevu altyapısı{" "}
               <Link href="/" className="font-medium text-ink-2 hover:underline">
-                RandevuGo
+                CalendlyGo
               </Link>
             </p>
           </footer>

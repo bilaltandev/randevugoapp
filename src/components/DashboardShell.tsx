@@ -16,18 +16,24 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { CommandPalette } from "@/components/CommandPalette";
 import { cn } from "@/lib/utils";
+import { SubscriptionLocked } from "@/components/SubscriptionLocked";
 
 interface DashboardShellProps {
   business: any;
   user: any;
   subscriptionStatus: string;
+  /** Trial or subscription over: only the subscription and support pages stay usable. */
+  locked?: boolean;
   children: React.ReactNode;
 }
+
+const OPEN_WHEN_LOCKED = ["/dashboard/subscription", "/dashboard/support"];
 
 export function DashboardShell({
   business,
   user,
   subscriptionStatus,
+  locked = false,
   children,
 }: DashboardShellProps) {
   // Default is "light" as requested by user
@@ -107,7 +113,9 @@ export function DashboardShell({
         />
 
         <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-24 md:pb-8 dash-content-scroll">
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-7xl mx-auto">
+            {locked && !OPEN_WHEN_LOCKED.some((path) => pathname.startsWith(path)) ? <SubscriptionLocked /> : children}
+          </div>
         </main>
       </div>
 

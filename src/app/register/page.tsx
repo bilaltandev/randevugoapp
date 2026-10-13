@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 import { SECTORS, cn } from "@/lib/utils";
 import { AuthShell, AuthError } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -31,6 +31,11 @@ export default function RegisterPage() {
   const [address, setAddress] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
 
+  // "Hazır ekibe katıl": a team member signs up with the owner's invite code (one step, mobile app afterwards).
+  const [mode, setMode] = useState<"business" | "join">("business");
+  const [inviteCode, setInviteCode] = useState("");
+  const [joinedTeam, setJoinedTeam] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,6 +47,30 @@ export default function RegisterPage() {
         .replace(/-+/g, "-")
         .replace(/^-|-$/g, "")
     : "isletmeniz";
+
+  const handleJoin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteCode.trim() || !name || !email || !password) {
+      setError("Lütfen davet kodunu ve zorunlu alanları doldurunuz.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/team/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: inviteCode, name, email, password, phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setError(data.error || "Ekibe katılınamadı.");
+      else setJoinedTeam(data.businessName);
+    } catch {
+      setError("Bağlantı hatası oluştu.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +113,8 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.error || "Kayıt tamamlanamadı.");
       } else {
-        router.push("/dashboard");
+        // Next: the plan cards with "3 gün ücretsiz deneyin" under them.
+        router.push("/dashboard/subscription?hosgeldin=1");
         router.refresh();
       }
     } catch (err) {
@@ -109,9 +139,131 @@ export default function RegisterPage() {
     </div>
   );
 
+  const modeSwitch = (
+    <div className="grid grid-cols-2 gap-2" role="tablist" aria-label="Kayıt türü">
+      {([
+        ["business", "Yeni işletme"],
+        ["join", "Hazır ekibe katıl"],
+      ] as const).map(([id, label]) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={mode === id}
+          onClick={() => {
+            setMode(id);
+            setError("");
+          }}
+          className={choiceClasses(mode === id, "h-9 px-3 text-sm")}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (mode === "join") {
+    return (
+      <AuthShell
+        eyebrow={modeSwitch}
+        title={joinedTeam ? "Ekibe katıldınız" : "Ekibe katılın"}
+        description={
+          joinedTeam
+            ? undefined
+            : "İşletme sahibinin size verdiği davet kodunu girin. Size alınan randevuları mobil uygulamada görürsünüz."
+        }
+        footer={
+          <>
+            Zaten hesabınız var mı?{" "}
+            <Link href="/login" className="font-medium text-brand hover:text-brand-hover">
+              Giriş yapın
+            </Link>
+          </>
+        }
+      >
+        {joinedTeam ? (
+          <div className="flex items-start gap-3 rounded-control border border-line bg-surface p-4 text-sm" role="status">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden="true" />
+            <p className="text-ink-2">
+              <strong className="font-medium text-ink">{joinedTeam}</strong> ekibine katıldınız. Mobil uygulamayı açın ve{" "}
+              <strong className="font-medium text-ink">{email}</strong> adresi ile oluşturduğunuz şifreyle giriş yapın.
+            </p>
+          </div>
+        ) : (
+          <>
+            {error && <AuthError>{error}</AuthError>}
+            <form onSubmit={handleJoin} className="space-y-4">
+              <Field label="Davet kodu *" htmlFor="join-code">
+                <Input
+                  id="join-code"
+                  type="text"
+                  required
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  placeholder="K7M2-QXAB"
+                  maxLength={12}
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                  className={cn(AUTH_INPUT, "tracking-widest")}
+                />
+              </Field>
+              <Field label="Ad soyad *" htmlFor="join-name">
+                <Input id="join-name" type="text" required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className={AUTH_INPUT} />
+              </Field>
+              <Field label="E-posta adresi *" htmlFor="join-email">
+                <Input
+                  id="join-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  inputMode="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={AUTH_INPUT}
+                />
+              </Field>
+              <Field label="Şifre *" htmlFor="join-password" hint="En az 8 karakter.">
+                <PasswordInput
+                  id="join-password"
+                  required
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={AUTH_INPUT}
+                />
+              </Field>
+              <Field label="Telefon numarası" htmlFor="join-phone">
+                <Input id="join-phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={AUTH_INPUT} />
+              </Field>
+              <Button type="submit" variant="primary" disabled={loading} className="h-10 w-full">
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    Katılınıyor...
+                  </>
+                ) : (
+                  "Ekibe katıl"
+                )}
+              </Button>
+            </form>
+          </>
+        )}
+      </AuthShell>
+    );
+  }
+
   return (
     <AuthShell
-      eyebrow={stepIndicator}
+      eyebrow={
+        step === 1 ? (
+          <div className="space-y-4">
+            {modeSwitch}
+            {stepIndicator}
+          </div>
+        ) : (
+          stepIndicator
+        )
+      }
       title={step === 1 ? "Hesabınızı oluşturun" : "İşletmenizi tanıtın"}
       description={
         step === 1
@@ -194,7 +346,7 @@ export default function RegisterPage() {
             htmlFor="reg-business"
             hint={
               <>
-                Rezervasyon adresiniz: <span className="font-medium text-ink-2">randevugo.com/{previewSlug}</span>
+                Rezervasyon adresiniz: <span className="font-medium text-ink-2">calendlygo.com/{previewSlug}</span>
               </>
             }
           >
@@ -235,6 +387,7 @@ export default function RegisterPage() {
               ))}
             </div>
           </fieldset>
+
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Şehir" htmlFor="reg-city">

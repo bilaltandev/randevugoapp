@@ -47,6 +47,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // Team members work in the mobile app; the web panel is for owners (and staff roles) only.
+    if (user.role === "TEAM_MEMBER") {
+      return NextResponse.json(
+        { error: "Ekip üyesi hesapları yalnızca mobil uygulamada kullanılabilir.", code: "MOBILE_ONLY" },
+        { status: 403 }
+      );
+    }
+
     const activeBusiness = user.businesses[0] || null;
 
     await setSessionCookie({

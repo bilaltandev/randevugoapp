@@ -41,7 +41,7 @@ export function getWhatsAppBookingUrl(options: {
     cleanPhone = "90" + cleanPhone;
   }
 
-  const message = `Merhaba *${options.businessName}*, RandevuGo üzerinden yeni bir rezervasyon oluşturuldu:
+  const message = `Merhaba *${options.businessName}*, CalendlyGo üzerinden yeni bir rezervasyon oluşturuldu:
 
 📅 *Tarih:* ${options.date}
 ⏰ *Saat:* ${options.time}
@@ -49,7 +49,7 @@ export function getWhatsAppBookingUrl(options: {
 👤 *Uzman:* ${options.employeeName}
 🙋‍♂️ *Müşteri:* ${options.customerName}${options.notes ? `\n📝 *Not:* ${options.notes}` : ""}
 
-RandevuGo üzerinden onayınızı bekliyoruz!`;
+CalendlyGo üzerinden onayınızı bekliyoruz!`;
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }

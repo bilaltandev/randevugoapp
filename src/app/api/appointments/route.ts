@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getStaffActor } from "@/lib/staffActor";
+import { subscriptionAccess, subscriptionLock } from "@/lib/subscriptionAccess";
 import { getWhatsAppBookingUrl } from "@/lib/utils";
 import { APPOINTMENT_STATUS } from "@/lib/appointmentStatus";
 import {
@@ -29,11 +30,11 @@ const APPOINTMENT_STATUSES = Object.keys(APPOINTMENT_STATUS);
 
 const EMPLOYEE_CONFLICT_MESSAGE = "Seçilen çalışanın bu saat aralığında başka bir randevusu var. Lütfen başka bir saat veya çalışan seçin.";
 
-// GET: List appointments
+// GET: List appointments (owner: the whole business; team member: only their own)
 export async function GET(req: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user || !user.business) {
+    const actor = await getStaffActor();
+    if (!actor) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
 
@@ -43,7 +44,8 @@ export async function GET(req: Request) {
     const search = searchParams.get("search");
 
     const where: any = {
-      businessId: user.business.id,
+      businessId: actor.businessId,
+      ...(actor.employeeId ? { employeeId: actor.employeeId } : {}),
     };
 
     if (status && status !== "ALL") {
@@ -146,12 +148,14 @@ export async function POST(req: Request) {
     // never by the flag itself. Anything else is handled as a regular public booking.
     const blocking = isBlockedSlot === true;
 
-    // The business's own owner (web cookie or mobile Bearer) may book outside the public opening hours,
-    // e.g. a walk-in; everyone else gets the same hours the booking page offers.
-    const currentUser = await getCurrentUser();
-    const isOwner = !!currentUser && currentUser.business?.id === businessId;
+    // The business's own owner (web cookie or mobile Bearer) or one of its team members may book outside the
+    // public opening hours, e.g. a walk-in; everyone else gets the same hours the booking page offers.
+    // A team member always books for themselves, whatever employee the request names.
+    const actor = await getStaffActor();
+    const isOwner = !!actor && actor.businessId === businessId;
+    const memberEmployeeId = isOwner && actor.kind === "member" ? actor.employeeId : null;
 
-    // Closing a time slot is an owner action; the public booking form must not be able to do it.
+    // Closing a time slot is a staff action; the public booking form must not be able to do it.
     if (blocking && !isOwner) {
       return NextResponse.json({ error: "Saat kapatmak için işletme hesabıyla giriş yapmalısınız." }, { status: 403 });
     }
@@ -165,15 +169,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "İşletme bulunamadı." }, { status: 404 });
     }
 
-    // Check if subscription has expired
-    if (business.subscription) {
-      const now = new Date();
-      if (business.subscription.status === "expired" || (business.subscription.status === "trial" && now > new Date(business.subscription.trialEndDate))) {
-        return NextResponse.json(
-          { error: "Bu işletmenin rezervasyon sistemi şu an aktif değildir (Abonelik süresi doldu)." },
-          { status: 403 }
-        );
-      }
+    // No trial or paid period left: nobody books, not customers and not the staff themselves.
+    if (!subscriptionAccess(business.subscription).active) {
+      if (isOwner) return subscriptionLock(business.subscription)!;
+      return NextResponse.json(
+        { error: "Bu işletme şu an online randevu almıyor.", code: "BOOKING_CLOSED" },
+        { status: 403 }
+      );
     }
 
     // Every referenced record must belong to the business being booked. Customers may only book
@@ -217,9 +219,10 @@ export async function POST(req: Request) {
 
     // Candidate employees. "any" picks the first one who is free (inside the lock below), so a slot that
     // available-slots offered because some employee is free is not rejected because the first one is busy.
-    const anyEmployee = !employeeId || employeeId === "any";
+    const requestedEmployeeId = memberEmployeeId ?? employeeId;
+    const anyEmployee = !requestedEmployeeId || requestedEmployeeId === "any";
     const employees = await prisma.employee.findMany({
-      where: { businessId, ...(anyEmployee ? { isActive: true } : { id: employeeId, ...activeOnly }) },
+      where: { businessId, ...(anyEmployee ? { isActive: true } : { id: requestedEmployeeId, ...activeOnly }) },
       include: { employeeServices: { select: { serviceId: true } }, workingHours: { where: { dayOfWeek } } },
       orderBy: { createdAt: "asc" },
     });
@@ -393,14 +396,16 @@ export async function POST(req: Request) {
   }
 }
 
-// PATCH: Update appointment status (Onayla, Tamamla, İptal et, Not güncelle)
+// PATCH: Update appointment status (Onayla, Tamamla, İptal et, Not güncelle). Team members: own bookings only.
 export async function PATCH(req: Request) {
   try {
-    const user = await getCurrentUser();
-    if (!user || !user.business) {
+    const actor = await getStaffActor();
+    if (!actor) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
-    const businessId = user.business.id;
+    const businessId = actor.businessId;
+    const locked = subscriptionLock(actor.subscription);
+    if (locked) return locked;
 
     const { id, status, notes } = await req.json();
 
@@ -420,7 +425,7 @@ export async function PATCH(req: Request) {
     };
 
     const current = await prisma.appointment.findFirst({
-      where: { id, businessId },
+      where: { id, businessId, ...(actor.employeeId ? { employeeId: actor.employeeId } : {}) },
       select: { date: true, status: true, isBlockedSlot: true },
     });
     if (!current) {

@@ -5,10 +5,10 @@ import { ChevronDown, Loader2, Plus, Power, Shuffle, Ticket, Trash2, X } from "l
 import {
   applyPercentOff,
   DEFAULT_MONTHLY_PRICE,
-  formatTL,
   MAX_COUPON_DURATION_MONTHS,
   normalizeCouponCode,
 } from "@/lib/couponOptions";
+import { formatUSD } from "@/lib/plans";
 
 interface CouponRedemptionRow {
   id: string;
@@ -286,8 +286,8 @@ export function AdminCoupons({ notify }: { notify: (type: "success" | "error", t
 
           {previewValid && (
             <p className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">
-              Örnek: {formatTL(DEFAULT_MONTHLY_PRICE)} yerine ilk {durationMonths} ay{" "}
-              <span className="font-bold">{formatTL(applyPercentOff(DEFAULT_MONTHLY_PRICE, percentNum))}</span> / ay
+              Örnek: Person {formatUSD(DEFAULT_MONTHLY_PRICE)} yerine ilk {durationMonths} ödemede{" "}
+              <span className="font-bold">{formatUSD(applyPercentOff(DEFAULT_MONTHLY_PRICE, percentNum))}</span> / ay
               {expiresAt && <> · {new Date(expiresAt).toLocaleDateString("tr-TR")} tarihine kadar kullanılabilir</>}
             </p>
           )}

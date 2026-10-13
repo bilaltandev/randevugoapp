@@ -27,12 +27,12 @@ export function AuthShell({ title, description, eyebrow, children, footer }: Aut
         <Link
           href="/"
           className="inline-flex items-center gap-2 self-start rounded-control lg:hidden"
-          aria-label="RandevuGo ana sayfa"
+          aria-label="CalendlyGo ana sayfa"
         >
-          <span className="relative h-8 w-8 overflow-hidden rounded-control bg-black">
-            <Image src="/brand/mascot-logo.png" alt="" fill sizes="32px" className="object-cover" unoptimized />
+          <span className="relative h-10 w-10 rounded-control">
+            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="40px" className="object-contain" unoptimized />
           </span>
-          <span className="text-base font-semibold tracking-tight">RandevuGo</span>
+          <span className="text-base font-semibold tracking-tight">CalendlyGo</span>
         </Link>
 
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
@@ -47,18 +47,18 @@ export function AuthShell({ title, description, eyebrow, children, footer }: Aut
           {footer && <div className="mt-8 border-t border-line pt-5 text-center text-sm text-ink-3">{footer}</div>}
         </div>
 
-        <p className="text-center text-xs text-ink-3">© {new Date().getFullYear()} RandevuGo</p>
+        <p className="text-center text-xs text-ink-3">© {new Date().getFullYear()} CalendlyGo</p>
       </main>
 
       {/* Brand panel (large screens) */}
       <aside className="relative hidden flex-col justify-between bg-sidebar p-10 text-sidebar-text lg:flex">
-        <Link href="/" className="inline-flex items-center gap-3 self-start rounded-control" aria-label="RandevuGo ana sayfa">
-          <span className="relative h-10 w-10 overflow-hidden rounded-control bg-black">
-            <Image src="/brand/mascot-logo.png" alt="" fill sizes="40px" className="object-cover" unoptimized />
+        <Link href="/" className="inline-flex items-center gap-3 self-start rounded-control" aria-label="CalendlyGo ana sayfa">
+          <span className="relative h-12 w-12 rounded-control">
+            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="48px" className="object-contain" unoptimized />
           </span>
           <Image
-            src="/brand/randevugo-text-logo.png"
-            alt="RandevuGo"
+            src="/brand/calendlygo-text-logo.png"
+            alt="CalendlyGo"
             width={150}
             height={24}
             priority

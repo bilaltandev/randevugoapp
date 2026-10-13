@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { HeroDevices } from "@/components/landing/DeviceMockups";
+import { PLAN_PRICES, formatUSD, yearlySavingPercent } from "@/lib/plans";
 
 /* Landing palette: near-black hero with a mint accent, then a cool light content sheet. */
 const MINT = "#5BE38F";
@@ -32,7 +33,7 @@ const HERO_STRIP: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: CalendarCheck2, title: "Online rezervasyon", text: "7/24 açık randevu sayfası" },
   { icon: MessageCircle, title: "WhatsApp ile iletişim", text: "Müşteriye tek dokunuşla ulaşın" },
   { icon: Contact2, title: "Müşteri yönetimi", text: "Ziyaret geçmişi ve notlar" },
-  { icon: Globe, title: "Kendi sayfanız", text: "randevugo.com/isletmeniz" },
+  { icon: Globe, title: "Kendi sayfanız", text: "calendlygo.com/isletmeniz" },
 ];
 
 // Photos are the per-sector presets already used by the gallery (lib/gallery/types.ts).
@@ -65,7 +66,7 @@ const SECTORS = [
 ];
 
 const CORE_FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
-  { icon: Globe, title: "Online rezervasyon sayfası", text: "randevugo.com/isletmeniz adresinde müşterileriniz 7/24 randevu alır." },
+  { icon: Globe, title: "Online rezervasyon sayfası", text: "calendlygo.com/isletmeniz adresinde müşterileriniz 7/24 randevu alır." },
   { icon: MessageCircle, title: "WhatsApp ile hızlı iletişim", text: "Randevu sahibine tek dokunuşla WhatsApp'tan yazın." },
   { icon: CalendarClock, title: "Esnek çalışma düzeni", text: "Çalışma saatlerinizi, molalarınızı ve kapalı saatlerinizi siz belirleyin." },
   { icon: Contact2, title: "Müşteri yönetimi", text: "Her müşterinin ziyaretleri, harcaması ve özel notları tek yerde." },
@@ -84,7 +85,7 @@ const MORE_FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
 
 const PLAN_ITEMS = [
   "Sınırsız online randevu",
-  "Sınırsız hizmet ve çalışan",
+  "Sınırsız hizmet",
   "Kendi rezervasyon sayfanız",
   "WhatsApp ile iletişim",
   "Doğrulanmış müşteri yorumları",
@@ -95,12 +96,12 @@ const PLAN_ITEMS = [
 
 function Wordmark() {
   return (
-    <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5BE38F]" aria-label="RandevuGo ana sayfa">
-      <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-black">
-        <Image src="/brand/mascot-logo.png" alt="" fill sizes="32px" className="object-cover" unoptimized priority />
+    <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5BE38F]" aria-label="CalendlyGo ana sayfa">
+      <span className="relative h-10 w-10 shrink-0 rounded-lg">
+        <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="40px" className="object-contain" unoptimized priority />
       </span>
       <span className="flex flex-col items-start gap-0.5">
-        <Image src="/brand/randevugo-text-logo.png" alt="RandevuGo" width={124} height={20} className="h-5 w-auto object-contain" unoptimized priority />
+        <Image src="/brand/calendlygo-text-logo.png" alt="CalendlyGo" width={124} height={20} className="h-5 w-auto object-contain" unoptimized priority />
         <span className="pl-0.5 text-[9px] font-semibold tracking-[0.22em] text-white/50">by VASTLAB</span>
       </span>
     </Link>
@@ -212,7 +213,7 @@ export default function LandingPage() {
             Çalışma şeklinize göre tasarlandı.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-base text-[#555E6C]">
-            RandevuGo sektörünüze uyum sağlar: restoranda kişi sayısı ve masa, oto serviste plaka, salonda uzman seçimi.
+            CalendlyGo sektörünüze uyum sağlar: restoranda kişi sayısı ve masa, oto serviste plaka, salonda uzman seçimi.
           </p>
           <ul className="mt-12 grid grid-cols-2 gap-4 text-left sm:grid-cols-3 lg:grid-cols-5">
             {SECTORS.map((s) => (
@@ -290,20 +291,24 @@ export default function LandingPage() {
             <div>
               <p className="text-xs font-bold tracking-[0.14em] text-[#0A7B5C]">ŞEFFAF FİYATLANDIRMA</p>
               <h2 id="fiyat-baslik" className={`${display} mt-3 text-[clamp(1.9rem,3.6vw,2.6rem)] font-extrabold leading-[1.1] tracking-[-0.03em]`}>
-                Tek paket, gizli ücret ve komisyon yok.
+                İki paket, gizli ücret ve komisyon yok.
               </h2>
               <p className="mt-4 max-w-md text-base leading-relaxed text-[#555E6C]">
-                3 gün boyunca bütün özellikleri ücretsiz deneyin. Devam etmek isterseniz aylık sabit ücret ödersiniz; randevu başına kesinti yok.
+                3 gün boyunca bütün özellikleri ücretsiz deneyin. Devam etmek isterseniz aylık ya da yıllık sabit ücret ödersiniz; randevu başına kesinti yok.
               </p>
             </div>
             <div className="rounded-[2rem] border border-[#E3E7E5] bg-[#F7F9F8] p-8 sm:p-10">
               <div className="flex items-baseline justify-between gap-4">
-                <h3 className="text-lg font-semibold">İşletme paketi</h3>
+                <h3 className="text-lg font-semibold">Person</h3>
                 <span className="rounded-full bg-[#EAF6F1] px-3 py-1 text-xs font-semibold text-[#075A43]">3 gün ücretsiz</span>
               </div>
               <p className="mt-6">
-                <span className={`${display} text-6xl font-extrabold tracking-[-0.04em]`}>₺89</span>
+                <span className={`${display} text-6xl font-extrabold tracking-[-0.04em]`}>{formatUSD(PLAN_PRICES.PERSON.MONTHLY)}</span>
                 <span className="ml-1 text-base text-[#687180]">/ ay</span>
+              </p>
+              <p className="mt-2 text-sm text-[#454E5C]">
+                Yıllık {formatUSD(PLAN_PRICES.PERSON.YEARLY)} (%{yearlySavingPercent("PERSON")} indirim) · Ekibinizle çalışıyorsanız{" "}
+                <span className="font-semibold">Team</span>: {formatUSD(PLAN_PRICES.TEAM.MONTHLY)} / ay veya {formatUSD(PLAN_PRICES.TEAM.YEARLY)} / yıl
               </p>
               <ul className="mt-8 grid gap-3 text-sm text-[#454E5C] sm:grid-cols-2">
                 {PLAN_ITEMS.map((item) => (
@@ -357,7 +362,7 @@ export default function LandingPage() {
             <Link href="/ahmetberber" target="_blank" className="hover:text-white">Canlı örnek</Link>
             <a href="#fiyatlandirma" className="hover:text-white">Fiyatlandırma</a>
           </nav>
-          <p className="text-xs text-white/40">© {new Date().getFullYear()} RandevuGo, bir VastLab ürünüdür. Tüm hakları saklıdır.</p>
+          <p className="text-xs text-white/40">© {new Date().getFullYear()} CalendlyGo, bir VastLab ürünüdür. Tüm hakları saklıdır.</p>
         </div>
       </footer>
     </div>

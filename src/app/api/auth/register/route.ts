@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword, setSessionCookie } from "@/lib/auth";
 import { getDefaultStaffSelection } from "@/lib/utils";
+import { PLAN_PRICES, isPlan, type Plan } from "@/lib/plans";
 
 function slugify(text: string): string {
   const trMap: Record<string, string> = {
@@ -67,6 +68,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { name, email, password, phone, businessName, sector = "BERBER", address, city = "İstanbul", whatsappNumber } = body;
+    // Chosen at sign-up; the trial runs on the chosen plan. Older clients that send nothing get PERSON.
+    const plan: Plan = isPlan(body.plan) ? body.plan : "PERSON";
 
     if (!name || !email || !password || !businessName) {
       return NextResponse.json(
@@ -113,6 +116,8 @@ export async function POST(req: Request) {
             name: businessName,
             slug,
             sector,
+            // The "Onaylı" badge is given by the admin; the schema default (true) only covers older rows.
+            isVerified: false,
             enableStaffSelection: getDefaultStaffSelection(sector),
             description: `${businessName} olarak kaliteli hizmet anlayışımızla yanınızdayız. Randevunuzu hemen online oluşturabilirsiniz.`,
             phone: phone || "0850 000 00 00",
@@ -122,16 +127,18 @@ export async function POST(req: Request) {
             subscription: {
               create: {
                 planType: "TRIAL",
+                plan,
                 trialStartDate: now,
                 trialEndDate: trialEnd,
                 status: "trial",
                 paymentStatus: "paid",
-                monthlyPrice: 89.0,
+                monthlyPrice: PLAN_PRICES[plan].MONTHLY,
+                billingPeriod: "MONTHLY",
               },
             },
             notifications: {
               create: {
-                title: "RandevuGo'ya Hoş Geldiniz! 🎉",
+                title: "CalendlyGo'ya Hoş Geldiniz! 🎉",
                 message: "3 günlük ücretsiz deneme süreniz başladı. Hemen hizmetlerinizi ve sayfanızı özelleştirin.",
                 type: "SYSTEM",
                 link: "/dashboard",

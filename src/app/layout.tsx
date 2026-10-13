@@ -34,7 +34,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "RandevuGo | Yeni Nesil Rezervasyon & İşletme Yönetim SaaS Platformu",
+  title: "CalendlyGo | Yeni Nesil Rezervasyon & İşletme Yönetim SaaS Platformu",
   description:
     "Küçük ve orta ölçekli işletmeler için online randevu, müşteri ilişkileri, sayfa tasarlayıcı ve işletme yönetim platformu.",
 };

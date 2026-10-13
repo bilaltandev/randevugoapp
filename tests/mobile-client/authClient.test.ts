@@ -140,6 +140,19 @@ test("a 401 on a request refreshes once and retries", async () => {
   assert.deepEqual(s.calls.filter((c) => c.path === "/api/x").map((c) => c.auth), [`Bearer ${access(1)}`, `Bearer ${access(2)}`]);
 });
 
+test("a route that refuses even a fresh token is an error, not a sign-out (owner-only route for a team member)", async () => {
+  const s = setup((c) => {
+    if (c.path.endsWith("/login")) return { status: 200, body: pair(1) };
+    if (c.path.endsWith("/refresh")) return { status: 200, body: pair(2) };
+    return { status: 401, body: { error: "Yetkisiz erişim." } };
+  });
+  await s.client.login("a", "b");
+  await assert.rejects(s.client.request("/api/owner-only"), (e: unknown) => e instanceof ApiError && e.status === 401);
+  assert.equal(s.expiredCount(), 0);
+  assert.equal(s.peek(), "refresh-2", "the refreshed session is kept");
+  assert.ok(!s.calls.some((c) => c.path.endsWith("/logout")));
+});
+
 test("409 REFRESH_RACE: if a newer token is already stored, retry with it once", async () => {
   const s = setup((c) => {
     if (c.body?.refreshToken === "old") return { status: 409, body: { code: "REFRESH_RACE" } };

@@ -71,7 +71,7 @@ export default function AdminLoginForm() {
             required
             autoComplete="email"
             inputMode="email"
-            placeholder="yonetici@randevugo.com"
+            placeholder="yonetici@calendlygo.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={AUTH_INPUT}

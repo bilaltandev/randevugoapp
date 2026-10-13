@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import AdminClient from "./AdminClient";
 import { DEFAULT_FEATURE_FLAGS } from "../api/admin/route";
+import { monthlyEquivalent, periodOf } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,8 @@ export default async function AdminPage() {
 
   const monthlyRecurringRevenue = businesses
     .filter((b) => b.subscription?.status === "active")
-    .reduce((sum, b) => sum + (b.subscription?.monthlyPrice || 89.0), 0);
+    // USD per month: yearly prices count as a twelfth.
+    .reduce((sum, b) => sum + monthlyEquivalent(b.subscription?.monthlyPrice ?? 0, periodOf(b.subscription)), 0);
 
   const completedAppts = await prisma.appointment.findMany({
     where: { status: "COMPLETED" },

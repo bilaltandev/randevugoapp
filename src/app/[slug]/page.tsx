@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { planOf, staffSelectionEnabled } from "@/lib/plans";
 import { ThemedPageRenderer } from "@/components/themes/ThemedPageRenderer";
 import type { Metadata } from "next";
+import { subscriptionAccess } from "@/lib/subscriptionAccess";
+import { BookingClosed } from "@/components/booking-page/BookingClosed";
 
 export async function generateMetadata({
   params,
@@ -15,11 +18,11 @@ export async function generateMetadata({
   });
 
   if (!business) {
-    return { title: "İşletme Bulunamadı | RandevuGo" };
+    return { title: "İşletme Bulunamadı | CalendlyGo" };
   }
 
   return {
-    title: business.page?.seoTitle || `${business.name} - Online Randevu Al | RandevuGo`,
+    title: business.page?.seoTitle || `${business.name} - Online Randevu Al | CalendlyGo`,
     description:
       business.page?.seoDescription ||
       `${business.name} için 7/24 online rezervasyon yapın. Sıra beklemeden randevunuzu oluşturun.`,
@@ -44,6 +47,7 @@ export default async function BusinessPublicPage({
       employees: {
         where: { isActive: true },
         orderBy: { createdAt: "asc" },
+        omit: { userId: true }, // member account ids are internal
         include: {
           employeeServices: true,
         },
@@ -76,6 +80,11 @@ export default async function BusinessPublicPage({
 
   if (!business) {
     notFound();
+  }
+
+  // Trial or subscription over: the page stays reachable but takes no bookings (the booking API refuses too).
+  if (!subscriptionAccess(business.subscription).active) {
+    return <BookingClosed name={business.name} phone={business.phone} />;
   }
 
   // Check gallery feature flag
@@ -119,12 +128,18 @@ export default async function BusinessPublicPage({
     console.error("Failed to parse hiddenSections:", e);
   }
 
+  // PERSON plan: one person takes the bookings, so customers never pick staff there.
+  const bookingBusiness = {
+    ...business,
+    enableStaffSelection: staffSelectionEnabled(planOf(business.subscription), business.enableStaffSelection),
+  };
+
   // Priority: Business.themeId -> Page.themeId -> "premium-dark"
   const activeThemeId = business.themeId || business.page?.themeId || "premium-dark";
 
   return (
     <ThemedPageRenderer
-      business={business}
+      business={bookingBusiness}
       services={business.services}
       employees={business.employees}
       reviews={business.reviews}

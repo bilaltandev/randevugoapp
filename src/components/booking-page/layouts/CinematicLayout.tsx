@@ -450,7 +450,7 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
       </section>
 
       <footer className="bg-canvas py-8 text-center text-xs text-ink-3">
-        © {p.footerYear ?? ""} {p.name}. Online randevu altyapısı RandevuGo.
+        © {p.footerYear ?? ""} {p.name}. Online randevu altyapısı CalendlyGo.
       </footer>
     </div>
   );

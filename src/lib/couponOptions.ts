@@ -1,6 +1,7 @@
 // Client-safe coupon constants and helpers (no server imports).
 
-export const DEFAULT_MONTHLY_PRICE = 89;
+/** Person monthly list price in USD (see PLAN_PRICES); used when a business has no subscription row. */
+export const DEFAULT_MONTHLY_PRICE = 1.49;
 export const COUPON_CODE_PATTERN = /^[A-Z0-9_-]{3,30}$/;
 export const MAX_COUPON_DURATION_MONTHS = 12;
 

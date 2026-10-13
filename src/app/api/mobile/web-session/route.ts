@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     const token = getBearerToken(req.headers);
     const auth = token ? await authenticateMobileAccessToken(token) : null;
     if (!auth) return NextResponse.json({ error: "Oturum bulunamadı.", code: "UNAUTHORIZED" }, { status: 401 });
+    if (!auth.user.business) return NextResponse.json({ error: "Bu işlem için yetkiniz yok.", code: "FORBIDDEN" }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const next = safeNext(typeof body.next === "string" ? body.next : null);
@@ -43,8 +44,9 @@ export async function GET(req: Request) {
     const use = await hitRateLimit(`webhandoff:${claims.jti}`, { limit: 1, windowSeconds: 120 });
     if (!use.allowed) return fail();
 
+    // Owners only: the web panel has nothing for team members.
     const user = await getEligibleMobileUser(claims.userId);
-    if (!user) return fail();
+    if (!user?.business) return fail();
 
     await setSessionCookie({
       userId: user.id,

@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 import { getDashboardSummary, trialDaysRemaining } from "@/lib/dashboardSummary";
+import { getStaffActor } from "@/lib/staffActor";
 
 // Panel overview ("Özet") for the mobile app: the same data the web dashboard page renders.
+// A team member gets the same overview, counting only their own bookings.
 export async function GET() {
   try {
-    const user = await getCurrentUser();
-    if (!user || !user.business) {
+    const actor = await getStaffActor();
+    if (!actor) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
 
-    const summary = await getDashboardSummary(user.business.id);
-    const subscription = user.business.subscription;
+    const [summary, subscription] = await Promise.all([
+      getDashboardSummary(actor.businessId, actor.employeeId ?? undefined),
+      prisma.subscription.findUnique({ where: { businessId: actor.businessId }, select: { status: true, trialEndDate: true } }),
+    ]);
 
     return NextResponse.json({
       ...summary,

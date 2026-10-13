@@ -147,14 +147,14 @@ export function DashboardSidebar({
           href="/dashboard"
           onClick={() => onCloseMobile?.()}
           className="flex items-center gap-2.5 min-w-0 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          aria-label="RandevuGo panel ana sayfası"
+          aria-label="CalendlyGo panel ana sayfası"
         >
-          <div className="relative w-7 h-7 rounded-[7px] overflow-hidden bg-black shrink-0">
-            <Image src="/brand/mascot-logo.png" alt="" fill sizes="28px" className="object-cover" unoptimized />
+          <div className="relative w-9 h-9 rounded-[7px] shrink-0">
+            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="36px" className="object-contain" unoptimized />
           </div>
           {showLabels && (
             <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-nav-text-strong">
-              RandevuGo
+              CalendlyGo
             </span>
           )}
         </Link>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { businessNow } from "@/lib/appointmentRules";
 import { getCurrentUser } from "@/lib/auth";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 // Helper: check if two time ranges overlap (HH:mm strings)
 function isTimeOverlapping(
@@ -152,6 +153,8 @@ export async function POST(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const body = await req.json();
     const {
@@ -220,6 +223,8 @@ export async function PATCH(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const body = await req.json();
     const {
@@ -301,6 +306,8 @@ export async function DELETE(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

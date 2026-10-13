@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { PERSON_STAFF_LIMIT, planOf } from "@/lib/plans";
+import { removeMember } from "@/lib/teamInvites";
+import { subscriptionLock } from "@/lib/subscriptionAccess";
 
 export async function GET() {
   try {
@@ -9,17 +12,36 @@ export async function GET() {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
 
-    const employees = await prisma.employee.findMany({
+    const rows = await prisma.employee.findMany({
       where: { businessId: user.business.id },
       include: {
         employeeServices: {
           include: { service: true },
         },
+        user: { select: { email: true } },
+        teamInvites: {
+          where: { acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
+          select: { expiresAt: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
       },
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json({ employees });
+    // Team status per record: `memberEmail` once someone joined through an invite, else the open invite's expiry.
+    const employees = rows.map(({ user: member, teamInvites, ...employee }) => ({
+      ...employee,
+      userId: undefined, // internal account id; not needed by clients
+      memberEmail: member?.email ?? null,
+      inviteExpiresAt: member ? null : (teamInvites[0]?.expiresAt ?? null),
+    }));
+
+    return NextResponse.json({
+      employees,
+      plan: planOf(user.business.subscription),
+      memberLimit: user.business.subscription?.memberLimit ?? 5,
+    });
   } catch (error) {
     console.error("GET employees error:", error);
     return NextResponse.json({ error: "Çalışanlar alınırken hata oluştu." }, { status: 500 });
@@ -32,11 +54,24 @@ export async function POST(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const { name, specialty, photo, phone, email, serviceIds } = await req.json();
 
     if (!name || !specialty) {
       return NextResponse.json({ error: "İsim ve uzmanlık alanı zorunludur." }, { status: 400 });
+    }
+
+    // PERSON plan: one person takes the bookings.
+    if (planOf(user.business.subscription) === "PERSON") {
+      const count = await prisma.employee.count({ where: { businessId: user.business.id } });
+      if (count >= PERSON_STAFF_LIMIT) {
+        return NextResponse.json(
+          { error: "Person planında yalnızca bir çalışan olabilir. Ekip kurmak için Team planına geçin.", code: "PLAN_LIMIT" },
+          { status: 403 }
+        );
+      }
     }
 
     const employee = await prisma.employee.create({
@@ -79,6 +114,8 @@ export async function PUT(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const { id, name, specialty, photo, phone, email, isActive, serviceIds } = await req.json();
 
@@ -131,6 +168,8 @@ export async function DELETE(req: Request) {
     if (!user || !user.business) {
       return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
     }
+    const locked = subscriptionLock(user.business.subscription);
+    if (locked) return locked;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -149,6 +188,8 @@ export async function DELETE(req: Request) {
       );
     }
 
+    // A member linked to this record leaves the team with it (account and sessions end).
+    await removeMember(user.business.id, id);
     await prisma.employee.delete({
       where: { id, businessId: user.business.id },
     });

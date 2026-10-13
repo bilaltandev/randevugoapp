@@ -45,12 +45,14 @@ import {
   Ticket,
 } from "lucide-react";
 import { formatCurrency, formatPhoneNumber, SECTORS } from "@/lib/utils";
+import { formatTL as formatCurrencyTry } from "@/lib/couponOptions";
 import { SectorBadge } from "@/components/SectorBadge";
 import { AdminThemeManagement } from "@/components/admin/AdminThemeManagement";
 import { AdminProfileSettings, type AdminProfile } from "@/components/admin/AdminProfileSettings";
 import { AdminSupportAgents } from "@/components/admin/AdminSupportAgents";
 import { AdminCoupons } from "@/components/admin/AdminCoupons";
 import { Modal } from "@/components/Modal";
+import { BILLING_PERIODS, PERIOD_NAMES, PERIOD_SUFFIX, PLAN_NAMES, PLAN_PRICES, PLANS, formatUSD, paymentReference, periodOf, planOf, type BillingPeriod, type Plan } from "@/lib/plans";
 
 interface AdminClientProps {
   initialBusinesses: any[];
@@ -134,10 +136,13 @@ export default function AdminClient({
 
   // Subscription Edit Modal states
   const [subMonths, setSubMonths] = useState(1);
-  const [subPrice, setSubPrice] = useState(89);
+  const [subPrice, setSubPrice] = useState(PLAN_PRICES.PERSON.MONTHLY);
   const [trialDays, setTrialDays] = useState(14);
   const [customEndDate, setCustomEndDate] = useState("");
   const [newSector, setNewSector] = useState("BERBER");
+  const [planDraft, setPlanDraft] = useState<Plan>("PERSON");
+  const [memberLimitDraft, setMemberLimitDraft] = useState(5);
+  const [periodDraft, setPeriodDraft] = useState<BillingPeriod>("MONTHLY");
 
   const showNotification = (type: "success" | "error", text: string) => {
     setNotificationMsg({ type, text });
@@ -253,7 +258,7 @@ export default function AdminClient({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                RandevuGo Süper Yönetici
+                CalendlyGo Süper Yönetici
               </h1>
               <span className="rounded-full bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black text-amber-300 tracking-wider uppercase">
                 SUPER ADMIN
@@ -503,7 +508,7 @@ export default function AdminClient({
             <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 to-slate-900 p-4 backdrop-blur-md shadow-lg shadow-amber-500/10">
               <span className="text-[11px] text-amber-300 font-bold block">Tahmini Aylık Gelir</span>
               <div className="text-2xl font-black text-amber-400 mt-1">
-                {formatCurrency(metrics.monthlyRecurringRevenue)}
+                {formatUSD(metrics.monthlyRecurringRevenue)}
               </div>
               <span className="text-[10px] text-slate-400 mt-0.5 block">MRR (Abonelik)</span>
             </div>
@@ -847,8 +852,13 @@ export default function AdminClient({
                             {b.subscription?.status || "trial"}
                           </span>
                           <span className="block text-[10px] text-slate-400 mt-0.5">
-                            {b.subscription?.monthlyPrice || 89} TL / ay
+                            {PLAN_NAMES[planOf(b.subscription)]} · {formatUSD(b.subscription?.monthlyPrice ?? 0)} {PERIOD_SUFFIX[periodOf(b.subscription)]}
                           </span>
+                          {b.subscription?.paymentStatus === "pending" && b.subscription?.paymentRequestedAt && (
+                            <span className="mt-1 inline-block rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                              Havale bekliyor
+                            </span>
+                          )}
                         </td>
 
                         <td className="py-3.5 px-4">
@@ -877,6 +887,10 @@ export default function AdminClient({
                                 setSelectedBusiness(b);
                                 setDetailTab("info");
                                 setNewSector(b.sector);
+                                setPlanDraft(planOf(b.subscription));
+                                setMemberLimitDraft(b.subscription?.memberLimit ?? 5);
+                                setPeriodDraft(periodOf(b.subscription));
+                                setSubPrice(b.subscription?.monthlyPrice ?? PLAN_PRICES.PERSON.MONTHLY);
                               }}
                               className="inline-flex items-center gap-1 rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
                             >
@@ -1020,7 +1034,7 @@ export default function AdminClient({
                     <th className="py-3 px-4">Plan / Durum</th>
                     <th className="py-3 px-4">Trial Bitiş</th>
                     <th className="py-3 px-4">Abonelik Bitiş</th>
-                    <th className="py-3 px-4">Aylık Fiyat</th>
+                    <th className="py-3 px-4">Ücret</th>
                     <th className="py-3 px-4 text-right">İşlemler</th>
                   </tr>
                 </thead>
@@ -1061,7 +1075,7 @@ export default function AdminClient({
                         </td>
 
                         <td className="py-3.5 px-4 font-bold text-emerald-400">
-                          {formatCurrency(sub?.monthlyPrice || 89)} / ay
+                          {formatUSD(sub?.monthlyPrice ?? 0)} {PERIOD_SUFFIX[periodOf(sub)]}
                         </td>
 
                         <td className="py-3.5 px-4 text-right">
@@ -1195,112 +1209,91 @@ export default function AdminClient({
 
       {/* ═══════════════════════════════════════════════════════════════
           BUSINESS DETAIL & ACTIONS MODAL
+          Uses the business panel tokens; the `dark` wrapper matches the dark admin page.
       ═══════════════════════════════════════════════════════════════ */}
       {selectedBusiness && (
+        <div className="dark">
         <Modal
           isOpen={Boolean(selectedBusiness)}
           onClose={() => setSelectedBusiness(null)}
           title={`İşletme Yönetimi: ${selectedBusiness.name}`}
         >
-          <div className="space-y-4 text-xs">
+          <div className="space-y-4 text-xs text-ink-2">
             {/* Modal Internal Tabs */}
-            <div className="flex items-center gap-1.5 border-b border-slate-800 pb-2 overflow-x-auto scrollbar-none">
-              <button
-                onClick={() => setDetailTab("info")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
-                  detailTab === "info" ? "bg-amber-500 text-slate-950" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Genel Bilgiler
-              </button>
-              <button
-                onClick={() => setDetailTab("subscription")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
-                  detailTab === "subscription" ? "bg-amber-500 text-slate-950" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Abonelik & Fiyat
-              </button>
-              <button
-                onClick={() => setDetailTab("features")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
-                  detailTab === "features" ? "bg-amber-500 text-slate-950" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Özellik Bayrakları
-              </button>
-              <button
-                onClick={() => setDetailTab("sector")}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-colors ${
-                  detailTab === "sector" ? "bg-amber-500 text-slate-950" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Sektör Değiştir
-              </button>
+            <div className="flex items-center gap-1 rounded-control bg-surface-muted p-1 overflow-x-auto scrollbar-none" role="tablist">
+              {(
+                [
+                  ["info", "Genel Bilgiler"],
+                  ["subscription", "Abonelik & Fiyat"],
+                  ["features", "Özellik Bayrakları"],
+                  ["sector", "Sektör Değiştir"],
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  role="tab"
+                  aria-selected={detailTab === tab}
+                  onClick={() => setDetailTab(tab)}
+                  className={`flex-1 whitespace-nowrap px-3 py-1.5 rounded-[6px] font-semibold transition-colors ${
+                    detailTab === tab ? "bg-surface text-ink shadow-raised" : "text-ink-3 hover:text-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {/* TAB: INFO */}
             {detailTab === "info" && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2.5 p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
+                <div className="grid grid-cols-2 gap-3 p-3.5 rounded-panel bg-surface-muted border border-line">
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Sahibi:</span>
-                    <span className="font-semibold text-slate-200">{selectedBusiness.user?.name}</span>
+                    <span className="text-[10px] text-ink-3 block">Sahibi</span>
+                    <span className="font-semibold text-ink">{selectedBusiness.user?.name}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-ink-3 block">E-Posta</span>
+                    <span className="font-semibold text-ink break-all">{selectedBusiness.user?.email}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">E-Posta:</span>
-                    <span className="font-semibold text-slate-200">{selectedBusiness.user?.email}</span>
+                    <span className="text-[10px] text-ink-3 block">Telefon</span>
+                    <span className="font-semibold text-ink">{selectedBusiness.phone}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Telefon:</span>
-                    <span className="font-semibold text-slate-200">{selectedBusiness.phone}</span>
+                    <span className="text-[10px] text-ink-3 block">Şehir / Adres</span>
+                    <span className="font-semibold text-ink">{selectedBusiness.city}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Şehir / Adres:</span>
-                    <span className="font-semibold text-slate-200">{selectedBusiness.city}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 block">Kayıt Tarihi:</span>
-                    <span className="font-semibold text-slate-200">
+                    <span className="text-[10px] text-ink-3 block">Kayıt Tarihi</span>
+                    <span className="font-semibold text-ink">
                       {new Date(selectedBusiness.createdAt).toLocaleDateString("tr-TR")}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 block">Sektör:</span>
+                    <span className="text-[10px] text-ink-3 block mb-0.5">Sektör</span>
                     <SectorBadge sector={selectedBusiness.sector} size="sm" />
                   </div>
                 </div>
 
                 {/* Metrics Breakdown */}
                 <div className="grid grid-cols-4 gap-2 text-center">
-                  <div className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800">
-                    <span className="text-[10px] text-slate-500 block">Randevu</span>
-                    <span className="font-black text-indigo-400 text-sm">
-                      {selectedBusiness._count?.appointments || 0}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800">
-                    <span className="text-[10px] text-slate-500 block">Müşteri</span>
-                    <span className="font-black text-emerald-400 text-sm">
-                      {selectedBusiness._count?.customers || 0}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800">
-                    <span className="text-[10px] text-slate-500 block">Hizmet</span>
-                    <span className="font-black text-amber-400 text-sm">
-                      {selectedBusiness._count?.services || 0}
-                    </span>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800">
-                    <span className="text-[10px] text-slate-500 block">Yorum</span>
-                    <span className="font-black text-rose-400 text-sm">
-                      {selectedBusiness._count?.reviews || 0}
-                    </span>
-                  </div>
+                  {(
+                    [
+                      ["Randevu", selectedBusiness._count?.appointments],
+                      ["Müşteri", selectedBusiness._count?.customers],
+                      ["Hizmet", selectedBusiness._count?.services],
+                      ["Yorum", selectedBusiness._count?.reviews],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label} className="p-2.5 rounded-panel bg-surface border border-line">
+                      <span className="text-[10px] text-ink-3 block">{label}</span>
+                      <span className="font-display font-bold text-ink text-base tabular-nums">{value || 0}</span>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Quick Toggle Actions */}
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-line">
                   <button
                     onClick={() =>
                       handleApiAction({
@@ -1309,10 +1302,10 @@ export default function AdminClient({
                         isActive: selectedBusiness.isActive === false ? true : false,
                       })
                     }
-                    className={`py-2.5 px-3 rounded-xl font-bold transition-all ${
+                    className={`py-2.5 px-3 rounded-control font-semibold border transition-colors ${
                       selectedBusiness.isActive !== false
-                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30"
-                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
+                        ? "bg-danger-soft text-danger border-danger-line hover:brightness-110"
+                        : "bg-brand-soft text-brand-ink border-brand-line hover:brightness-110"
                     }`}
                   >
                     {selectedBusiness.isActive !== false ? "İşletmeyi Pasife Al" : "İşletmeyi Aktif Et"}
@@ -1321,52 +1314,191 @@ export default function AdminClient({
                   <Link
                     href={`/${selectedBusiness.slug}`}
                     target="_blank"
-                    className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:text-white font-bold"
+                    className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-control border border-line bg-surface text-ink-2 hover:bg-surface-muted hover:text-ink font-semibold transition-colors"
                   >
                     <span>Public Sayfayı Aç</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
+
+                  <button
+                    onClick={() =>
+                      handleApiAction({
+                        action: "TOGGLE_VERIFY",
+                        businessId: selectedBusiness.id,
+                        isVerified: !selectedBusiness.isVerified,
+                      })
+                    }
+                    className={`col-span-2 py-2.5 px-3 rounded-control font-semibold border transition-colors ${
+                      selectedBusiness.isVerified
+                        ? "bg-surface text-ink-2 border-line hover:bg-surface-muted hover:text-ink"
+                        : "bg-brand-soft text-brand-ink border-brand-line hover:brightness-110"
+                    }`}
+                  >
+                    {selectedBusiness.isVerified ? "Onay rozetini kaldır" : "✓ Onay rozeti ver"}
+                  </button>
                 </div>
               </div>
             )}
 
             {/* TAB: SUBSCRIPTION */}
             {detailTab === "subscription" && (
-              <div className="space-y-4">
-                <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Mevcut Durum:</span>
-                    <span className="font-bold text-amber-400 uppercase">
-                      {selectedBusiness.subscription?.status || "trial"}
-                    </span>
+              <div className="space-y-3">
+                {selectedBusiness.subscription?.paymentStatus === "pending" && selectedBusiness.subscription?.paymentRequestedAt && (
+                  <div className="p-3.5 rounded-panel bg-pending-soft border border-pending-line space-y-2.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="font-semibold text-ink block">Havale/EFT bildirimi bekliyor</span>
+                        <span className="text-ink-2">
+                          {PLAN_NAMES[planOf(selectedBusiness.subscription)]} ·{" "}
+                          {PERIOD_NAMES[periodOf(selectedBusiness.subscription)]} ·{" "}
+                          {formatUSD(selectedBusiness.subscription.pendingAmount ?? selectedBusiness.subscription.monthlyPrice)}
+                          {selectedBusiness.subscription.pendingAmountTry
+                            ? ` (${formatCurrencyTry(selectedBusiness.subscription.pendingAmountTry)}, kur ${selectedBusiness.subscription.pendingRate})`
+                            : ""}{" "}
+                          ·{" "}
+                          {new Date(selectedBusiness.subscription.paymentRequestedAt).toLocaleDateString("tr-TR")}
+                          {selectedBusiness.subscription.pendingCouponCode ? ` · ${selectedBusiness.subscription.pendingCouponCode} kodu` : ""}
+                        </span>
+                      </div>
+                      <span className="shrink-0 rounded-control border border-pending-line bg-surface px-2 py-1 font-mono text-[11px] font-bold text-pending">
+                        {paymentReference(selectedBusiness.id)}
+                      </span>
+                    </div>
+                    <p className="text-ink-3">
+                      Hesaba bu açıklama koduyla gelen ödemeyi gördüyseniz onaylayın; abonelik{" "}
+                      {periodOf(selectedBusiness.subscription) === "YEARLY" ? "1 yıl" : "1 ay"} uzar.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleApiAction({ action: "ACTIVATE_SUBSCRIPTION", businessId: selectedBusiness.id })}
+                        className="py-2 rounded-control bg-brand hover:bg-brand-hover text-on-brand font-semibold transition-colors"
+                      >
+                        Ödemeyi onayla
+                      </button>
+                      <button
+                        onClick={() => handleApiAction({ action: "REJECT_PAYMENT", businessId: selectedBusiness.id })}
+                        className="py-2 rounded-control border border-danger-line bg-danger-soft text-danger font-semibold hover:brightness-110 transition-colors"
+                      >
+                        Ödeme gelmedi, reddet
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Paket (Personel / Team) ve ekip üyesi sınırı */}
+                <div className="p-3.5 rounded-panel bg-surface border border-line space-y-3">
+                  <span className="font-semibold text-ink block">Paket</span>
+                  <div className="grid grid-cols-2 gap-1 rounded-control bg-surface-muted p-1">
+                    {PLANS.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        aria-pressed={planDraft === p}
+                        onClick={() => setPlanDraft(p)}
+                        className={`py-1.5 rounded-[6px] font-semibold transition-colors ${
+                          planDraft === p ? "bg-surface text-ink shadow-raised" : "text-ink-3 hover:text-ink"
+                        }`}
+                      >
+                        {p === "PERSON" ? "Personel" : "Team"}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 rounded-control bg-surface-muted p-1">
+                    {BILLING_PERIODS.map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        aria-pressed={periodDraft === period}
+                        onClick={() => setPeriodDraft(period)}
+                        className={`py-1.5 rounded-[6px] font-semibold transition-colors ${
+                          periodDraft === period ? "bg-surface text-ink shadow-raised" : "text-ink-3 hover:text-ink"
+                        }`}
+                      >
+                        {PERIOD_NAMES[period]} · {formatUSD(PLAN_PRICES[planDraft][period])}
+                      </button>
+                    ))}
+                  </div>
+                  {planDraft === "TEAM" && (
+                    <div>
+                      <label htmlFor="member-limit" className="text-[10px] text-ink-3 block mb-1">
+                        Ekip üyesi sınırı (sahip hariç)
+                      </label>
+                      <input
+                        id="member-limit"
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={memberLimitDraft}
+                        onChange={(e) => setMemberLimitDraft(Number(e.target.value))}
+                        className="w-full rounded-control border border-line bg-surface-muted px-3 py-2 text-xs text-ink outline-none focus:border-brand"
+                      />
+                    </div>
+                  )}
+                  <p className="text-ink-3">
+                    Paket veya dönem değişince ücret liste fiyatına geçer: Personel {formatUSD(PLAN_PRICES.PERSON.MONTHLY)}/ay ·{" "}
+                    {formatUSD(PLAN_PRICES.PERSON.YEARLY)}/yıl, Team {formatUSD(PLAN_PRICES.TEAM.MONTHLY)}/ay · {formatUSD(PLAN_PRICES.TEAM.YEARLY)}/yıl.
+                  </p>
+                  <button
+                    onClick={() =>
+                      handleApiAction({
+                        action: "SET_PLAN",
+                        businessId: selectedBusiness.id,
+                        plan: planDraft,
+                        billingPeriod: periodDraft,
+                        ...(planDraft === "TEAM" ? { memberLimit: memberLimitDraft } : {}),
+                      })
+                    }
+                    className="w-full py-2.5 rounded-control bg-brand hover:bg-brand-hover text-on-brand font-semibold transition-colors"
+                  >
+                    Paketi kaydet
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-panel bg-surface-muted border border-line space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink-3">Mevcut Durum</span>
+                    {(() => {
+                      const status = selectedBusiness.subscription?.status || "trial";
+                      const tone =
+                        status === "active"
+                          ? "bg-brand-soft text-brand-ink border-brand-line"
+                          : status === "trial"
+                            ? "bg-pending-soft text-pending border-pending-line"
+                            : "bg-danger-soft text-danger border-danger-line";
+                      return (
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone}`}>
+                          {status}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Trial Bitiş:</span>
-                    <span className="text-slate-200 font-mono">
+                    <span className="text-ink-3">Trial Bitiş</span>
+                    <span className="text-ink tabular-nums">
                       {selectedBusiness.subscription?.trialEndDate
                         ? new Date(selectedBusiness.subscription.trialEndDate).toLocaleDateString("tr-TR")
                         : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Abonelik Bitiş:</span>
-                    <span className="text-slate-200 font-mono">
+                    <span className="text-ink-3">Abonelik Bitiş</span>
+                    <span className="text-ink tabular-nums">
                       {selectedBusiness.subscription?.subscriptionEndDate
                         ? new Date(selectedBusiness.subscription.subscriptionEndDate).toLocaleDateString("tr-TR")
                         : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Aylık Fiyat:</span>
-                    <span className="text-emerald-400 font-bold">
-                      {formatCurrency(selectedBusiness.subscription?.monthlyPrice || 89)} / ay
+                    <span className="text-ink-3">Ücret</span>
+                    <span className="text-ink font-bold tabular-nums">
+                      {formatUSD(selectedBusiness.subscription?.monthlyPrice ?? 0)} {PERIOD_SUFFIX[periodOf(selectedBusiness.subscription)]}
                     </span>
                   </div>
                 </div>
 
                 {/* 1. Trial Uzatma */}
-                <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/20 space-y-2.5">
-                  <span className="font-bold text-amber-300 block">Trial Süresini Uzat</span>
+                <div className="p-3.5 rounded-panel bg-surface border border-line space-y-2.5">
+                  <span className="font-semibold text-ink block">Trial Süresini Uzat</span>
                   <div className="flex items-center gap-2">
                     {[7, 14, 30].map((d) => (
                       <button
@@ -1378,7 +1510,7 @@ export default function AdminClient({
                             days: d,
                           })
                         }
-                        className="flex-1 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold"
+                        className="flex-1 py-1.5 rounded-control border border-pending-line bg-pending-soft text-pending font-semibold hover:brightness-110 transition-colors"
                       >
                         +{d} Gün
                       </button>
@@ -1387,8 +1519,8 @@ export default function AdminClient({
                 </div>
 
                 {/* 2. Manuel Abonelik Aktif Etme */}
-                <div className="p-3.5 rounded-2xl bg-indigo-950/20 border border-indigo-500/20 space-y-2.5">
-                  <span className="font-bold text-indigo-300 block">Aboneliği Manuel Aktif Et</span>
+                <div className="p-3.5 rounded-panel bg-surface border border-line space-y-2.5">
+                  <span className="font-semibold text-ink block">Aboneliği Manuel Aktif Et</span>
                   <div className="flex items-center gap-2">
                     {[1, 3, 6, 12].map((m) => (
                       <button
@@ -1400,7 +1532,7 @@ export default function AdminClient({
                             months: m,
                           })
                         }
-                        className="flex-1 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-bold"
+                        className="flex-1 py-1.5 rounded-control border border-brand-line bg-brand-soft text-brand-ink font-semibold hover:brightness-110 transition-colors"
                       >
                         {m} Ay
                       </button>
@@ -1409,24 +1541,27 @@ export default function AdminClient({
                 </div>
 
                 {/* 3. Özel Fiyat & Durum Güncelleme */}
-                <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
-                  <span className="font-bold text-slate-200 block">Özel Aylık Fiyat & Durum</span>
+                <div className="p-3.5 rounded-panel bg-surface border border-line space-y-3">
+                  <span className="font-semibold text-ink block">Özel Fiyat & Durum</span>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] text-slate-400 block mb-1">Aylık Fiyat (TL)</label>
+                      <label className="text-[10px] text-ink-3 block mb-1">
+                        Dönem fiyatı (USD {PERIOD_SUFFIX[periodOf(selectedBusiness.subscription)]})
+                      </label>
                       <input
                         type="number"
-                        defaultValue={selectedBusiness.subscription?.monthlyPrice || 89}
+                        step="0.01"
+                        defaultValue={selectedBusiness.subscription?.monthlyPrice ?? PLAN_PRICES.PERSON.MONTHLY}
                         onChange={(e) => setSubPrice(Number(e.target.value))}
-                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs text-slate-100"
+                        className="w-full rounded-control border border-line bg-surface-muted px-3 py-2 text-xs text-ink outline-none focus:border-brand"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-400 block mb-1">Durum</label>
+                      <label className="text-[10px] text-ink-3 block mb-1">Durum</label>
                       <select
                         defaultValue={selectedBusiness.subscription?.status || "trial"}
                         id="modal-sub-status"
-                        className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs text-slate-100"
+                        className="w-full rounded-control border border-line bg-surface-muted px-3 py-2 text-xs text-ink outline-none focus:border-brand"
                       >
                         <option value="trial">Deneme (trial)</option>
                         <option value="active">Aktif (active)</option>
@@ -1446,7 +1581,7 @@ export default function AdminClient({
                         monthlyPrice: subPrice,
                       });
                     }}
-                    className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                    className="w-full py-2.5 rounded-control bg-brand hover:bg-brand-hover text-on-brand font-semibold transition-colors"
                   >
                     Fiyat & Durumu Kaydet
                   </button>
@@ -1457,7 +1592,7 @@ export default function AdminClient({
             {/* TAB: FEATURES (PER BUSINESS) */}
             {detailTab === "features" && (
               <div className="space-y-3">
-                <p className="text-slate-400 text-xs">
+                <p className="text-ink-3 text-xs">
                   Aşağıdaki özellikleri bu işletme için özel olarak açıp kapatabilirsiniz:
                 </p>
 
@@ -1468,11 +1603,11 @@ export default function AdminClient({
                     return (
                       <div
                         key={flag.id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-slate-950/60 border border-slate-800"
+                        className="flex items-center justify-between gap-3 p-3 rounded-panel bg-surface-muted border border-line"
                       >
-                        <div>
-                          <span className="font-bold text-slate-200 block text-xs">{flag.key}</span>
-                          <span className="text-[10px] text-slate-400 block">{flag.description}</span>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-ink block text-xs">{flag.key}</span>
+                          <span className="text-[10px] text-ink-3 block">{flag.description}</span>
                         </div>
 
                         <button
@@ -1484,10 +1619,10 @@ export default function AdminClient({
                               enable: !isEnabled,
                             })
                           }
-                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                          className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
                             isEnabled
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : "bg-slate-800 text-slate-400 border border-slate-700"
+                              ? "bg-brand-soft text-brand-ink border-brand-line"
+                              : "bg-surface text-ink-3 border-line hover:text-ink"
                           }`}
                         >
                           {isEnabled ? "Açık (ON)" : "Kapalı (OFF)"}
@@ -1502,16 +1637,16 @@ export default function AdminClient({
             {/* TAB: SECTOR */}
             {detailTab === "sector" && (
               <div className="space-y-4">
-                <p className="text-slate-400 text-xs">
+                <p className="text-ink-3 text-xs">
                   İşletmenin sektörünü değiştirdiğinizde, rezervasyon motoru varsayılan ayarları ve temaları güncellenir:
                 </p>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1.5">Yeni Sektör:</label>
+                  <label className="text-xs font-semibold text-ink-2 block mb-1.5">Yeni Sektör</label>
                   <select
                     value={newSector}
                     onChange={(e) => setNewSector(e.target.value)}
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 p-2.5 text-xs text-slate-100"
+                    className="w-full rounded-control border border-line bg-surface-muted p-2.5 text-xs text-ink outline-none focus:border-brand"
                   >
                     {SECTORS.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -1529,7 +1664,7 @@ export default function AdminClient({
                       newSector,
                     })
                   }
-                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
+                  className="w-full py-2.5 rounded-control bg-brand hover:bg-brand-hover text-on-brand font-semibold transition-colors"
                 >
                   Sektörü Güncelle
                 </button>
@@ -1537,6 +1672,7 @@ export default function AdminClient({
             )}
           </div>
         </Modal>
+        </div>
       )}
     </div>
   );

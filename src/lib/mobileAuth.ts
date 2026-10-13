@@ -26,7 +26,8 @@ const MIN_SECRET_LENGTH = 32;
 const ISSUER = "randevugo";
 const AUDIENCE = "randevugo-mobile";
 const ACCESS_TOKEN_TYPE = "access";
-const MOBILE_ROLE = "BUSINESS_OWNER";
+const OWNER_ROLE = "BUSINESS_OWNER";
+const MEMBER_ROLE = "TEAM_MEMBER";
 
 export type RevokeReason = "LOGOUT" | "REUSE" | "PASSWORD_CHANGED" | "DEACTIVATED" | "NOT_ELIGIBLE";
 
@@ -85,21 +86,35 @@ export function getBearerToken(headers: Headers): string | null {
   return match ? match[1] : null;
 }
 
-/** Whether a user may use the mobile app at all (checked at login, refresh and on every request). */
+/**
+ * Whether a user may use the mobile app at all (checked at login, refresh and on every request):
+ * - an active business owner with a business → `business` set, as in getCurrentUser();
+ * - an active TEAM_MEMBER linked to an active staff record of an active business → `member` set and
+ *   `business` null, so every owner route (which requires `user.business`) keeps refusing members.
+ */
 export async function getEligibleMobileUser(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { businesses: { include: { subscription: true } } },
+    include: {
+      businesses: { include: { subscription: true } },
+      employee: { include: { business: { include: { subscription: true } } } },
+    },
   });
-  // Same rule as login: active business owners with a business. Mirrors getCurrentUser()'s shape.
-  if (!user || !user.isActive || user.role !== MOBILE_ROLE || user.businesses.length === 0) return null;
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    business: user.businesses[0],
-  };
+  if (!user || !user.isActive) return null;
+  const base = { id: user.id, name: user.name, email: user.email, role: user.role };
+
+  if (user.role === OWNER_ROLE && user.businesses.length > 0) {
+    return { ...base, business: user.businesses[0], member: null };
+  }
+  const employee = user.employee;
+  if (user.role === MEMBER_ROLE && employee && employee.isActive && employee.business.isActive) {
+    return {
+      ...base,
+      business: null,
+      member: { employeeId: employee.id, employeeName: employee.name, business: employee.business },
+    };
+  }
+  return null;
 }
 
 export type MobileUser = NonNullable<Awaited<ReturnType<typeof getEligibleMobileUser>>>;

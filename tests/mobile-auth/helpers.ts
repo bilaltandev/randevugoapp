@@ -28,7 +28,15 @@ export async function createUser(
   createdUserIds.push(user.id);
   if (opts.withBusiness ?? true) {
     await prisma.business.create({
-      data: { userId: user.id, name: `Test ${tag}`, slug: `mobile-auth-${tag}`, phone: "0", address: "Test" },
+      data: {
+        userId: user.id,
+        name: `Test ${tag}`,
+        slug: `mobile-auth-${tag}`,
+        phone: "0",
+        address: "Test",
+        // Like a real sign-up: a running trial, so the business isn't locked (subscriptionAccess).
+        subscription: { create: { trialEndDate: new Date(Date.now() + 3 * 864e5) } },
+      },
     });
   }
   return user;
