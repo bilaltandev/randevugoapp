@@ -10,6 +10,7 @@ import { ListRow, Page, TextField } from '@/components/ui';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { formatPrice } from '@/lib/appointments';
 import { makeStyles, spacing } from '@/theme';
+import { t } from '@/i18n';
 
 const PAGE = 50;
 
@@ -30,8 +31,8 @@ export default function CustomersScreen() {
   return (
     <Page onRefresh={refresh} refreshing={refreshing}>
       <TextField
-        label="Ara"
-        placeholder="Ad veya telefon"
+        label={t('Ara')}
+        placeholder={t('Ad veya telefon')}
         value={query}
         onChangeText={(v) => {
           setQuery(v);
@@ -46,8 +47,8 @@ export default function CustomersScreen() {
       {data && !error ? (
         filtered.length === 0 ? (
           <EmptyState
-            title={query ? 'Sonuç bulunamadı' : 'Henüz müşteri yok'}
-            description={query ? 'Farklı bir ad veya numara deneyin.' : 'Randevu alan müşteriler burada otomatik olarak listelenir.'}
+            title={query ? t('Sonuç bulunamadı') : t('Henüz müşteri yok')}
+            description={query ? t('Farklı bir ad veya numara deneyin.') : t('Randevu alan müşteriler burada otomatik olarak listelenir.')}
           />
         ) : (
           <View style={styles.list}>
@@ -56,13 +57,13 @@ export default function CustomersScreen() {
                 key={c.id}
                 icon={icons.user}
                 title={c.name}
-                subtitle={`${c.phone} · ${c.totalAppointments} randevu`}
+                subtitle={t('{0} · {1} randevu', c.phone, c.totalAppointments)}
                 meta={formatPrice(c.totalSpent)}
                 onPress={() => router.push({ pathname: '/customers/[id]', params: { id: c.id } })}
               />
             ))}
             {filtered.length > shown ? (
-              <ListRow title={`Daha fazla göster (${filtered.length - shown})`} onPress={() => setShown((n) => n + PAGE)} />
+              <ListRow title={t('Daha fazla göster ({0})', filtered.length - shown)} onPress={() => setShown((n) => n + PAGE)} />
             ) : null}
           </View>
         )

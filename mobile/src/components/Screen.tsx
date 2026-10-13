@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDrawer } from '@/components/Drawer';
 import { Icon, icons } from '@/components/Icon';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 type ScreenProps = {
   title: string;
@@ -31,15 +32,17 @@ export function Screen({ title, subtitle, children, onRefresh, refreshing = fals
           onPress={drawer.open}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="Menüyü aç"
+          accessibilityLabel={t('Menüyü aç')}
           style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
           <Icon name={icons.menu} size={22} color={colors.ink} />
         </Pressable>
         <View style={styles.flex} />
         {right}
       </View>
+      {/* iOS: inset by the native tab bar explicitly, so the last button can always scroll above it. */}
       <ScrollView
         contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         refreshControl={
           onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} colors={[colors.brand]} /> : undefined
@@ -84,7 +87,8 @@ const useStyles = makeStyles((colors) => ({
   },
   pressed: { opacity: 0.7 },
   flex: { flex: 1 },
-  content: { padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.xl },
+  // Extra bottom room: the floating tab bar (iOS 26) and its shadow sit over the last few points of content.
+  content: { padding: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxl + spacing.lg, gap: spacing.xl },
   header: { gap: spacing.xs },
   body: { gap: spacing.xl },
 }));

@@ -5,7 +5,7 @@ import { createContext, use, useEffect, useMemo, useState, type ReactNode } from
 import { Platform, StyleSheet, useColorScheme, type TextStyle } from 'react-native';
 
 /**
- * RandevuGo palettes. Values mirror the web app's tokens in `src/app/globals.css`
+ * CalendlyGo palettes. Values mirror the web app's tokens in `src/app/globals.css`
  * (`:root` = light, `.dark` = dark) so both clients read as one product.
  */
 const light = {

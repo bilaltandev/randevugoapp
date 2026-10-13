@@ -4,6 +4,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTimi
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import { makeStyles, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 // Small, dependency-light charts drawn with react-native-svg. Values are plain numbers; labels are strings.
 
@@ -69,7 +70,7 @@ export function AreaChart({ data, height = 180, format = compact, color }: { dat
   return (
     <View onLayout={onLayout}>
       <View style={[styles.tooltipRow]}>
-        <Text style={typography.caption}>{sel ? sel.label : 'Bir noktaya dokunun'}</Text>
+        <Text style={typography.caption}>{sel ? sel.label : t('Bir noktaya dokunun')}</Text>
         {sel ? <Text style={[typography.heading, { color: stroke }]}>{format(sel.value)}</Text> : null}
       </View>
       {width > 0 ? (
@@ -147,7 +148,7 @@ export function BarChart({ data, height = 160, format = compact, color }: { data
   return (
     <View>
       <View style={styles.tooltipRow}>
-        <Text style={typography.caption}>{sel ? (active === null ? `En yoğun: ${sel.label}` : sel.label) : 'Veri yok'}</Text>
+        <Text style={typography.caption}>{sel ? (active === null ? t('En yoğun: {0}', sel.label) : sel.label) : t('Veri yok')}</Text>
         {sel ? <Text style={[typography.heading, { color: fill }]}>{format(sel.value)}</Text> : null}
       </View>
       <View style={[styles.bars, { height }]}>
@@ -243,7 +244,7 @@ export function RankBars({ data, format = compact }: { data: Point[]; format?: (
   const { colors, typography } = useTheme();
   const styles = useStyles();
   const max = Math.max(1, ...data.map((d) => d.value));
-  if (data.length === 0) return <Text style={typography.body}>Henüz veri yok.</Text>;
+  if (data.length === 0) return <Text style={typography.body}>{t('Henüz veri yok.')}</Text>;
   return (
     <View style={styles.rank}>
       {data.map((d, i) => (

@@ -1,3 +1,4 @@
+import { t } from '../i18n/core';
 // Form input rules for the mobile screens. Pure TypeScript with no imports, so it is unit-tested from the
 // repo root (tests/mobile-client). The server validates again; these give quick, specific feedback.
 
@@ -31,17 +32,17 @@ export type HoursDraft = {
 /** Problem with one day's working hours in Turkish, or null when it is fine. */
 export function hoursProblem(day: HoursDraft): string | null {
   if (!day.isOpen) return null;
-  if (!isTime(day.openTime) || !isTime(day.closeTime)) return 'Açılış ve kapanış saatini SS:DD biçiminde girin.';
-  if (toMinutes(day.openTime) >= toMinutes(day.closeTime)) return 'Açılış saati kapanıştan önce olmalı.';
+  if (!isTime(day.openTime) || !isTime(day.closeTime)) return t('Açılış ve kapanış saatini SS:DD biçiminde girin.');
+  if (toMinutes(day.openTime) >= toMinutes(day.closeTime)) return t('Açılış saati kapanıştan önce olmalı.');
   const hasStart = day.breakStartTime.trim() !== '';
   const hasEnd = day.breakEndTime.trim() !== '';
-  if (hasStart !== hasEnd) return 'Mola için başlangıç ve bitiş saatini birlikte girin (ya da ikisini de boş bırakın).';
+  if (hasStart !== hasEnd) return t('Mola için başlangıç ve bitiş saatini birlikte girin (ya da ikisini de boş bırakın).');
   if (hasStart) {
-    if (!isTime(day.breakStartTime) || !isTime(day.breakEndTime)) return 'Mola saatlerini SS:DD biçiminde girin.';
+    if (!isTime(day.breakStartTime) || !isTime(day.breakEndTime)) return t('Mola saatlerini SS:DD biçiminde girin.');
     const bs = toMinutes(day.breakStartTime);
     const be = toMinutes(day.breakEndTime);
-    if (bs >= be) return 'Mola başlangıcı bitişten önce olmalı.';
-    if (bs < toMinutes(day.openTime) || be > toMinutes(day.closeTime)) return 'Mola, çalışma saatlerinin içinde olmalı.';
+    if (bs >= be) return t('Mola başlangıcı bitişten önce olmalı.');
+    if (bs < toMinutes(day.openTime) || be > toMinutes(day.closeTime)) return t('Mola, çalışma saatlerinin içinde olmalı.');
   }
   return null;
 }

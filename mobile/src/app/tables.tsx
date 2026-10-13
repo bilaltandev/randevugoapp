@@ -9,12 +9,13 @@ import { Button, Card, Chip, ChipRow, HeaderButton, InlineError, Page, SectionTi
 import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { dateKey } from '@/lib/appointments';
 import { makeStyles, radius, spacing, useTheme, type Colors } from '@/theme';
+import { t } from '@/i18n';
 
 const tableStatus = (colors: Colors): Record<TableStatus, { label: string; color: string; bg: string }> => ({
-  AVAILABLE: { label: 'Boş', color: colors.brandInk, bg: colors.brandSoft },
-  RESERVED: { label: 'Rezerve', color: colors.pending, bg: colors.pendingSoft },
-  OCCUPIED: { label: 'Dolu', color: colors.danger, bg: colors.dangerSoft },
-  OUT_OF_SERVICE: { label: 'Kullanım dışı', color: colors.ink3, bg: colors.surfaceMuted },
+  AVAILABLE: { label: t('Boş'), color: colors.brandInk, bg: colors.brandSoft },
+  RESERVED: { label: t('Rezerve'), color: colors.pending, bg: colors.pendingSoft },
+  OCCUPIED: { label: t('Dolu'), color: colors.danger, bg: colors.dangerSoft },
+  OUT_OF_SERVICE: { label: t('Kullanım dışı'), color: colors.ink3, bg: colors.surfaceMuted },
 });
 
 /** Restaurant floor: today's status of every table, grouped by area. The drag-and-drop plan stays on the web. */
@@ -28,17 +29,17 @@ export default function TablesScreen() {
   const [managingAreas, setManagingAreas] = useState(false);
 
   if (loading) return <LoadingView />;
-  if (error || !data) return <ErrorView message={error ?? 'Masalar yüklenemedi.'} onRetry={retry} />;
+  if (error || !data) return <ErrorView message={error ?? t('Masalar yüklenemedi.')} onRetry={retry} />;
 
-  const visible = data.tables.filter((t) => area === 'ALL' || (area === 'NONE' ? !t.areaId : t.areaId === area));
-  const counts = (Object.keys(TABLE_STATUS) as TableStatus[]).map((s) => ({ s, n: data.tables.filter((t) => t.computedStatus === s).length }));
+  const visible = data.tables.filter((x) => area === 'ALL' || (area === 'NONE' ? !x.areaId : x.areaId === area));
+  const counts = (Object.keys(TABLE_STATUS) as TableStatus[]).map((s) => ({ s, n: data.tables.filter((x) => x.computedStatus === s).length }));
 
   return (
     <Page onRefresh={refresh} refreshing={refreshing}>
       <Stack.Screen
         options={{
           headerRight: () => (
-            <HeaderButton label="Masa ekle" onPress={() => router.push({ pathname: '/tables/edit', params: area !== 'ALL' && area !== 'NONE' ? { areaId: area } : {} })} />
+            <HeaderButton label={t('Masa ekle')} onPress={() => router.push({ pathname: '/tables/edit', params: area !== 'ALL' && area !== 'NONE' ? { areaId: area } : {} })} />
           ),
         }}
       />
@@ -54,52 +55,53 @@ export default function TablesScreen() {
       </View>
 
       <ChipRow>
-        <Chip label="Tümü" selected={area === 'ALL'} onPress={() => setArea('ALL')} />
+        <Chip label={t('Tümü')} selected={area === 'ALL'} onPress={() => setArea('ALL')} />
         {data.areas.map((a) => (
           <Chip key={a.id} label={a.name} selected={area === a.id} onPress={() => setArea(a.id)} />
         ))}
-        {data.tables.some((t) => !t.areaId) ? <Chip label="Alansız" selected={area === 'NONE'} onPress={() => setArea('NONE')} /> : null}
+        {data.tables.some((x) => !x.areaId) ? <Chip label={t('Alansız')} selected={area === 'NONE'} onPress={() => setArea('NONE')} /> : null}
       </ChipRow>
 
       {visible.length === 0 ? (
-        <EmptyState title="Bu alanda masa yok" description="Sağ üstteki “Masa ekle” ile masa oluşturun." />
+        <EmptyState title={t('Bu alanda masa yok')} description={t('Sağ üstteki “Masa ekle” ile masa oluşturun.')} />
       ) : (
         <View style={styles.grid}>
-          {visible.map((t) => (
-            <TableTile key={t.id} table={t} />
+          {visible.map((table) => (
+            <TableTile key={table.id} table={table} />
           ))}
         </View>
       )}
 
-      <Button label={managingAreas ? 'Alan yönetimini kapat' : 'Alanları yönet'} variant="secondary" onPress={() => setManagingAreas((v) => !v)} />
+      <Button label={managingAreas ? t('Alan yönetimini kapat') : t('Alanları yönet')} variant="secondary" onPress={() => setManagingAreas((v) => !v)} />
       {managingAreas ? <AreaManager areas={data.areas} onChanged={refresh} /> : null}
     </Page>
   );
 }
 
-function TableTile({ table: t }: { table: RestaurantTable }) {
+function TableTile({ table: tb }: { table: RestaurantTable }) {
   const { colors, typography } = useTheme();
   const TABLE_STATUS = tableStatus(colors);
   const styles = useStyles();
-  const st = TABLE_STATUS[t.computedStatus] ?? TABLE_STATUS.AVAILABLE;
+  const st = TABLE_STATUS[tb.computedStatus] ?? TABLE_STATUS.AVAILABLE;
   return (
     <Pressable
-      onPress={() => router.push({ pathname: '/tables/edit', params: { id: t.id } })}
+      onPress={() => router.push({ pathname: '/tables/edit', params: { id: tb.id } })}
       accessibilityRole="button"
-      accessibilityLabel={`${t.name}, ${t.capacity} kişilik, ${st.label}`}
+      accessibilityLabel={t('{0}, {1} kişilik, {2}', tb.name, tb.capacity, st.label)}
       style={({ pressed }) => [styles.tile, { borderColor: st.color }, pressed && styles.pressed]}>
-      <View style={[styles.shape, t.shape === 'ROUND' && styles.round, t.shape === 'RECTANGLE' && styles.rect, { backgroundColor: st.bg }]}>
+      <View style={[styles.shape, tb.shape === 'ROUND' && styles.round, tb.shape === 'RECTANGLE' && styles.rect, { backgroundColor: st.bg }]}>
         <Text style={[typography.heading, { color: st.color }]} numberOfLines={1}>
-          {t.name}
+          {tb.name}
         </Text>
       </View>
       <Text style={typography.caption}>
-        {t.capacity} kişi{t.area ? ` · ${t.area.name}` : ''}
+        {t('{0} kişi', tb.capacity)}
+        {tb.area ? ` · ${tb.area.name}` : ''}
       </Text>
       <Text style={[typography.caption, { color: st.color, fontWeight: '600' }]}>{st.label}</Text>
-      {t.currentAppointment?.customerName ? (
+      {tb.currentAppointment?.customerName ? (
         <Text style={typography.caption} numberOfLines={1}>
-          {t.currentAppointment.startTime} {t.currentAppointment.customerName}
+          {tb.currentAppointment.startTime} {tb.currentAppointment.customerName}
         </Text>
       ) : null}
     </Pressable>
@@ -114,7 +116,7 @@ function AreaManager({ areas, onChanged }: { areas: { id: string; name: string }
   const save = useApiMutation();
 
   const add = async () => {
-    if (!name.trim()) return save.setError('Alan adını girin (ör. Teras).');
+    if (!name.trim()) return save.setError(t('Alan adını girin (ör. Teras).'));
     if (await save.run((client) => createArea(client, name.trim()))) {
       setName('');
       onChanged();
@@ -123,7 +125,7 @@ function AreaManager({ areas, onChanged }: { areas: { id: string; name: string }
 
   const saveRename = async () => {
     if (!editing) return;
-    if (!editing.name.trim()) return save.setError('Alan adı boş olamaz.');
+    if (!editing.name.trim()) return save.setError(t('Alan adı boş olamaz.'));
     if (await save.run((client) => renameArea(client, editing.id, editing.name.trim()))) {
       setEditing(null);
       onChanged();
@@ -131,43 +133,39 @@ function AreaManager({ areas, onChanged }: { areas: { id: string; name: string }
   };
 
   const remove = (id: string, areaName: string) =>
-    Alert.alert('Alanı sil', `"${areaName}" silinecek. Bu alandaki masalar silinmez, "Alansız" olur.`, [
-      { text: 'Vazgeç', style: 'cancel' },
-      { text: 'Sil', style: 'destructive', onPress: async () => (await save.run((client) => deleteArea(client, id))) && onChanged() },
+    Alert.alert(t('Alanı sil'), t('"{0}" silinecek. Bu alandaki masalar silinmez, "Alansız" olur.', areaName), [
+      { text: t('Vazgeç'), style: 'cancel' },
+      { text: t('Sil'), style: 'destructive', onPress: async () => (await save.run((client) => deleteArea(client, id))) && onChanged() },
     ]);
 
   return (
     <Card>
-      <SectionTitle>Alanlar</SectionTitle>
-      {areas.length === 0 ? <Text style={typography.body}>Henüz alan yok.</Text> : null}
+      <SectionTitle>{t('Alanlar')}</SectionTitle>
+      {areas.length === 0 ? <Text style={typography.body}>{t('Henüz alan yok.')}</Text> : null}
       {areas.map((a) =>
         editing?.id === a.id ? (
           <View key={a.id} style={styles.areaEdit}>
-            <TextField label="Alan adı" value={editing.name} onChangeText={(v) => setEditing({ id: a.id, name: v })} maxLength={40} autoFocus />
+            <TextField label={t('Alan adı')} value={editing.name} onChangeText={(v) => setEditing({ id: a.id, name: v })} maxLength={40} autoFocus />
             <View style={styles.areaRow}>
               <Text style={[typography.label, { color: colors.ink3 }]} onPress={() => setEditing(null)}>
-                Vazgeç
-              </Text>
+                {t('Vazgeç')}</Text>
               <Text style={[typography.label, { color: colors.brand }]} onPress={saveRename}>
-                Kaydet
-              </Text>
+                {t('Kaydet')}</Text>
             </View>
           </View>
         ) : (
           <View key={a.id} style={styles.areaRow}>
             <Text style={[typography.body, { color: colors.ink, flex: 1 }]}>{a.name}</Text>
             <Text style={[typography.label, { color: colors.brand }]} onPress={() => setEditing({ id: a.id, name: a.name })}>
-              Adlandır
-            </Text>
+              {t('Adlandır')}</Text>
             <Text style={[typography.label, { color: colors.danger }]} onPress={() => remove(a.id, a.name)}>
-              Sil
-            </Text>
+              {t('Sil')}</Text>
           </View>
         )
       )}
-      <TextField label="Yeni alan" value={name} onChangeText={setName} placeholder="Ör. Bahçe, Teras, Salon" maxLength={40} />
+      <TextField label={t('Yeni alan')} value={name} onChangeText={setName} placeholder={t('Ör. Bahçe, Teras, Salon')} maxLength={40} />
       <InlineError message={save.error} />
-      <Button label="Alan ekle" variant="secondary" onPress={add} busy={save.busy} />
+      <Button label={t('Alan ekle')} variant="secondary" onPress={add} busy={save.busy} />
     </Card>
   );
 }

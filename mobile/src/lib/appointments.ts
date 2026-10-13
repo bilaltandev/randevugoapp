@@ -1,3 +1,4 @@
+import { t } from '../i18n/core';
 // Appointment rules shared by the mobile screens. Pure TypeScript with relative imports only, so it is
 // unit-tested from the repo root (tests/mobile-client). Mirrors the web app's rules.
 
@@ -26,14 +27,14 @@ export type StatusTone = 'pending' | 'confirmed' | 'completed' | 'cancelled' | '
 
 // Same labels as src/lib/appointmentStatus.ts on the web.
 export const STATUS_META: Record<AppointmentStatus, { label: string; tone: StatusTone }> = {
-  PENDING: { label: 'Onay bekliyor', tone: 'pending' },
-  CONFIRMED: { label: 'Onaylandı', tone: 'confirmed' },
-  COMPLETED: { label: 'Tamamlandı', tone: 'completed' },
-  CANCELLED: { label: 'İptal edildi', tone: 'cancelled' },
+  PENDING: { label: t('Onay bekliyor'), tone: 'pending' },
+  CONFIRMED: { label: t('Onaylandı'), tone: 'confirmed' },
+  COMPLETED: { label: t('Tamamlandı'), tone: 'completed' },
+  CANCELLED: { label: t('İptal edildi'), tone: 'cancelled' },
 };
 
 export function statusMeta(a: Pick<Appointment, 'status' | 'isBlockedSlot'>): { label: string; tone: StatusTone } {
-  if (a.isBlockedSlot) return a.status === 'CANCELLED' ? { label: 'Açıldı', tone: 'cancelled' } : { label: 'Kapalı saat', tone: 'blocked' };
+  if (a.isBlockedSlot) return a.status === 'CANCELLED' ? { label: t('Açıldı'), tone: 'cancelled' } : { label: t('Kapalı saat'), tone: 'blocked' };
   return STATUS_META[a.status] ?? STATUS_META.PENDING;
 }
 
@@ -45,11 +46,11 @@ export type StatusAction = { status: AppointmentStatus; label: string; destructi
  * A closed slot can only be reopened (cancelled).
  */
 export function availableActions(a: Pick<Appointment, 'status' | 'isBlockedSlot'>): StatusAction[] {
-  if (a.isBlockedSlot) return a.status === 'CANCELLED' ? [] : [{ status: 'CANCELLED', label: 'Saati aç', destructive: true }];
+  if (a.isBlockedSlot) return a.status === 'CANCELLED' ? [] : [{ status: 'CANCELLED', label: t('Saati aç'), destructive: true }];
   const actions: StatusAction[] = [];
-  if (a.status === 'PENDING') actions.push({ status: 'CONFIRMED', label: 'Onayla' });
-  if (a.status === 'CONFIRMED') actions.push({ status: 'COMPLETED', label: 'Tamamla' });
-  if (a.status !== 'CANCELLED') actions.push({ status: 'CANCELLED', label: 'İptal et', destructive: true });
+  if (a.status === 'PENDING') actions.push({ status: 'CONFIRMED', label: t('Onayla') });
+  if (a.status === 'CONFIRMED') actions.push({ status: 'COMPLETED', label: t('Tamamla') });
+  if (a.status !== 'CANCELLED') actions.push({ status: 'CANCELLED', label: t('İptal et'), destructive: true });
   return actions;
 }
 
@@ -95,7 +96,7 @@ export function sectorDetails(raw: string | null): string[] {
   try {
     const d = JSON.parse(raw) as Record<string, unknown>;
     const out: string[] = [];
-    if (d.guestCount) out.push(`${d.guestCount} kişi`);
+    if (d.guestCount) out.push(t('{0} kişi', String(d.guestCount)));
     if (d.tableName) out.push(d.areaName ? `${d.areaName} · ${d.tableName}` : String(d.tableName));
     if (d.plateNumber) out.push(String(d.plateNumber).toUpperCase());
     return out;
@@ -146,9 +147,9 @@ export function weekOf(d: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 }
 
-const DAYS_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
-const DAYS_LONG = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const DAYS_SHORT = [t('Paz'), t('Pzt'), t('Sal'), t('Çar'), t('Per'), t('Cum'), t('Cmt')];
+const DAYS_LONG = [t('Pazar'), t('Pazartesi'), t('Salı'), t('Çarşamba'), t('Perşembe'), t('Cuma'), t('Cumartesi')];
+const MONTHS = [t('Ocak'), t('Şubat'), t('Mart'), t('Nisan'), t('Mayıs'), t('Haziran'), t('Temmuz'), t('Ağustos'), t('Eylül'), t('Ekim'), t('Kasım'), t('Aralık')];
 
 export const shortDayName = (d: Date) => DAYS_SHORT[d.getDay()];
 

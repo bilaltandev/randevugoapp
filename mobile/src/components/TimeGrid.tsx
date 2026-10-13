@@ -4,6 +4,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { dateKey, statusMeta, type Appointment, type StatusTone } from '@/lib/appointments';
 import { makeStyles, radius, spacing, useTheme, type Colors } from '@/theme';
+import { t } from '@/i18n';
 
 // Mobile port of the web calendar's TimeGrid (src/app/dashboard/calendar/TimeGrid.tsx): hour rows,
 // overlapping bookings side by side, a "now" line, and a tap on free space to book that time.
@@ -109,8 +110,8 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt, onPickDay }
     const first = all.length ? Math.min(...all.map((p) => p.start)) : null;
     const focus = keys.includes(todayKey) ? nowMin - 60 : first !== null ? first - 30 : startHour * 60;
     const y = Math.max(0, ((focus - startHour * 60) / 60) * HOUR_PX);
-    const t = setTimeout(() => scrollRef.current?.scrollTo({ y, animated: true }), 250);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => scrollRef.current?.scrollTo({ y, animated: true }), 250);
+    return () => clearTimeout(timer);
     // only when the visible days change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keys.join()]);
@@ -132,7 +133,7 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt, onPickDay }
             const count = (byDay.get(keys[i]) ?? []).filter((p) => !p.appt.isBlockedSlot && p.appt.status !== 'CANCELLED').length;
             return (
               <Pressable key={keys[i]} style={styles.headCell} onPress={() => onPickDay?.(d)} accessibilityRole="button">
-                <Text style={typography.caption}>{['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][d.getDay()]}</Text>
+                <Text style={typography.caption}>{[t('Paz'), t('Pzt'), t('Sal'), t('Çar'), t('Per'), t('Cum'), t('Cmt')][d.getDay()]}</Text>
                 <View style={[styles.dayNum, isToday && styles.dayNumToday]}>
                   <Text style={[typography.label, { color: isToday ? colors.onBrand : colors.ink }]}>{d.getDate()}</Text>
                 </View>
@@ -161,14 +162,14 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt, onPickDay }
                 {hours.map((h) => (
                   <View key={h} style={[styles.hourLine, { top: (h - startHour) * HOUR_PX }]} />
                 ))}
-                <Pressable style={styles.fill} onPress={tapFree(key)} accessibilityLabel={`${key} boş saate randevu ekle`} />
+                <Pressable style={styles.fill} onPress={tapFree(key)} accessibilityLabel={t('{0} boş saate randevu ekle', key)} />
                 {placed.map((p) => {
                   const tone = tones[statusMeta(p.appt).tone];
                   const top = ((p.start - startHour * 60) / 60) * HOUR_PX;
                   const h = Math.max(((p.end - p.start) / 60) * HOUR_PX - 2, 22);
                   const widthPct = 100 / p.lanes;
                   const compact = h < 44 || !single;
-                  const title = p.appt.isBlockedSlot ? p.appt.notes || 'Kapalı saat' : p.appt.customerName;
+                  const title = p.appt.isBlockedSlot ? p.appt.notes || t('Kapalı saat') : p.appt.customerName;
                   return (
                     <Animated.View
                       key={p.appt.id}

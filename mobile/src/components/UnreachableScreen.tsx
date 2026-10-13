@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 /** Shown at launch when a saved session exists but the server can't be reached. Nothing is signed out. */
 export function UnreachableScreen() {
@@ -12,18 +13,17 @@ export function UnreachableScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={typography.title}>Sunucuya ulaşılamadı</Text>
+        <Text style={typography.title}>{t('Sunucuya ulaşılamadı')}</Text>
         <Text style={typography.body}>
-          İnternet bağlantınızı kontrol edip tekrar deneyin. Oturumunuz bu cihazda kayıtlı duruyor.
-        </Text>
+          {t('İnternet bağlantınızı kontrol edip tekrar deneyin. Oturumunuz bu cihazda kayıtlı duruyor.')}</Text>
         <Pressable
           onPress={retryRestore}
           accessibilityRole="button"
           style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}>
-          <Text style={styles.buttonText}>Tekrar dene</Text>
+          <Text style={styles.buttonText}>{t('Tekrar dene')}</Text>
         </Pressable>
         <Pressable onPress={signOut} accessibilityRole="button" style={styles.linkButton}>
-          <Text style={styles.link}>Çıkış yap</Text>
+          <Text style={styles.link}>{t('Çıkış yap')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

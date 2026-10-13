@@ -1,3 +1,4 @@
+import { localeTag, t } from '@/i18n';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
@@ -19,12 +20,12 @@ export default function TicketScreen() {
   const close = useApiMutation();
 
   if (loading) return <LoadingView />;
-  if (error || !data) return <ErrorView message={error ?? 'Talep yüklenemedi.'} onRetry={retry} />;
+  if (error || !data) return <ErrorView message={error ?? t('Talep yüklenemedi.')} onRetry={retry} />;
   const { ticket, messages } = data;
   const closed = ticket.status === 'CLOSED';
 
   const submit = async () => {
-    if (!reply.trim()) return send.setError('Mesaj boş olamaz.');
+    if (!reply.trim()) return send.setError(t('Mesaj boş olamaz.'));
     if (await send.run((client) => replyToTicket(client, ticket.id, reply.trim()))) {
       setReply('');
       await refresh();
@@ -32,22 +33,22 @@ export default function TicketScreen() {
   };
 
   const confirmClose = () =>
-    Alert.alert('Talebi kapat', 'Sorununuz çözüldüyse talebi kapatabilirsiniz. Yeniden yazarsanız talep tekrar açılır.', [
-      { text: 'Vazgeç', style: 'cancel' },
-      { text: 'Kapat', style: 'destructive', onPress: async () => (await close.run((client) => closeTicket(client, ticket.id))) && refresh() },
+    Alert.alert(t('Talebi kapat'), t('Sorununuz çözüldüyse talebi kapatabilirsiniz. Yeniden yazarsanız talep tekrar açılır.'), [
+      { text: t('Vazgeç'), style: 'cancel' },
+      { text: t('Kapat'), style: 'destructive', onPress: async () => (await close.run((client) => closeTicket(client, ticket.id))) && refresh() },
     ]);
 
   const meta = [
     TICKET_CATEGORIES.find((c) => c.id === ticket.category)?.label,
-    `Öncelik: ${TICKET_PRIORITIES.find((p) => p.id === ticket.priority)?.label ?? ticket.priority}`,
-    ticket.assignedToName ? `İlgilenen: ${ticket.assignedToName}` : null,
+    t('Öncelik: {0}', TICKET_PRIORITIES.find((p) => p.id === ticket.priority)?.label ?? ticket.priority),
+    ticket.assignedToName ? t('İlgilenen: {0}', ticket.assignedToName) : null,
   ]
     .filter(Boolean)
     .join(' · ');
 
   return (
     <Page onRefresh={refresh} refreshing={refreshing}>
-      <Stack.Screen options={{ title: 'Destek talebi' }} />
+      <Stack.Screen options={{ title: t('Destek talebi') }} />
       <View style={styles.header}>
         <Text style={[typography.title, styles.flex]}>{ticket.subject}</Text>
         <Pill label={TICKET_STATUSES[ticket.status] ?? ticket.status} tone={closed ? 'muted' : 'brand'} />
@@ -59,7 +60,7 @@ export default function TicketScreen() {
         return (
           <View key={m.id} style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
             <Text style={typography.caption}>
-              {mine ? 'Siz' : `${m.authorName} · Destek`} · {new Date(m.createdAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })}
+              {mine ? t('Siz') : t('{0} · Destek', m.authorName)} · {new Date(m.createdAt).toLocaleString(localeTag(), { dateStyle: 'short', timeStyle: 'short' })}
             </Text>
             <Text style={[typography.body, { color: colors.ink }]}>{m.body}</Text>
           </View>
@@ -67,15 +68,15 @@ export default function TicketScreen() {
       })}
 
       <TextField
-        label={closed ? 'Yeniden yazarak talebi açın' : 'Yanıtınız'}
+        label={closed ? t('Yeniden yazarak talebi açın') : t('Yanıtınız')}
         value={reply}
         onChangeText={setReply}
         multiline
         maxLength={MAX_MESSAGE_LENGTH}
       />
       <InlineError message={send.error ?? close.error} />
-      <Button label="Gönder" onPress={submit} busy={send.busy} />
-      {!closed ? <Button label="Talebi kapat" variant="secondary" onPress={confirmClose} busy={close.busy} /> : null}
+      <Button label={t('Gönder')} onPress={submit} busy={send.busy} />
+      {!closed ? <Button label={t('Talebi kapat')} variant="secondary" onPress={confirmClose} busy={close.busy} /> : null}
     </Page>
   );
 }

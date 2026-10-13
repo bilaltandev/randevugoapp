@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { addDays, dateKey, longDate, shortDayName, weekOf } from '@/lib/appointments';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 type Props = {
   selected: Date;
@@ -21,7 +22,7 @@ export function WeekStrip({ selected, onSelect, minKey }: Props) {
 
   return (
     <View style={styles.weekNav}>
-      <NavButton label="‹" accessibilityLabel="Önceki hafta" disabled={!canGoBack} onPress={() => onSelect(addDays(selected, -7))} />
+      <NavButton label="‹" accessibilityLabel={t('Önceki hafta')} disabled={!canGoBack} onPress={() => onSelect(addDays(selected, -7))} />
       <View style={styles.week}>
         {week.map((d) => {
           const key = dateKey(d);
@@ -42,7 +43,7 @@ export function WeekStrip({ selected, onSelect, minKey }: Props) {
           );
         })}
       </View>
-      <NavButton label="›" accessibilityLabel="Sonraki hafta" onPress={() => onSelect(addDays(selected, 7))} />
+      <NavButton label="›" accessibilityLabel={t('Sonraki hafta')} onPress={() => onSelect(addDays(selected, 7))} />
     </View>
   );
 }

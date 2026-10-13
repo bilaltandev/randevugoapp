@@ -17,11 +17,12 @@ import { Button, Card, Chip, ChipRow, InlineError, Page, SectionTitle, SwitchRow
 import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { dateKey } from '@/lib/appointments';
 import { useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 const SHAPES: { id: TableShape; label: string }[] = [
-  { id: 'ROUND', label: 'Yuvarlak' },
-  { id: 'SQUARE', label: 'Kare' },
-  { id: 'RECTANGLE', label: 'Dikdörtgen' },
+  { id: 'ROUND', label: t('Yuvarlak') },
+  { id: 'SQUARE', label: t('Kare') },
+  { id: 'RECTANGLE', label: t('Dikdörtgen') },
 ];
 
 /** Create (no id) or edit a table. Position and size on the floor plan are edited on the web. */
@@ -32,12 +33,12 @@ export default function TableEditScreen() {
   const query = useApiQuery(load);
 
   if (query.loading) return <LoadingView />;
-  if (query.error || !query.data) return <ErrorView message={query.error ?? 'Yüklenemedi.'} onRetry={query.retry} />;
-  const table = id ? query.data.tables.find((t) => t.id === id) ?? null : null;
+  if (query.error || !query.data) return <ErrorView message={query.error ?? t('Yüklenemedi.')} onRetry={query.retry} />;
+  const table = id ? query.data.tables.find((x) => x.id === id) ?? null : null;
   if (id && !table) {
     return (
       <Page>
-        <Text style={typography.body}>Masa bulunamadı.</Text>
+        <Text style={typography.body}>{t('Masa bulunamadı.')}</Text>
       </Page>
     );
   }
@@ -60,8 +61,8 @@ function TableForm({ table, areas, tableCount, defaultAreaId }: { table: Restaur
   const submit = async () => {
     setFormError(null);
     const cap = Number(capacity);
-    if (!name.trim()) return setFormError('Masa adı veya numarası girin.');
-    if (!Number.isInteger(cap) || cap < 1 || cap > 50) return setFormError('Kapasite 1–50 arası bir sayı olmalı.');
+    if (!name.trim()) return setFormError(t('Masa adı veya numarası girin.'));
+    if (!Number.isInteger(cap) || cap < 1 || cap > 50) return setFormError(t('Kapasite 1–50 arası bir sayı olmalı.'));
     const status: TableStatus = outOfService ? 'OUT_OF_SERVICE' : 'AVAILABLE';
     const input = { name: name.trim(), capacity: cap, shape, areaId, description: description.trim() || null, isActive, status };
     const ok = await save.run((client) =>
@@ -74,10 +75,10 @@ function TableForm({ table, areas, tableCount, defaultAreaId }: { table: Restaur
   };
 
   const confirmDelete = () =>
-    Alert.alert('Masayı sil', 'Masa kalıcı olarak silinecek. Geçmiş rezervasyonlar korunur, masa bilgisi boşalır.', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('Masayı sil'), t('Masa kalıcı olarak silinecek. Geçmiş rezervasyonlar korunur, masa bilgisi boşalır.'), [
+      { text: t('Vazgeç'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('Sil'),
         style: 'destructive',
         onPress: async () => {
           if (table && (await remove.run((client) => deleteTable(client, table.id)))) router.back();
@@ -87,36 +88,36 @@ function TableForm({ table, areas, tableCount, defaultAreaId }: { table: Restaur
 
   return (
     <Page>
-      <Stack.Screen options={{ title: editing ? 'Masayı düzenle' : 'Yeni masa' }} />
+      <Stack.Screen options={{ title: editing ? t('Masayı düzenle') : t('Yeni masa') }} />
 
-      <TextField label="Masa adı / numarası" value={name} onChangeText={setName} placeholder="Ör. M1, Teras 4" maxLength={30} />
-      <TextField label="Kapasite (kişi)" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" maxLength={2} />
+      <TextField label={t('Masa adı / numarası')} value={name} onChangeText={setName} placeholder={t('Ör. M1, Teras 4')} maxLength={30} />
+      <TextField label={t('Kapasite (kişi)')} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" maxLength={2} />
 
-      <SectionTitle>Şekil</SectionTitle>
+      <SectionTitle>{t('Şekil')}</SectionTitle>
       <ChipRow>
         {SHAPES.map((s) => (
           <Chip key={s.id} label={s.label} selected={shape === s.id} onPress={() => setShape(s.id)} />
         ))}
       </ChipRow>
 
-      <SectionTitle>Alan</SectionTitle>
+      <SectionTitle>{t('Alan')}</SectionTitle>
       <ChipRow>
-        <Chip label="Alansız" selected={areaId === null} onPress={() => setAreaId(null)} />
+        <Chip label={t('Alansız')} selected={areaId === null} onPress={() => setAreaId(null)} />
         {areas.map((a) => (
           <Chip key={a.id} label={a.name} selected={areaId === a.id} onPress={() => setAreaId(a.id)} />
         ))}
       </ChipRow>
 
-      <TextField label="Açıklama (isteğe bağlı)" value={description} onChangeText={setDescription} multiline maxLength={200} placeholder="Ör. Cam kenarı, manzaralı" />
+      <TextField label={t('Açıklama (isteğe bağlı)')} value={description} onChangeText={setDescription} multiline maxLength={200} placeholder={t('Ör. Cam kenarı, manzaralı')} />
 
       <Card>
-        <SwitchRow label="Aktif" hint="Pasif masalar online rezervasyonda sunulmaz." value={isActive} onValueChange={setIsActive} />
-        <SwitchRow label="Kullanım dışı" hint="Bakım vb. nedenlerle geçici olarak kapatın." value={outOfService} onValueChange={setOutOfService} />
+        <SwitchRow label={t('Aktif')} hint={t('Pasif masalar online rezervasyonda sunulmaz.')} value={isActive} onValueChange={setIsActive} />
+        <SwitchRow label={t('Kullanım dışı')} hint={t('Bakım vb. nedenlerle geçici olarak kapatın.')} value={outOfService} onValueChange={setOutOfService} />
       </Card>
 
       <InlineError message={formError ?? save.error ?? remove.error} />
-      <Button label={editing ? 'Kaydet' : 'Masayı ekle'} onPress={submit} busy={save.busy} />
-      {editing ? <Button label="Masayı sil" variant="danger" onPress={confirmDelete} busy={remove.busy} /> : null}
+      <Button label={editing ? t('Kaydet') : t('Masayı ekle')} onPress={submit} busy={save.busy} />
+      {editing ? <Button label={t('Masayı sil')} variant="danger" onPress={confirmDelete} busy={remove.busy} /> : null}
     </Page>
   );
 }

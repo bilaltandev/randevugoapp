@@ -10,6 +10,7 @@ import { ErrorView, LoadingView } from '@/components/StateViews';
 import { API_URL } from '@/config';
 import { errorMessage } from '@/lib/errorMessage';
 import { makeStyles, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 /**
  * A web panel page (e.g. the page builder) inside the app, exactly as on the web. The app's session is
@@ -69,7 +70,7 @@ export function WebPanel({ next }: { next: string }) {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <Pressable onPress={() => webRef.current?.reload()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Yenile">
+            <Pressable onPress={() => webRef.current?.reload()} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('Yenile')}>
               <Icon name={icons.refresh} size={20} color={colors.brand} />
             </Pressable>
           ),
@@ -92,7 +93,7 @@ export function WebPanel({ next }: { next: string }) {
           setCanGoBack(s.canGoBack);
           // Landing on the web login page means the one-time link didn't work (expired or used).
           if (/\/login(?:[/?#]|$)/.test(s.url.replace(/^https?:\/\/[^/]+/, ''))) {
-            setLoginError('Web paneline giriş yapılamadı. Bağlantının süresi dolmuş olabilir.');
+            setLoginError(t('Web paneline giriş yapılamadı. Bağlantının süresi dolmuş olabilir.'));
           }
         }}
       />

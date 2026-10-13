@@ -12,14 +12,15 @@ import { ErrorView, LoadingView } from '@/components/StateViews';
 import { useAppointments } from '@/hooks/useAppointments';
 import { matchesSearch, type AppointmentStatus } from '@/lib/appointments';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 type Tab = AppointmentStatus | 'ALL';
 const TABS: { value: Tab; label: string }[] = [
-  { value: 'PENDING', label: 'Bekleyen' },
-  { value: 'CONFIRMED', label: 'Onaylanan' },
-  { value: 'COMPLETED', label: 'Tamamlanan' },
-  { value: 'CANCELLED', label: 'İptal' },
-  { value: 'ALL', label: 'Tümü' },
+  { value: 'PENDING', label: t('Bekleyen') },
+  { value: 'CONFIRMED', label: t('Onaylanan') },
+  { value: 'COMPLETED', label: t('Tamamlanan') },
+  { value: 'CANCELLED', label: t('İptal') },
+  { value: 'ALL', label: t('Tümü') },
 ];
 
 export default function AppointmentsScreen() {
@@ -37,8 +38,8 @@ export default function AppointmentsScreen() {
 
   // The server searches all pages; wait until typing pauses before asking it.
   useEffect(() => {
-    const t = setTimeout(() => setSearch(query.trim()), 350);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSearch(query.trim()), 350);
+    return () => clearTimeout(timer);
   }, [query]);
 
   // Closed slots are calendar entries, not bookings; they are managed from the calendar tab.
@@ -48,23 +49,23 @@ export default function AppointmentsScreen() {
 
   return (
     <Screen
-      title="Randevular"
-      subtitle="Tüm rezervasyonlar"
+      title={t('Randevular')}
+      subtitle={t('Tüm rezervasyonlar')}
       onRefresh={refresh}
       refreshing={refreshing}
-      right={<BarButton icon="add" label="Yeni randevu" onPress={() => router.push('/appointment/new')} />}>
+      right={<BarButton icon="add" label={t('Yeni randevu')} onPress={() => router.push('/appointment/new')} />}>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-        {TABS.map((t) => {
-          const active = t.value === tab;
+        {TABS.map((tabItem) => {
+          const active = tabItem.value === tab;
           return (
             <Pressable
-              key={t.value}
-              onPress={() => setTab(t.value)}
+              key={tabItem.value}
+              onPress={() => setTab(tabItem.value)}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               style={[styles.tab, active && styles.tabActive]}>
-              <Text style={[typography.label, { color: active ? colors.onBrand : colors.ink2 }]}>{t.label}</Text>
+              <Text style={[typography.label, { color: active ? colors.onBrand : colors.ink2 }]}>{tabItem.label}</Text>
             </Pressable>
           );
         })}
@@ -76,7 +77,7 @@ export default function AppointmentsScreen() {
           style={styles.search}
           value={query}
           onChangeText={setQuery}
-          placeholder="Müşteri adı veya telefon ara"
+          placeholder={t('Müşteri adı veya telefon ara')}
           placeholderTextColor={colors.ink3}
           autoCorrect={false}
           clearButtonMode="while-editing"
@@ -89,8 +90,8 @@ export default function AppointmentsScreen() {
       {items && !error ? (
         visible.length === 0 ? (
           <EmptyState
-            title={query ? 'Sonuç bulunamadı' : 'Bu listede randevu yok'}
-            description={query ? 'Farklı bir isim veya telefon numarası deneyin.' : 'Yeni rezervasyonlar geldiğinde burada görünecek.'}
+            title={query ? t('Sonuç bulunamadı') : t('Bu listede randevu yok')}
+            description={query ? t('Farklı bir isim veya telefon numarası deneyin.') : t('Yeni rezervasyonlar geldiğinde burada görünecek.')}
           />
         ) : (
           <View style={styles.list}>
@@ -101,7 +102,7 @@ export default function AppointmentsScreen() {
         )
       ) : null}
       {items && !error && hasMore ? (
-        <Button label="Daha fazla göster" variant="secondary" onPress={loadMore} busy={loadingMore} />
+        <Button label={t('Daha fazla göster')} variant="secondary" onPress={loadMore} busy={loadingMore} />
       ) : null}
 
       <AppointmentSheet appointment={selected} onClose={() => setSelectedId(null)} onChangeStatus={setStatus} />

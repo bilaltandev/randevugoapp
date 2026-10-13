@@ -6,12 +6,13 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, FadeInLeft, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import appIcon from '../../assets/images/icon.png';
+import appIcon from '../../assets/images/logo-mark.png';
 
 import { absoluteUrl, isRestaurantSector, publicPageUrl, SECTORS } from '@/api/panel';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAccount, useAuth } from '@/auth/AuthProvider';
 import { Icon, icons, type IconName } from '@/components/Icon';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { localeTag, t } from '@/i18n';
 
 type DrawerValue = { open: () => void; close: () => void };
 const DrawerContext = createContext<DrawerValue>({ open: () => {}, close: () => {} });
@@ -22,40 +23,57 @@ type Item = { title: string; href: Href; icon: IconName; match: string };
 type Group = { label: string; items: Item[] };
 
 /** The web panel's sidebar (DashboardSidebar): same groups, items and order. */
-function menuGroups(restaurant: boolean): Group[] {
+function menuGroups(restaurant: boolean, isMember: boolean): Group[] {
+  // Team members only work with their own bookings; every other screen is the owner's.
+  if (isMember) {
+    return [
+      {
+        label: t('Günlük'),
+        items: [
+          { title: t('Özet'), href: '/', icon: icons.overview, match: '/' },
+          { title: t('Takvim'), href: '/calendar', icon: icons.calendar, match: '/calendar' },
+          { title: t('Rezervasyonlar'), href: '/appointments', icon: icons.appointments, match: '/appointments' },
+        ],
+      },
+      {
+        label: t('Hesap'),
+        items: [{ title: t('Profil'), href: '/profile', icon: icons.profile, match: '/profile' }],
+      },
+    ];
+  }
   return [
     {
-      label: 'Günlük',
+      label: t('Günlük'),
       items: [
-        { title: 'Özet', href: '/', icon: icons.overview, match: '/' },
-        { title: 'Takvim', href: '/calendar', icon: icons.calendar, match: '/calendar' },
-        { title: 'Rezervasyonlar', href: '/appointments', icon: icons.appointments, match: '/appointments' },
-        ...(restaurant ? [{ title: 'Masa Planı', href: '/tables' as Href, icon: icons.tables, match: '/tables' }] : []),
-        { title: 'Müşteriler', href: '/customers', icon: icons.customers, match: '/customers' },
+        { title: t('Özet'), href: '/', icon: icons.overview, match: '/' },
+        { title: t('Takvim'), href: '/calendar', icon: icons.calendar, match: '/calendar' },
+        { title: t('Rezervasyonlar'), href: '/appointments', icon: icons.appointments, match: '/appointments' },
+        ...(restaurant ? [{ title: t('Masa Planı'), href: '/tables' as Href, icon: icons.tables, match: '/tables' }] : []),
+        { title: t('Müşteriler'), href: '/customers', icon: icons.customers, match: '/customers' },
       ],
     },
     {
-      label: 'İşletme',
+      label: t('İşletme'),
       items: [
-        { title: 'Hizmetler', href: '/services', icon: icons.services, match: '/services' },
-        { title: 'Çalışanlar', href: '/employees', icon: icons.employees, match: '/employees' },
-        { title: 'Yorumlar', href: '/reviews', icon: icons.reviews, match: '/reviews' },
-        { title: 'İstatistikler', href: '/analytics', icon: icons.analytics, match: '/analytics' },
+        { title: t('Hizmetler'), href: '/services', icon: icons.services, match: '/services' },
+        { title: t('Çalışanlar'), href: '/employees', icon: icons.employees, match: '/employees' },
+        { title: t('Yorumlar'), href: '/reviews', icon: icons.reviews, match: '/reviews' },
+        { title: t('İstatistikler'), href: '/analytics', icon: icons.analytics, match: '/analytics' },
       ],
     },
     {
-      label: 'Vitrin',
+      label: t('Vitrin'),
       items: [
-        { title: 'Web Sitesi Düzenleyici', href: '/page-builder', icon: icons.pageBuilder, match: '/page-builder' },
-        { title: 'Galeri & Portföy', href: '/gallery', icon: icons.gallery, match: '/gallery' },
+        { title: t('Web Sitesi Düzenleyici'), href: '/page-builder', icon: icons.pageBuilder, match: '/page-builder' },
+        { title: t('Galeri & Portföy'), href: '/gallery', icon: icons.gallery, match: '/gallery' },
       ],
     },
     {
-      label: 'Hesap',
+      label: t('Hesap'),
       items: [
-        { title: 'Profil & Abonelik', href: '/profile', icon: icons.profile, match: '/profile' },
-        { title: 'İşletme Ayarları', href: '/settings', icon: icons.settings, match: '/settings' },
-        { title: 'Destek', href: '/support', icon: icons.support, match: '/support' },
+        { title: t('Profil & Abonelik'), href: '/profile', icon: icons.profile, match: '/profile' },
+        { title: t('İşletme Ayarları'), href: '/settings', icon: icons.settings, match: '/settings' },
+        { title: t('Destek'), href: '/support', icon: icons.support, match: '/support' },
       ],
     },
   ];
@@ -142,7 +160,7 @@ function Scrim({ style, onPress }: { style: object; onPress: () => void }) {
   const { colors } = useTheme();
   return (
     <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.scrim }, style]}>
-      <Pressable style={{ flex: 1 }} onPress={onPress} accessibilityRole="button" accessibilityLabel="Menüyü kapat" />
+      <Pressable style={{ flex: 1 }} onPress={onPress} accessibilityRole="button" accessibilityLabel={t('Menüyü kapat')} />
     </Animated.View>
   );
 }
@@ -153,10 +171,11 @@ function DrawerContent({ onNavigate }: { onNavigate: () => void }) {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { profile, signOut } = useAuth();
+  const { isMember } = useAccount();
   const business = profile?.business;
   const pageUrl = business ? publicPageUrl(business.slug) : null;
   const logo = absoluteUrl(business?.logo);
-  const sector = SECTORS.find((s) => s.id === business?.sector)?.name ?? 'Hizmet İşletmesi';
+  const sector = SECTORS.find((s) => s.id === business?.sector)?.name ?? t('Hizmet İşletmesi');
 
   const go = (href: Href) => {
     onNavigate();
@@ -171,36 +190,36 @@ function DrawerContent({ onNavigate }: { onNavigate: () => void }) {
         {logo ? (
           <Image source={{ uri: logo }} style={styles.logo} contentFit="cover" alt="" />
         ) : (
-          <Image source={appIcon} style={styles.logo} contentFit="cover" alt="" />
+          <Image source={appIcon} style={[styles.logo, styles.logoMark]} contentFit="contain" alt="" />
         )}
         <View style={styles.flex}>
           <Text style={typography.heading} numberOfLines={1}>
-            {business?.name ?? 'RandevuGo'}
+            {business?.name ?? t('CalendlyGo')}
           </Text>
           <Text style={typography.caption} numberOfLines={1}>
             {sector}
           </Text>
         </View>
-        <Pressable onPress={onNavigate} hitSlop={12} accessibilityRole="button" accessibilityLabel="Menüyü kapat">
+        <Pressable onPress={onNavigate} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('Menüyü kapat')}>
           <Icon name={icons.close} size={20} />
         </Pressable>
       </View>
 
       {pageUrl && business ? (
         <View style={styles.links}>
-          <Chip icon={icons.open} label="Sayfayı aç" onPress={() => Linking.openURL(pageUrl)} />
+          <Chip icon={icons.open} label={t('Sayfayı aç')} onPress={() => Linking.openURL(pageUrl)} />
           <Chip
             icon={icons.share}
-            label="Paylaş"
-            onPress={() => Share.share({ message: `${business.name} için online randevu: ${pageUrl}`, url: pageUrl }).catch(() => {})}
+            label={t('Paylaş')}
+            onPress={() => Share.share({ message: t('{0} için online randevu: {1}', business.name, pageUrl), url: pageUrl }).catch(() => {})}
           />
         </View>
       ) : null}
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.groups} showsVerticalScrollIndicator={false}>
-        {menuGroups(isRestaurantSector(business?.sector)).map((group) => (
+        {menuGroups(isRestaurantSector(business?.sector), isMember).map((group) => (
           <View key={group.label} style={styles.group}>
-            <Text style={[typography.caption, styles.groupLabel]}>{group.label.toLocaleUpperCase('tr-TR')}</Text>
+            <Text style={[typography.caption, styles.groupLabel]}>{group.label.toLocaleUpperCase(localeTag())}</Text>
             {group.items.map((item) => {
               const active = item.match === '/' ? pathname === '/' : pathname.startsWith(item.match);
               const delay = 40 + index++ * 22;
@@ -223,9 +242,9 @@ function DrawerContent({ onNavigate }: { onNavigate: () => void }) {
 
       <Pressable onPress={signOut} accessibilityRole="button" style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}>
         <Icon name={icons.logout} size={20} color={colors.danger} />
-        <Text style={[typography.body, { color: colors.danger, fontWeight: '600' }]}>Çıkış yap</Text>
+        <Text style={[typography.body, { color: colors.danger, fontWeight: '600' }]}>{t('Çıkış yap')}</Text>
       </Pressable>
-      <Text style={[typography.caption, styles.footer]}>RandevuGo by VASTLAB</Text>
+      <Text style={[typography.caption, styles.footer]}>{t('CalendlyGo by VASTLAB')}</Text>
     </View>
   );
 }
@@ -256,6 +275,7 @@ const useStyles = makeStyles((colors) => ({
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.sm, paddingBottom: spacing.md },
   logo: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
+  logoMark: { backgroundColor: 'transparent' },
   flex: { flex: 1 },
   links: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingBottom: spacing.md },
   chip: {

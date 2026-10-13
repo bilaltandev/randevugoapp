@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "RandevuGo",
+    "name": "CalendlyGo",
     "slug": "randevugo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -36,16 +36,20 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "RandevuGo, galeri ve kapak görseli yüklemek için fotoğraflarınıza erişir.",
+          "photosPermission": "CalendlyGo, galeri ve kapak görseli yüklemek için fotoğraflarınıza erişir.",
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#0B0E13"
+    "backgroundColor": "#0B0E13",
+    "extra": {
+      "supportsRTL": true
+    }
   }
 }

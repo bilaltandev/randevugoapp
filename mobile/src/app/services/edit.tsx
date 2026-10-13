@@ -8,6 +8,7 @@ import { Button, Card, Chip, ChipRow, InlineError, Page, SectionTitle, SwitchRow
 import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { parseDuration, parsePrice } from '@/lib/forms';
 import { useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 /** Create (no id) or edit a service. */
 export default function ServiceEditScreen() {
@@ -24,11 +25,11 @@ export default function ServiceEditScreen() {
   const query = useApiQuery(load);
 
   if (query.loading) return <LoadingView />;
-  if (query.error || !query.data) return <ErrorView message={query.error ?? 'Yüklenemedi.'} onRetry={query.retry} />;
+  if (query.error || !query.data) return <ErrorView message={query.error ?? t('Yüklenemedi.')} onRetry={query.retry} />;
   if (id && !query.data.service) {
     return (
       <Page>
-        <Text style={typography.body}>Hizmet bulunamadı.</Text>
+        <Text style={typography.body}>{t('Hizmet bulunamadı.')}</Text>
       </Page>
     );
   }
@@ -52,9 +53,9 @@ function ServiceForm({ service, employees }: { service: Service | null; employee
     setFormError(null);
     const durationMinutes = parseDuration(duration);
     const amount = parsePrice(price);
-    if (!name.trim()) return setFormError('Hizmet adını girin.');
-    if (durationMinutes === null) return setFormError('Süreyi 1–1440 arası dakika olarak girin.');
-    if (amount === null) return setFormError('Fiyatı sayı olarak girin (ör. 250 veya 249,90).');
+    if (!name.trim()) return setFormError(t('Hizmet adını girin.'));
+    if (durationMinutes === null) return setFormError(t('Süreyi 1–1440 arası dakika olarak girin.'));
+    if (amount === null) return setFormError(t('Fiyatı sayı olarak girin (ör. 250 veya 249,90).'));
 
     const input = { name: name.trim(), description: description.trim() || null, durationMinutes, price: amount, employeeIds };
     const ok = await save.run((client) =>
@@ -64,10 +65,10 @@ function ServiceForm({ service, employees }: { service: Service | null; employee
   };
 
   const confirmDelete = () =>
-    Alert.alert('Hizmeti sil', 'Bu hizmet kalıcı olarak silinecek. Randevu kaydı olan hizmetler silinemez; onları pasife alabilirsiniz.', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('Hizmeti sil'), t('Bu hizmet kalıcı olarak silinecek. Randevu kaydı olan hizmetler silinemez; onları pasife alabilirsiniz.'), [
+      { text: t('Vazgeç'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('Sil'),
         style: 'destructive',
         onPress: async () => {
           if (service && (await remove.run((client) => deleteService(client, service.id)))) router.back();
@@ -80,22 +81,22 @@ function ServiceForm({ service, employees }: { service: Service | null; employee
 
   return (
     <Page>
-      <Stack.Screen options={{ title: editing ? 'Hizmeti düzenle' : 'Yeni hizmet' }} />
+      <Stack.Screen options={{ title: editing ? t('Hizmeti düzenle') : t('Yeni hizmet') }} />
 
-      <TextField label="Hizmet adı" value={name} onChangeText={setName} placeholder="Ör. Saç kesimi" maxLength={80} />
-      <TextField label="Açıklama (isteğe bağlı)" value={description} onChangeText={setDescription} multiline maxLength={500} />
-      <TextField label="Süre (dakika)" value={duration} onChangeText={setDuration} keyboardType="number-pad" maxLength={4} />
-      <TextField label="Fiyat (₺)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="0" maxLength={10} />
+      <TextField label={t('Hizmet adı')} value={name} onChangeText={setName} placeholder={t('Ör. Saç kesimi')} maxLength={80} />
+      <TextField label={t('Açıklama (isteğe bağlı)')} value={description} onChangeText={setDescription} multiline maxLength={500} />
+      <TextField label={t('Süre (dakika)')} value={duration} onChangeText={setDuration} keyboardType="number-pad" maxLength={4} />
+      <TextField label={t('Fiyat (₺)')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="0" maxLength={10} />
 
       {editing ? (
         <Card>
-          <SwitchRow label="Aktif" hint="Pasif hizmetler online randevu sayfasında görünmez." value={isActive} onValueChange={setIsActive} />
+          <SwitchRow label={t('Aktif')} hint={t('Pasif hizmetler online randevu sayfasında görünmez.')} value={isActive} onValueChange={setIsActive} />
         </Card>
       ) : null}
 
       {employees.length > 0 ? (
         <>
-          <SectionTitle hint="Hiçbirini seçmezseniz, hizmet ataması olmayan çalışanlar bu hizmeti verebilir.">Bu hizmeti verenler</SectionTitle>
+          <SectionTitle hint={t('Hiçbirini seçmezseniz, hizmet ataması olmayan çalışanlar bu hizmeti verebilir.')}>{t('Bu hizmeti verenler')}</SectionTitle>
           <ChipRow>
             {employees.map((e) => (
               <Chip key={e.id} label={e.name} selected={employeeIds.includes(e.id)} onPress={() => toggleEmployee(e.id)} />
@@ -105,8 +106,8 @@ function ServiceForm({ service, employees }: { service: Service | null; employee
       ) : null}
 
       <InlineError message={formError ?? save.error ?? remove.error} />
-      <Button label={editing ? 'Kaydet' : 'Hizmeti ekle'} onPress={submit} busy={save.busy} />
-      {editing ? <Button label="Hizmeti sil" variant="danger" onPress={confirmDelete} busy={remove.busy} /> : null}
+      <Button label={editing ? t('Kaydet') : t('Hizmeti ekle')} onPress={submit} busy={save.busy} />
+      {editing ? <Button label={t('Hizmeti sil')} variant="danger" onPress={confirmDelete} busy={remove.busy} /> : null}
     </Page>
   );
 }

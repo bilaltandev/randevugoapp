@@ -7,8 +7,9 @@ import { Button, Card, InlineError, Page, SwitchRow, TextField } from '@/compone
 import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { hoursProblem, normalizeTime, type HoursDraft } from '@/lib/forms';
 import { makeStyles, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
-const DAY_NAMES = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+const DAY_NAMES = [t('Pazar'), t('Pazartesi'), t('Salı'), t('Çarşamba'), t('Perşembe'), t('Cuma'), t('Cumartesi')];
 const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0];
 
 type Draft = HoursDraft & { id: string; dayOfWeek: number };
@@ -27,7 +28,7 @@ const toDraft = (h: WorkingHour): Draft => ({
 export default function WorkingHoursScreen() {
   const { data, loading, error, retry } = useApiQuery(fetchSettings);
   if (loading) return <LoadingView />;
-  if (error || !data) return <ErrorView message={error ?? 'Çalışma saatleri yüklenemedi.'} onRetry={retry} />;
+  if (error || !data) return <ErrorView message={error ?? t('Çalışma saatleri yüklenemedi.')} onRetry={retry} />;
   return <HoursForm hours={data.workingHours} />;
 }
 
@@ -46,7 +47,7 @@ function HoursForm({ hours }: { hours: WorkingHour[] }) {
   if (days.length === 0) {
     return (
       <Page>
-        <Text style={typography.body}>Çalışma saatleri henüz tanımlanmamış. Lütfen web panelindeki Ayarlar sayfasından oluşturun.</Text>
+        <Text style={typography.body}>{t('Çalışma saatleri henüz tanımlanmamış. Lütfen web panelindeki Ayarlar sayfasından oluşturun.')}</Text>
       </Page>
     );
   }
@@ -82,33 +83,32 @@ function HoursForm({ hours }: { hours: WorkingHour[] }) {
 
   return (
     <Page>
-      <Text style={typography.body}>Müşteriler yalnızca bu saatler içinde online randevu alabilir. Saatleri SS:DD biçiminde girin.</Text>
+      <Text style={typography.body}>{t('Müşteriler yalnızca bu saatler içinde online randevu alabilir. Saatleri SS:DD biçiminde girin.')}</Text>
 
       {days.map((d) => (
         <Card key={d.id}>
-          <SwitchRow label={DAY_NAMES[d.dayOfWeek]} hint={d.isOpen ? undefined : 'Kapalı'} value={d.isOpen} onValueChange={(v) => update(d.id, { isOpen: v })} />
+          <SwitchRow label={DAY_NAMES[d.dayOfWeek]} hint={d.isOpen ? undefined : t('Kapalı')} value={d.isOpen} onValueChange={(v) => update(d.id, { isOpen: v })} />
           {d.isOpen ? (
             <>
               <View style={styles.pair}>
-                <TimeInput label="Açılış" value={d.openTime} onChange={(v) => update(d.id, { openTime: v })} />
-                <TimeInput label="Kapanış" value={d.closeTime} onChange={(v) => update(d.id, { closeTime: v })} />
+                <TimeInput label={t('Açılış')} value={d.openTime} onChange={(v) => update(d.id, { openTime: v })} />
+                <TimeInput label={t('Kapanış')} value={d.closeTime} onChange={(v) => update(d.id, { closeTime: v })} />
               </View>
               <View style={styles.pair}>
-                <TimeInput label="Mola başı" value={d.breakStartTime} onChange={(v) => update(d.id, { breakStartTime: v })} optional />
-                <TimeInput label="Mola sonu" value={d.breakEndTime} onChange={(v) => update(d.id, { breakEndTime: v })} optional />
+                <TimeInput label={t('Mola başı')} value={d.breakStartTime} onChange={(v) => update(d.id, { breakStartTime: v })} optional />
+                <TimeInput label={t('Mola sonu')} value={d.breakEndTime} onChange={(v) => update(d.id, { breakEndTime: v })} optional />
               </View>
               {hoursProblem(d) ? <Text style={[typography.caption, { color: colors.danger }]}>{hoursProblem(d)}</Text> : null}
               <Text style={[typography.label, { color: colors.brand }]} onPress={() => copyToAll(d)} accessibilityRole="button">
-                Bu saatleri tüm günlere uygula
-              </Text>
+                {t('Bu saatleri tüm günlere uygula')}</Text>
             </>
           ) : null}
         </Card>
       ))}
 
       <InlineError message={formError ?? save.error} />
-      {saved ? <Text style={[typography.label, { color: colors.brand }]}>Kaydedildi.</Text> : null}
-      <Button label="Kaydet" onPress={submit} busy={save.busy} />
+      {saved ? <Text style={[typography.label, { color: colors.brand }]}>{t('Kaydedildi.')}</Text> : null}
+      <Button label={t('Kaydet')} onPress={submit} busy={save.busy} />
     </Page>
   );
 }
@@ -122,7 +122,7 @@ function TimeInput({ label, value, onChange, optional }: { label: string; value:
         value={value}
         onChangeText={onChange}
         onBlur={() => onChange(value.trim() ? normalizeTime(value) : '')}
-        placeholder={optional ? 'Yok' : 'SS:DD'}
+        placeholder={optional ? t('Yok') : 'SS:DD'}
         keyboardType="numbers-and-punctuation"
         maxLength={5}
       />

@@ -5,17 +5,20 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import appIcon from '../../../assets/images/icon.png';
+import appIcon from '../../../assets/images/logo-mark.png';
+import wordmarkDark from '../../../assets/images/wordmark-dark.png';
+import wordmarkLight from '../../../assets/images/wordmark-light.png';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { loginErrorMessage } from '@/auth/messages';
 import { Icon, icons } from '@/components/Icon';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
-const CONFIG_MISSING = 'Uygulamanın sunucu adresi yapılandırılmamış (EXPO_PUBLIC_API_URL).';
+const CONFIG_MISSING = t('Uygulamanın sunucu adresi yapılandırılmamış (EXPO_PUBLIC_API_URL).');
 
 export default function LoginScreen() {
-  const { colors, typography } = useTheme();
+  const { colors, typography, scheme } = useTheme();
   const styles = useStyles();
   const { signIn, client, notice, clearNotice } = useAuth();
   const [email, setEmail] = useState('');
@@ -49,11 +52,15 @@ export default function LoginScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Animated.View entering={FadeInDown.duration(420)} style={styles.brand}>
-            <Image source={appIcon} style={styles.mark} contentFit="cover" alt="" />
-            <Text style={styles.logo}>
-              Randevu<Text style={styles.logoAccent}>Go</Text>
-            </Text>
-            <Text style={typography.body}>İşletme paneline giriş yapın</Text>
+            <Image source={appIcon} style={styles.mark} contentFit="contain" alt="" />
+            <Image
+              source={scheme === 'dark' ? wordmarkDark : wordmarkLight}
+              style={styles.wordmark}
+              contentFit="contain"
+              accessibilityRole="header"
+              alt="CalendlyGo"
+            />
+            <Text style={typography.body}>{t('İşletme paneline giriş yapın')}</Text>
           </Animated.View>
 
           <Animated.View entering={FadeInUp.delay(120).duration(420)} style={styles.form}>
@@ -86,7 +93,7 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={typography.label}>Şifre</Text>
+              <Text style={typography.label}>{t('Şifre')}</Text>
               <View style={styles.inputRow}>
                 <Icon name={icons.lock} size={18} color={colors.ink3} />
                 <TextInput
@@ -94,7 +101,7 @@ export default function LoginScreen() {
                   style={styles.input}
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Şifreniz"
+                  placeholder={t('Şifreniz')}
                   placeholderTextColor={colors.ink3}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
@@ -108,7 +115,7 @@ export default function LoginScreen() {
                   onPress={() => setShowPassword((v) => !v)}
                   hitSlop={10}
                   accessibilityRole="button"
-                  accessibilityLabel={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}>
+                  accessibilityLabel={showPassword ? t('Şifreyi gizle') : t('Şifreyi göster')}>
                   <Icon name={showPassword ? icons.eyeSlash : icons.eye} size={18} color={colors.ink3} />
                 </Pressable>
               </View>
@@ -120,13 +127,13 @@ export default function LoginScreen() {
               accessibilityRole="button"
               accessibilityState={{ disabled: !canSubmit, busy: submitting }}
               style={({ pressed }) => [styles.button, !canSubmit && styles.buttonDisabled, pressed && styles.pressed]}>
-              {submitting ? <ActivityIndicator color={colors.onBrand} /> : <Text style={styles.buttonText}>Giriş yap</Text>}
+              {submitting ? <ActivityIndicator color={colors.onBrand} /> : <Text style={styles.buttonText}>{t('Giriş yap')}</Text>}
             </Pressable>
 
             <View style={styles.registerRow}>
-              <Text style={typography.body}>Hesabınız yok mu?</Text>
+              <Text style={typography.body}>{t('Hesabınız yok mu?')}</Text>
               <Pressable onPress={() => router.push('/register')} hitSlop={8} accessibilityRole="link" disabled={submitting}>
-                <Text style={[typography.body, { color: colors.brand, fontWeight: '700' }]}>Ücretsiz hesap oluşturun</Text>
+                <Text style={[typography.body, { color: colors.brand, fontWeight: '700' }]}>{t('Ücretsiz hesap oluşturun')}</Text>
               </Pressable>
             </View>
           </Animated.View>
@@ -141,9 +148,8 @@ const useStyles = makeStyles((colors, typography) => ({
   flex: { flex: 1 },
   container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.xxl },
   brand: { alignItems: 'center', gap: spacing.sm },
-  mark: { width: 76, height: 76, borderRadius: 20, marginBottom: spacing.xs },
-  logo: { ...typography.display, fontSize: 34, lineHeight: 40 },
-  logoAccent: { color: colors.brand },
+  mark: { width: 104, height: 104, marginBottom: spacing.xs },
+  wordmark: { width: 220, aspectRatio: 900 / 172 },
   form: { gap: spacing.lg },
   alert: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1 },
   alertError: { borderColor: colors.danger, backgroundColor: colors.dangerSoft },

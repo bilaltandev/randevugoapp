@@ -9,6 +9,7 @@ import { HeaderButton, ListRow, Page, Pill } from '@/components/ui';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { formatPrice } from '@/lib/appointments';
 import { makeStyles, spacing } from '@/theme';
+import { t } from '@/i18n';
 
 export default function ServicesScreen() {
   const styles = useStyles();
@@ -18,13 +19,13 @@ export default function ServicesScreen() {
 
   return (
     <Page onRefresh={refresh} refreshing={refreshing}>
-      <Stack.Screen options={{ headerRight: () => <HeaderButton label="Ekle" onPress={() => router.push('/services/edit')} /> }} />
+      <Stack.Screen options={{ headerRight: () => <HeaderButton label={t('Ekle')} onPress={() => router.push('/services/edit')} /> }} />
 
       {loading ? <LoadingView /> : null}
       {error ? <ErrorView message={error} onRetry={retry} /> : null}
       {data && !error ? (
         sorted.length === 0 ? (
-          <EmptyState title="Henüz hizmet yok" description="Sağ üstteki “Ekle” ile ilk hizmetinizi oluşturun." />
+          <EmptyState title={t('Henüz hizmet yok')} description={t('Sağ üstteki “Ekle” ile ilk hizmetinizi oluşturun.')} />
         ) : (
           <View style={styles.list}>
             {sorted.map((s) => (
@@ -35,7 +36,7 @@ export default function ServicesScreen() {
                 subtitle={`${s.durationMinutes} dk${s.employeeServices.length ? ` · ${s.employeeServices.map((es) => es.employee.name).join(', ')}` : ''}`}
                 meta={formatPrice(s.price)}
                 muted={!s.isActive}
-                right={!s.isActive ? <Pill label="Pasif" /> : undefined}
+                right={!s.isActive ? <Pill label={t('Pasif')} /> : undefined}
                 onPress={() => router.push({ pathname: '/services/edit', params: { id: s.id } })}
               />
             ))}

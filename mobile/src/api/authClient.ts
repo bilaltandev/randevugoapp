@@ -1,5 +1,5 @@
 /**
- * RandevuGo mobile API client with token handling. Pure TypeScript (no React Native imports) so the
+ * CalendlyGo mobile API client with token handling. Pure TypeScript (no React Native imports) so the
  * same logic is unit-tested in Node and exercised against the TEST backend.
  *
  * - The access token lives only in memory; the refresh token is persisted through `store`
@@ -14,6 +14,8 @@
 
 export type Profile = {
   user: { id: string; name: string; email: string; role: string };
+  /** Set for a TEAM plan member: the app then shows only their own bookings. Null for the owner. */
+  member?: { employeeId: string; employeeName: string } | null;
   business: {
     id: string;
     name: string;
@@ -21,7 +23,15 @@ export type Profile = {
     sector: string | null;
     logo: string | null;
     isActive: boolean;
-    subscription: { status: string; planType: string; trialEndDate: string | null; subscriptionEndDate: string | null } | null;
+    subscription: {
+      status: string;
+      planType: string;
+      plan?: 'PERSON' | 'TEAM';
+      trialEndDate: string | null;
+      subscriptionEndDate: string | null;
+      /** False once the trial or paid period is over (missing on older servers: treat as active). */
+      active?: boolean;
+    } | null;
   };
 };
 
@@ -41,7 +51,11 @@ export type RegisterInput = {
   city?: string;
   address?: string;
   whatsappNumber?: string;
+  plan?: 'PERSON' | 'TEAM';
 };
+
+/** "Hazır ekibe katıl": a team member's sign-up with the invite code the owner gave them. */
+export type JoinTeamInput = { code: string; name: string; email: string; password: string; phone?: string };
 
 export type DeviceInfo = { deviceName?: string | null; platform?: string | null; appVersion?: string | null };
 
@@ -82,7 +96,11 @@ type Options = {
   timeoutMs?: number;
   /** Called once whenever the session ends without the user asking (refresh rejected). */
   onSessionExpired?: () => void;
+  /** Called when a request is refused because the business's trial or subscription is over (402). */
+  onSubscriptionRequired?: () => void;
   now?: () => number;
+  /** App language (e.g. "en"); sent as X-App-Locale so the API answers in it. Web clients never send it. */
+  language?: () => string;
 };
 
 type TokenResponse = Profile & { accessToken: string; accessTokenExpiresAt: string; refreshToken: string };
@@ -123,6 +141,7 @@ export function createAuthClient(options: Options) {
         method: init.method,
         headers: {
           Accept: "application/json",
+          ...(options.language ? { "X-App-Locale": options.language() } : {}),
           ...(init.body !== undefined && !isForm ? { "Content-Type": "application/json" } : {}),
           ...(init.token ? { Authorization: `Bearer ${init.token}` } : {}),
         },
@@ -235,6 +254,17 @@ export function createAuthClient(options: Options) {
     },
 
     /**
+     * Joins a team with an invite code (creates a member account), then signs in with it on this device.
+     * Throws ApiError (e.g. invalid code, e-mail already used, team full) or NetworkError.
+     */
+    async joinTeam(input: JoinTeamInput): Promise<Profile> {
+      const res = await send("/api/team/join", { method: "POST", body: input });
+      const body = await readJson(res);
+      if (!res.ok) throw apiError(res, body);
+      return this.login(input.email, input.password);
+    },
+
+    /**
      * Resumes a stored session at app start. Returns null when there is none (or it was rejected);
      * throws NetworkError when the server can't be reached, so the app can offer a retry.
      */
@@ -257,12 +287,18 @@ export function createAuthClient(options: Options) {
       const method = init.method ?? "GET";
       let res = await send(path, { method, body: init.body, token: await accessToken() });
       if (res.status === 401) {
+        // refresh() itself ends the session when the server rejects it. If the fresh token is refused
+        // too, the session is fine and this route just isn't open to this account (e.g. an owner-only
+        // route for a team member): an error for the caller, not a sign-out.
         await refresh();
         res = await send(path, { method, body: init.body, token: access!.token });
-        if (res.status === 401) return expire(null);
       }
       const body = await readJson(res);
-      if (!res.ok) throw apiError(res, body);
+      if (!res.ok) {
+        const error = apiError(res, body);
+        if (error instanceof ApiError && error.code === "SUBSCRIPTION_REQUIRED") options.onSubscriptionRequired?.();
+        throw error;
+      }
       return body as T;
     },
 

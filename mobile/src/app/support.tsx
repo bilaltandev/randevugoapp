@@ -1,3 +1,4 @@
+import { localeTag, t } from '@/i18n';
 import { router, Stack } from 'expo-router';
 import { View } from 'react-native';
 
@@ -15,29 +16,38 @@ export default function SupportScreen() {
 
   return (
     <Page onRefresh={refresh} refreshing={refreshing}>
-      <Stack.Screen options={{ headerRight: () => <HeaderButton label="Yeni talep" onPress={() => router.push('/support/new')} /> }} />
+      <Stack.Screen options={{ headerRight: () => <HeaderButton label={t('Yeni talep')} onPress={() => router.push('/support/new')} /> }} />
 
       {loading ? <LoadingView /> : null}
       {error ? <ErrorView message={error} onRetry={retry} /> : null}
       {data && !error ? (
         data.length === 0 ? (
           <>
-            <EmptyState title="Destek talebiniz yok" description="Bir sorun veya sorunuz olduğunda ekibimize buradan yazabilirsiniz." />
-            <Button label="Destek talebi oluştur" onPress={() => router.push('/support/new')} />
+            <EmptyState title={t('Destek talebiniz yok')} description={t('Bir sorun veya sorunuz olduğunda ekibimize buradan yazabilirsiniz.')} />
+            <Button label={t('Destek talebi oluştur')} onPress={() => router.push('/support/new')} />
           </>
         ) : (
           <View style={styles.list}>
-            {data.map((t) => (
+            {data.map((ticket) => (
               <ListRow
-                key={t.id}
+                key={ticket.id}
                 icon={icons.chat}
-                title={t.subject}
-                subtitle={`${TICKET_CATEGORIES.find((c) => c.id === t.category)?.label ?? t.category} · ${t.messageCount} mesaj · ${new Date(t.updatedAt).toLocaleDateString('tr-TR')}`}
-                muted={t.status === 'CLOSED'}
+                title={ticket.subject}
+                subtitle={t(
+                  '{0} · {1} mesaj · {2}',
+                  TICKET_CATEGORIES.find((c) => c.id === ticket.category)?.label ?? ticket.category,
+                  ticket.messageCount,
+                  new Date(ticket.updatedAt).toLocaleDateString(localeTag())
+                )}
+                muted={ticket.status === 'CLOSED'}
                 right={
-                  t.awaitingOwner ? <Pill label="Yanıt geldi" tone="brand" /> : <Pill label={TICKET_STATUSES[t.status] ?? t.status} />
+                  ticket.awaitingOwner ? (
+                    <Pill label={t('Yanıt geldi')} tone="brand" />
+                  ) : (
+                    <Pill label={TICKET_STATUSES[ticket.status] ?? ticket.status} />
+                  )
                 }
-                onPress={() => router.push({ pathname: '/support/[id]', params: { id: t.id } })}
+                onPress={() => router.push({ pathname: '/support/[id]', params: { id: ticket.id } })}
               />
             ))}
           </View>

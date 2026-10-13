@@ -1,34 +1,58 @@
 import Constants from 'expo-constants';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
-import { fetchSubscription, SECTORS } from '@/api/panel';
-import { useAuth } from '@/auth/AuthProvider';
+import { fetchMemberContext, uploadMemberPhoto } from '@/api/business';
+import { absoluteUrl, fetchSubscription, SECTORS } from '@/api/panel';
+import { useAccount, useAuth } from '@/auth/AuthProvider';
 import { Icon, icons } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
-import { Card, ListRow, Pill, SectionTitle } from '@/components/ui';
-import { useApiQuery } from '@/hooks/useApiQuery';
-import { formatPrice } from '@/lib/appointments';
+import { Button, Card, InlineError, ListRow, Pill, SectionTitle } from '@/components/ui';
+import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
+import { pickImage } from '@/lib/pickImage';
+import { formatUsd, periodSuffix } from '@/lib/plans';
 import { makeStyles, radius, spacing, useTheme, type ThemePreference } from '@/theme';
+import { getLanguagePreference, LANGUAGES, t, tc } from '@/i18n';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: keyof typeof icons }[] = [
-  { value: 'system', label: 'Sistem', icon: 'auto' },
-  { value: 'light', label: 'Açık', icon: 'sun' },
-  { value: 'dark', label: 'Koyu', icon: 'moon' },
+  { value: 'system', label: t('Sistem'), icon: 'auto' },
+  { value: 'light', label: tc('tema', 'Açık'), icon: 'sun' },
+  { value: 'dark', label: t('Koyu'), icon: 'moon' },
 ];
 
 const SUB_STATUS: Record<string, { label: string; tone: 'brand' | 'muted' | 'danger' }> = {
-  trial: { label: 'Deneme', tone: 'muted' },
-  active: { label: 'Aktif', tone: 'brand' },
-  expired: { label: 'Süresi doldu', tone: 'danger' },
-  cancelled: { label: 'İptal edildi', tone: 'danger' },
+  trial: { label: t('Deneme'), tone: 'muted' },
+  active: { label: t('Aktif'), tone: 'brand' },
+  expired: { label: t('Süresi doldu'), tone: 'danger' },
+  cancelled: { label: t('İptal edildi'), tone: 'danger' },
 };
 
 export default function ProfileScreen() {
   const { colors, typography, preference, setPreference } = useTheme();
   const styles = useStyles();
   const { profile, signOut } = useAuth();
-  const sub = useApiQuery(fetchSubscription);
+  const { isMember } = useAccount();
+  // Team members have no subscription of their own (and no access to it).
+  const sub = useApiQuery(isMember ? noSubscription : fetchSubscription);
+  // A member's photo is their staff photo, which customers see on the booking page.
+  const own = useApiQuery(isMember ? fetchMemberContext : noMemberContext);
+  const photoUpload = useApiMutation();
+  const [photo, setPhoto] = useState<string | null>(null);
+  const photoUrl = absoluteUrl(photo ?? own.data?.employee.photo);
+
+  const changePhoto = async () => {
+    let image;
+    try {
+      image = await pickImage({ aspect: [1, 1] });
+    } catch (e) {
+      return Alert.alert(t('Fotoğraf'), (e as Error).message);
+    }
+    if (!image) return;
+    const picked = image;
+    await photoUpload.run(async (client) => setPhoto(await uploadMemberPhoto(client, picked)));
+  };
 
   const name = profile?.user.name ?? '';
   const initials = name
@@ -37,21 +61,27 @@ export default function ProfileScreen() {
     .slice(0, 2)
     .map((w) => w[0]?.toLocaleUpperCase('tr-TR'))
     .join('');
+  const languagePref = getLanguagePreference();
+  const languageLabel = languagePref === 'system' ? t('Telefonun dili') : LANGUAGES.find((l) => l.code === languagePref)?.name;
   const sector = SECTORS.find((s) => s.id === profile?.business.sector)?.name;
 
   const confirmSignOut = () =>
-    Alert.alert('Çıkış yap', 'Bu cihazdaki oturumunuz kapatılacak.', [
-      { text: 'Vazgeç', style: 'cancel' },
-      { text: 'Çıkış yap', style: 'destructive', onPress: () => signOut() },
+    Alert.alert(t('Çıkış yap'), t('Bu cihazdaki oturumunuz kapatılacak.'), [
+      { text: t('Vazgeç'), style: 'cancel' },
+      { text: t('Çıkış yap'), style: 'destructive', onPress: () => signOut() },
     ]);
 
   return (
-    <Screen title="Profil" onRefresh={sub.refresh} refreshing={sub.refreshing}>
+    <Screen title={t('Profil')} onRefresh={sub.refresh} refreshing={sub.refreshing}>
       <Card>
         <View style={styles.identity}>
-          <View style={styles.avatar}>
-            <Text style={[typography.title, { color: colors.onBrand }]}>{initials || '?'}</Text>
-          </View>
+          {isMember && photoUrl ? (
+            <Image source={{ uri: photoUrl }} style={styles.avatar} contentFit="cover" alt="" />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={[typography.title, { color: colors.onBrand }]}>{initials || '?'}</Text>
+            </View>
+          )}
           <View style={styles.flex}>
             <Text style={typography.title} numberOfLines={1}>
               {name}
@@ -61,27 +91,35 @@ export default function ProfileScreen() {
             </Text>
             <Text style={typography.caption} numberOfLines={1}>
               {profile?.business.name}
-              {sector ? ` · ${sector}` : ''}
+              {isMember ? ` · ${t('Ekip üyesi')}` : sector ? ` · ${sector}` : ''}
             </Text>
           </View>
         </View>
+        {isMember ? (
+          <>
+            <Button label={t('Profil fotoğrafını değiştir')} icon="image" variant="secondary" onPress={changePhoto} busy={photoUpload.busy} />
+            <InlineError message={photoUpload.error} />
+          </>
+        ) : null}
       </Card>
 
+      {isMember ? null : (
+        <View style={styles.section}>
+          <SectionTitle>{t('Abonelik')}</SectionTitle>
+          <Pressable onPress={() => router.push('/subscription')} accessibilityRole="button" style={({ pressed }) => pressed && styles.pressed}>
+            <SubscriptionCard data={sub.data} loading={sub.loading} error={sub.error} />
+          </Pressable>
+        </View>
+      )}
+
       <View style={styles.section}>
-        <SectionTitle>Abonelik</SectionTitle>
-        <Pressable onPress={() => router.push('/subscription')} accessibilityRole="button" style={({ pressed }) => pressed && styles.pressed}>
-          <SubscriptionCard data={sub.data} loading={sub.loading} error={sub.error} />
-        </Pressable>
+        <SectionTitle>{t('Hesap')}</SectionTitle>
+        <ListRow icon={icons.edit} title={t('Profili düzenle')} subtitle={t('Ad, e-posta ve telefon')} onPress={() => router.push('/profile/edit')} />
+        <ListRow icon={icons.key} title={t('Şifre değiştir')} subtitle={t('Diğer cihazlardaki oturumlar kapanır')} onPress={() => router.push('/profile/password')} />
       </View>
 
       <View style={styles.section}>
-        <SectionTitle>Hesap</SectionTitle>
-        <ListRow icon={icons.edit} title="Profili düzenle" subtitle="Ad, e-posta ve telefon" onPress={() => router.push('/profile/edit')} />
-        <ListRow icon={icons.key} title="Şifre değiştir" subtitle="Diğer cihazlardaki oturumlar kapanır" onPress={() => router.push('/profile/password')} />
-      </View>
-
-      <View style={styles.section}>
-        <SectionTitle>Görünüm</SectionTitle>
+        <SectionTitle>{t('Görünüm')}</SectionTitle>
         <View style={styles.segment} accessibilityRole="radiogroup">
           {THEME_OPTIONS.map((o) => {
             const active = preference === o.value;
@@ -98,24 +136,30 @@ export default function ProfileScreen() {
             );
           })}
         </View>
-        <Text style={typography.caption}>“Sistem”, telefonunuzun açık/koyu ayarını takip eder.</Text>
+        <Text style={typography.caption}>{t('“Sistem”, telefonunuzun açık/koyu ayarını takip eder.')}</Text>
+        <ListRow icon={icons.globe} title={t('Dil')} subtitle={languageLabel} onPress={() => router.push('/profile/language')} />
       </View>
 
-      <View style={styles.section}>
-        <SectionTitle>İşletme</SectionTitle>
-        <ListRow icon={icons.settings} title="İşletme ayarları" subtitle="Bilgiler, logo ve çalışma saatleri" onPress={() => router.push('/settings')} />
-        <ListRow icon={icons.pageBuilder} title="Web sitesi düzenleyici" subtitle="Tema, içerik ve bölümler" onPress={() => router.push('/page-builder')} />
-        <ListRow icon={icons.support} title="Destek" subtitle="Ekibimize yazın" onPress={() => router.push('/support')} />
-      </View>
+      {isMember ? null : (
+        <View style={styles.section}>
+          <SectionTitle>{t('İşletme')}</SectionTitle>
+          <ListRow icon={icons.settings} title={t('İşletme ayarları')} subtitle={t('Bilgiler, logo ve çalışma saatleri')} onPress={() => router.push('/settings')} />
+          <ListRow icon={icons.pageBuilder} title={t('Web sitesi düzenleyici')} subtitle={t('Tema, içerik ve bölümler')} onPress={() => router.push('/page-builder')} />
+          <ListRow icon={icons.support} title={t('Destek')} subtitle={t('Ekibimize yazın')} onPress={() => router.push('/support')} />
+        </View>
+      )}
 
       <Pressable onPress={confirmSignOut} accessibilityRole="button" style={({ pressed }) => [styles.signOut, pressed && styles.pressed]}>
         <Icon name={icons.logout} size={20} color={colors.danger} />
-        <Text style={[typography.heading, { color: colors.danger }]}>Çıkış yap</Text>
+        <Text style={[typography.heading, { color: colors.danger }]}>{t('Çıkış yap')}</Text>
       </Pressable>
-      <Text style={[typography.caption, styles.center]}>RandevuGo {Constants.expoConfig?.version ?? ''} · by VASTLAB</Text>
+      <Text style={[typography.caption, styles.center]}>{t('CalendlyGo')} {Constants.expoConfig?.version ?? ''} {t('· by VASTLAB')}</Text>
     </Screen>
   );
 }
+
+const noSubscription = async () => null;
+const noMemberContext = async () => null;
 
 function SubscriptionCard({
   data,
@@ -131,14 +175,15 @@ function SubscriptionCard({
   if (loading || !data) {
     return (
       <Card>
-        <Text style={typography.body}>{error ?? 'Abonelik bilgisi yükleniyor…'}</Text>
+        <Text style={typography.body}>{error ?? t('Abonelik bilgisi yükleniyor…')}</Text>
       </Card>
     );
   }
   const { subscription: s, daysRemaining, isExpired, monthlyPrice } = data;
+  const period = data.billingPeriod ?? 'MONTHLY';
   const status = SUB_STATUS[s.status] ?? { label: s.status, tone: 'muted' as const };
-  // Trial bar: 3-day trial on sign-up; active period: 30 days.
-  const total = s.status === 'trial' ? 3 : 30;
+  // Trial bar: 3-day trial on sign-up; active period: a month or a year.
+  const total = s.status === 'trial' ? 3 : period === 'YEARLY' ? 365 : 30;
   const fill = isExpired ? 0 : Math.max(0.04, Math.min(1, daysRemaining / total));
 
   return (
@@ -148,8 +193,10 @@ function SubscriptionCard({
           <Icon name={icons.subscription} size={20} color={colors.brand} />
         </View>
         <View style={styles.flex}>
-          <Text style={typography.heading}>{s.planType === 'TRIAL' ? 'Deneme paketi' : 'RandevuGo Pro'}</Text>
-          <Text style={typography.caption}>{formatPrice(monthlyPrice)} / ay</Text>
+          <Text style={typography.heading}>
+            {s.planType === 'TRIAL' ? t('Deneme paketi') : `CalendlyGo ${data.plan === 'TEAM' ? 'Team' : 'Person'}`}
+          </Text>
+          <Text style={typography.caption}>{`${formatUsd(monthlyPrice)} ${periodSuffix(period)}`}</Text>
         </View>
         <Pill label={status.label} tone={status.tone} />
       </View>
@@ -158,7 +205,7 @@ function SubscriptionCard({
       </View>
       <View style={styles.subFooter}>
         <Text style={[typography.label, isExpired && { color: colors.danger }]}>
-          {isExpired ? 'Süre doldu — online randevu kapalı' : `${daysRemaining} gün kaldı`}
+          {isExpired ? t('Süre doldu — online randevu kapalı') : t('{0} gün kaldı', daysRemaining)}
         </Text>
         <Icon name={icons.chevronRight} size={16} color={colors.ink3} />
       </View>

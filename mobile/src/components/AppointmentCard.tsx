@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBadge } from '@/components/StatusBadge';
 import { formatPrice, shortDateFromKey, type Appointment } from '@/lib/appointments';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 type Props = { appointment: Appointment; onPress: () => void; showDate?: boolean };
 
@@ -10,7 +11,7 @@ export function AppointmentCard({ appointment: a, onPress, showDate }: Props) {
   const { typography } = useTheme();
   const styles = useStyles();
   const cancelled = a.status === 'CANCELLED';
-  const title = a.isBlockedSlot ? a.notes || 'Kapalı saat' : a.customerName;
+  const title = a.isBlockedSlot ? a.notes || t('Kapalı saat') : a.customerName;
   const subtitle = a.isBlockedSlot
     ? a.employee?.name ?? ''
     : [a.service?.name, a.employee?.name].filter(Boolean).join(' · ');

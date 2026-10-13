@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { fetchEmployees } from '@/api/business';
+import { fetchEmployees, type Employee } from '@/api/business';
+import { useAccount } from '@/auth/AuthProvider';
 import { AppointmentCard } from '@/components/AppointmentCard';
 import { AppointmentSheet } from '@/components/AppointmentSheet';
 import { EmptyState } from '@/components/EmptyState';
@@ -16,14 +17,15 @@ import { useApiQuery } from '@/hooks/useApiQuery';
 import { useAppointments } from '@/hooks/useAppointments';
 import { addDays, dateKey, forDay, longDate, weekOf, type Appointment } from '@/lib/appointments';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 type Mode = 'day' | 'week' | 'month';
 const MODES: { value: Mode; label: string; icon: keyof typeof icons }[] = [
-  { value: 'day', label: 'Gün', icon: 'day' },
-  { value: 'week', label: 'Hafta', icon: 'week' },
-  { value: 'month', label: 'Ay', icon: 'grid' },
+  { value: 'day', label: t('Gün'), icon: 'day' },
+  { value: 'week', label: t('Hafta'), icon: 'week' },
+  { value: 'month', label: t('Ay'), icon: 'grid' },
 ];
-const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const MONTHS = [t('Ocak'), t('Şubat'), t('Mart'), t('Nisan'), t('Mayıs'), t('Haziran'), t('Temmuz'), t('Ağustos'), t('Eylül'), t('Ekim'), t('Kasım'), t('Aralık')];
 
 /** Month grid (Monday first), padded so day 1 sits under its weekday. */
 function monthDays(d: Date): (Date | null)[] {
@@ -35,6 +37,8 @@ function monthDays(d: Date): (Date | null)[] {
   while (cells.length % 7) cells.push(null);
   return cells;
 }
+
+const noStaff = async (): Promise<Employee[]> => [];
 
 /** Day / week / month calendar like the web panel: time grid, tap free time to book, staff filter. */
 export default function CalendarScreen() {
@@ -60,7 +64,9 @@ export default function CalendarScreen() {
   const { items, loading, error, refreshing, refresh, retry, setStatus } = useAppointments(
     mode === 'day' ? { date: range.from } : { from: range.from, to: range.to }
   );
-  const staff = useApiQuery(fetchEmployees);
+  const { isMember } = useAccount();
+  // Members see only their own bookings, so there is no staff to filter by (and no access to the list).
+  const staff = useApiQuery(isMember ? noStaff : fetchEmployees);
   const activeStaff = (staff.data ?? []).filter((e) => e.isActive);
   const filterName = activeStaff.find((e) => e.id === employeeId)?.name;
 
@@ -98,7 +104,7 @@ export default function CalendarScreen() {
 
   return (
     <Screen
-      title="Takvim"
+      title={t('Takvim')}
       subtitle={title}
       onRefresh={refresh}
       refreshing={refreshing}
@@ -106,10 +112,10 @@ export default function CalendarScreen() {
         <View style={styles.barButtons}>
           <BarButton
             icon="block"
-            label="Saat kapat"
+            label={t('Saat kapat')}
             onPress={() => router.push({ pathname: '/appointment/new', params: { date: bookingDate(dateKey(cursor)), mode: 'block' } })}
           />
-          <BarButton icon="add" label="Yeni randevu" onPress={() => createAt(dateKey(cursor))} />
+          <BarButton icon="add" label={t('Yeni randevu')} onPress={() => createAt(dateKey(cursor))} />
         </View>
       }>
       <View style={styles.segment}>
@@ -130,22 +136,22 @@ export default function CalendarScreen() {
       </View>
 
       <View style={styles.nav}>
-        <NavButton icon="chevronLeft" label="Önceki" onPress={() => step(-1)} />
+        <NavButton icon="chevronLeft" label={t('Önceki')} onPress={() => step(-1)} />
         <Text style={[typography.heading, styles.navTitle]} numberOfLines={1}>
           {title}
         </Text>
         {!isCurrent ? (
           <Pressable onPress={() => setCursor(new Date())} style={styles.todayButton} accessibilityRole="button">
             <Icon name={icons.today} size={14} color={colors.brand} />
-            <Text style={[typography.label, { color: colors.brand }]}>Bugün</Text>
+            <Text style={[typography.label, { color: colors.brand }]}>{t('Bugün')}</Text>
           </Pressable>
         ) : null}
-        <NavButton icon="chevronRight" label="Sonraki" onPress={() => step(1)} />
+        <NavButton icon="chevronRight" label={t('Sonraki')} onPress={() => step(1)} />
       </View>
 
       {activeStaff.length > 1 ? (
         <ChipRow>
-          <Chip label="Tüm çalışanlar" selected={employeeId === 'ALL'} onPress={() => setEmployeeId('ALL')} />
+          <Chip label={t('Tüm çalışanlar')} selected={employeeId === 'ALL'} onPress={() => setEmployeeId('ALL')} />
           {activeStaff.map((e) => (
             <Chip key={e.id} label={e.name} selected={employeeId === e.id} onPress={() => setEmployeeId(e.id)} />
           ))}
@@ -167,9 +173,9 @@ export default function CalendarScreen() {
 
           {mode === 'day' ? (
             <View style={styles.list}>
-              <Text style={typography.heading}>Günün listesi</Text>
+              <Text style={typography.heading}>{t('Günün listesi')}</Text>
               {forDay(visible, range.from).length === 0 ? (
-                <EmptyState icon="calendar" title="Bu gün için randevu yok" description="Izgarada boş bir saate dokunarak hızlıca randevu ekleyebilirsiniz." />
+                <EmptyState icon="calendar" title={t('Bu gün için randevu yok')} description={t('Izgarada boş bir saate dokunarak hızlıca randevu ekleyebilirsiniz.')} />
               ) : (
                 forDay(visible, range.from).map((a) => <AppointmentCard key={a.id} appointment={a} onPress={() => setSelected(a)} />)
               )}
@@ -193,7 +199,7 @@ function MonthGrid({ cursor, appointments, onPick }: { cursor: Date; appointment
   return (
     <View style={styles.month}>
       <View style={styles.monthRow}>
-        {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((d) => (
+        {[t('Pzt'), t('Sal'), t('Çar'), t('Per'), t('Cum'), t('Cmt'), t('Paz')].map((d) => (
           <Text key={d} style={[typography.caption, styles.monthHead]}>
             {d}
           </Text>
@@ -212,7 +218,7 @@ function MonthGrid({ cursor, appointments, onPick }: { cursor: Date; appointment
                 key={key}
                 onPress={() => onPick(d)}
                 accessibilityRole="button"
-                accessibilityLabel={`${d.getDate()} ${MONTHS[d.getMonth()]}: ${list.length} randevu`}
+                accessibilityLabel={t('{0} {1}: {2} randevu', d.getDate(), MONTHS[d.getMonth()], list.length)}
                 style={({ pressed }) => [styles.monthCell, pressed && { backgroundColor: colors.surfaceMuted }]}>
                 <View style={[styles.monthNum, isToday && styles.monthNumToday]}>
                   <Text style={[typography.label, { color: isToday ? colors.onBrand : colors.ink }]}>{d.getDate()}</Text>
@@ -238,10 +244,10 @@ function Legend() {
   const styles = useStyles();
   const tones = toneColors(colors);
   const items: [keyof typeof tones, string][] = [
-    ['pending', 'Onay bekliyor'],
-    ['confirmed', 'Onaylı'],
-    ['completed', 'Tamamlandı'],
-    ['blocked', 'Kapalı saat'],
+    ['pending', t('Onay bekliyor')],
+    ['confirmed', t('Onaylı')],
+    ['completed', t('Tamamlandı')],
+    ['blocked', t('Kapalı saat')],
   ];
   return (
     <View style={styles.legend}>

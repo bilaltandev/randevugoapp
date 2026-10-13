@@ -4,7 +4,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { updateAppointmentStatus } from '@/api/appointments';
 import { fetchSummary, isRestaurantSector, type DashboardSummary } from '@/api/panel';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAccount, useAuth } from '@/auth/AuthProvider';
 import { AppointmentCard } from '@/components/AppointmentCard';
 import { AppointmentSheet } from '@/components/AppointmentSheet';
 import { EmptyState } from '@/components/EmptyState';
@@ -17,14 +17,19 @@ import { useApiQuery } from '@/hooks/useApiQuery';
 import { formatPrice, longDate, type Appointment, type AppointmentStatus } from '@/lib/appointments';
 import { errorMessage } from '@/lib/errorMessage';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
-const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const MONTHS = [t('Ocak'), t('Şubat'), t('Mart'), t('Nisan'), t('Mayıs'), t('Haziran'), t('Temmuz'), t('Ağustos'), t('Eylül'), t('Ekim'), t('Kasım'), t('Aralık')];
 
-/** "Özet": the same overview as the web panel's dashboard page (GET /api/dashboard/summary). */
+/**
+ * "Özet": the same overview as the web panel's dashboard page (GET /api/dashboard/summary). A team member
+ * gets it for their own bookings only, without the owner's subscription banner and shortcuts.
+ */
 export default function HomeScreen() {
   const { colors, typography } = useTheme();
   const styles = useStyles();
   const { profile, client } = useAuth();
+  const { isMember } = useAccount();
   const { data, loading, error, refreshing, refresh, retry } = useApiQuery(fetchSummary);
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -47,7 +52,7 @@ export default function HomeScreen() {
     try {
       await changeStatus(a.id, status);
     } catch (e) {
-      Alert.alert('İşlem tamamlanamadı', (e as Error).message);
+      Alert.alert(t('İşlem tamamlanamadı'), (e as Error).message);
     } finally {
       setBusyId(null);
     }
@@ -57,26 +62,26 @@ export default function HomeScreen() {
 
   return (
     <Screen
-      title={firstName ? `Merhaba, ${firstName}` : 'Özet'}
+      title={firstName ? t('Merhaba, {0}', firstName) : t('Özet')}
       subtitle={longDate(today)}
       onRefresh={refresh}
       refreshing={refreshing}
-      right={<BarButton icon="add" label="Yeni randevu" onPress={() => router.push({ pathname: '/appointment/new', params: data ? { date: data.todayStr } : {} })} />}>
+      right={<BarButton icon="add" label={t('Yeni randevu')} onPress={() => router.push({ pathname: '/appointment/new', params: data ? { date: data.todayStr } : {} })} />}>
       {loading ? <LoadingView /> : null}
       {error ? <ErrorView message={error} onRetry={retry} /> : null}
 
       {data ? (
         <>
-          <SubscriptionBanner status={data.subscription.status} daysRemaining={data.subscription.daysRemaining} />
-          <Stats data={data} />
+          {isMember ? null : <SubscriptionBanner status={data.subscription.status} daysRemaining={data.subscription.daysRemaining} />}
+          <Stats data={data} isMember={isMember} />
 
           <View style={styles.row}>
             <View style={styles.flex}>
-              <Button label="Randevu ekle" icon="add" onPress={() => router.push({ pathname: '/appointment/new', params: { date: data.todayStr } })} />
+              <Button label={t('Randevu ekle')} icon="add" onPress={() => router.push({ pathname: '/appointment/new', params: { date: data.todayStr } })} />
             </View>
             <View style={styles.flex}>
               <Button
-                label="Saat kapat"
+                label={t('Saat kapat')}
                 icon="block"
                 variant="secondary"
                 onPress={() => router.push({ pathname: '/appointment/new', params: { date: data.todayStr, mode: 'block' } })}
@@ -87,8 +92,8 @@ export default function HomeScreen() {
           <View style={styles.chartCard}>
             <View style={styles.chartHead}>
               <Icon name={icons.trendUp} size={18} color={colors.brand} />
-              <Text style={[typography.heading, styles.flex]}>Son 7 gün</Text>
-              <Text style={typography.caption}>Tamamlanan gelir</Text>
+              <Text style={[typography.heading, styles.flex]}>{t('Son 7 gün')}</Text>
+              <Text style={typography.caption}>{t('Tamamlanan gelir')}</Text>
             </View>
             <AreaChart
               height={150}
@@ -98,24 +103,24 @@ export default function HomeScreen() {
           </View>
 
           {data.pendingAppointments.length > 0 ? (
-            <Section title={`Onay bekleyenler (${data.pendingCount})`} icon="hourglass">
+            <Section title={t('Onay bekleyenler ({0})', data.pendingCount)} icon="hourglass">
               {data.pendingAppointments.map((a) => (
                 <View key={a.id} style={styles.pending}>
                   <AppointmentCard appointment={a} showDate onPress={() => setSelected(a)} />
                   <View style={styles.row}>
                     <View style={styles.flex}>
-                      <Button label="Onayla" icon="check" onPress={() => quickStatus(a, 'CONFIRMED')} busy={busyId === a.id} disabled={busyId !== null} />
+                      <Button label={t('Onayla')} icon="check" onPress={() => quickStatus(a, 'CONFIRMED')} busy={busyId === a.id} disabled={busyId !== null} />
                     </View>
                     <View style={styles.flex}>
                       <Button
-                        label="İptal et"
+                        label={t('İptal et')}
                         icon="close"
                         variant="danger"
                         disabled={busyId !== null}
                         onPress={() =>
-                          Alert.alert('İptal et', 'Randevu iptal edilecek.', [
-                            { text: 'Vazgeç', style: 'cancel' },
-                            { text: 'İptal et', style: 'destructive', onPress: () => quickStatus(a, 'CANCELLED') },
+                          Alert.alert(t('İptal et'), t('Randevu iptal edilecek.'), [
+                            { text: t('Vazgeç'), style: 'cancel' },
+                            { text: t('İptal et'), style: 'destructive', onPress: () => quickStatus(a, 'CANCELLED') },
                           ])
                         }
                       />
@@ -124,36 +129,38 @@ export default function HomeScreen() {
                 </View>
               ))}
               {data.pendingCount > data.pendingAppointments.length ? (
-                <Link label="Tümünü gör" onPress={() => router.navigate('/appointments')} />
+                <Link label={t('Tümünü gör')} onPress={() => router.navigate('/appointments')} />
               ) : null}
             </Section>
           ) : null}
 
-          <Section title="Bugünün akışı" icon="clock">
+          <Section title={t('Bugünün akışı')} icon="clock">
             {data.todayAppointments.length === 0 ? (
               <EmptyState
-                title="Bugün için randevu yok"
-                description="Rezervasyon bağlantınızı müşterilerinizle paylaşın ya da kendiniz randevu ekleyin."
+                title={t('Bugün için randevu yok')}
+                description={t('Rezervasyon bağlantınızı müşterilerinizle paylaşın ya da kendiniz randevu ekleyin.')}
               />
             ) : (
               data.todayAppointments.map((a) => <AppointmentCard key={a.id} appointment={a} onPress={() => setSelected(a)} />)
             )}
           </Section>
 
-          <Section title="Yaklaşan randevular" icon="calendar">
+          <Section title={t('Yaklaşan randevular')} icon="calendar">
             {data.upcomingAppointments.length === 0 ? (
-              <Text style={typography.body}>Önümüzdeki günler için randevu yok.</Text>
+              <Text style={typography.body}>{t('Önümüzdeki günler için randevu yok.')}</Text>
             ) : (
               data.upcomingAppointments.map((a) => <AppointmentCard key={a.id} appointment={a} showDate onPress={() => setSelected(a)} />)
             )}
           </Section>
 
-          <Section title="Kısayollar" icon="sparkles">
-            <Shortcut icon="calendar" label="Takvimi aç" href="/calendar" />
-            {restaurant ? <Shortcut icon="tables" label="Masa planını düzenle" href="/tables" /> : <Shortcut icon="services" label="Hizmetleri yönet" href="/services" />}
-            <Shortcut icon="pageBuilder" label="Web sitesini düzenle" href="/page-builder" />
-            <Shortcut icon="analytics" label="İstatistikler" href="/analytics" />
-          </Section>
+          {isMember ? null : (
+            <Section title={t('Kısayollar')} icon="sparkles">
+              <Shortcut icon="calendar" label={t('Takvimi aç')} href="/calendar" />
+              {restaurant ? <Shortcut icon="tables" label={t('Masa planını düzenle')} href="/tables" /> : <Shortcut icon="services" label={t('Hizmetleri yönet')} href="/services" />}
+              <Shortcut icon="pageBuilder" label={t('Web sitesini düzenle')} href="/page-builder" />
+              <Shortcut icon="analytics" label={t('İstatistikler')} href="/analytics" />
+            </Section>
+          )}
         </>
       ) : null}
 
@@ -173,20 +180,20 @@ function SubscriptionBanner({ status, daysRemaining }: { status: string; daysRem
   if (status === 'active') return null;
   const expired = status === 'expired' || status === 'cancelled' || (status === 'trial' && daysRemaining <= 0);
   const text = expired
-    ? 'Aboneliğinizin süresi doldu. Müşterileriniz şu an online randevu alamıyor.'
-    : `Deneme sürenizin bitmesine ${daysRemaining} gün kaldı.`;
+    ? t('Aboneliğinizin süresi doldu. Müşterileriniz şu an online randevu alamıyor.')
+    : t('Deneme sürenizin bitmesine {0} gün kaldı.', daysRemaining);
   return (
     <Pressable
       onPress={() => router.push('/subscription')}
       accessibilityRole="button"
       style={[styles.banner, expired ? styles.bannerDanger : styles.bannerPending]}>
       <Text style={[typography.label, { color: expired ? colors.danger : colors.pending }]}>{text}</Text>
-      <Text style={[typography.caption, { color: expired ? colors.danger : colors.pending }]}>Abonelik ayrıntıları ›</Text>
+      <Text style={[typography.caption, { color: expired ? colors.danger : colors.pending }]}>{t('Abonelik ayrıntıları ›')}</Text>
     </Pressable>
   );
 }
 
-function Stats({ data }: { data: DashboardSummary }) {
+function Stats({ data, isMember }: { data: DashboardSummary; isMember: boolean }) {
   const styles = useStyles();
   const bookingsToday = data.todayAppointments.filter((a) => !a.isBlockedSlot && a.status !== 'CANCELLED');
   const pendingToday = bookingsToday.filter((a) => a.status === 'PENDING').length;
@@ -197,33 +204,33 @@ function Stats({ data }: { data: DashboardSummary }) {
     <View style={styles.grid}>
       <Stat
         icon="appointments"
-        label="Bugünkü randevular"
+        label={t('Bugünkü randevular')}
         value={String(bookingsToday.length)}
-        hint={bookingsToday.length === 0 ? 'Bugün randevu yok' : pendingToday > 0 ? `${pendingToday} tanesi onay bekliyor` : 'Hepsi onaylı'}
+        hint={bookingsToday.length === 0 ? t('Bugün randevu yok') : pendingToday > 0 ? t('{0} tanesi onay bekliyor', pendingToday) : t('Hepsi onaylı')}
         trend={data.bookingsPerDay}
         onPress={() => router.navigate('/calendar')}
       />
       <Stat
         icon="hourglass"
-        label="Onay bekleyen"
+        label={t('Onay bekleyen')}
         value={String(data.pendingCount)}
-        hint={data.pendingCount > 0 ? 'Bugün ve sonrası' : 'Bekleyen talep yok'}
+        hint={data.pendingCount > 0 ? t('Bugün ve sonrası') : t('Bekleyen talep yok')}
         attention={data.pendingCount > 0}
         onPress={() => router.navigate('/appointments')}
       />
       <Stat
         icon="money"
-        label={`${month} geliri`}
+        label={t('{0} geliri', month)}
         value={formatPrice(data.monthRevenue)}
-        hint={`${data.completedThisMonthCount} tamamlanan randevudan`}
+        hint={t('{0} tamamlanan randevudan', data.completedThisMonthCount)}
         trend={data.revenuePerDay}
       />
       <Stat
         icon="reviews"
-        label="Müşteri puanı"
+        label={t('Müşteri puanı')}
         value={rating}
-        hint={data.reviewCount > 0 ? `${data.reviewCount} yorum` : 'Henüz yorum yok'}
-        onPress={() => router.push('/reviews')}
+        hint={data.reviewCount > 0 ? t('{0} yorum', data.reviewCount) : t('Henüz yorum yok')}
+        onPress={isMember ? undefined : () => router.push('/reviews')}
       />
     </View>
   );

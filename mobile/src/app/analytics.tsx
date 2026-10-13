@@ -11,12 +11,13 @@ import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { computeAnalytics, DAY_NAMES, periodReport } from '@/lib/analytics';
 import { dateKey, formatPrice } from '@/lib/appointments';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 const PERIODS = [
-  { days: 7, label: '7 gün' },
-  { days: 30, label: '30 gün' },
-  { days: 90, label: '3 ay' },
-  { days: 365, label: '1 yıl' },
+  { days: 7, label: t('7 gün') },
+  { days: 30, label: t('30 gün') },
+  { days: 90, label: t('3 ay') },
+  { days: 365, label: t('1 yıl') },
 ];
 
 const shortPrice = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(v >= 10000 ? 0 : 1).replace('.', ',')}B ₺` : `${Math.round(v)} ₺`);
@@ -31,7 +32,7 @@ export default function AnalyticsScreen() {
   const ai = useApiMutation();
 
   if (loading) return <LoadingView />;
-  if (error || !data) return <ErrorView message={error ?? 'İstatistikler yüklenemedi.'} onRetry={retry} />;
+  if (error || !data) return <ErrorView message={error ?? t('İstatistikler yüklenemedi.')} onRetry={retry} />;
 
   const report = periodReport(data.appointments, dateKey(new Date()), days);
   const overall = computeAnalytics(data.appointments, data.customers);
@@ -52,57 +53,57 @@ export default function AnalyticsScreen() {
       </ChipRow>
 
       <View style={styles.grid}>
-        <Kpi icon="money" label="Gelir" value={formatPrice(report.revenue)} change={report.revenueChange} />
-        <Kpi icon="appointments" label="Randevu" value={String(report.bookings)} change={report.bookingsChange} />
-        <Kpi icon="trendUp" label="Ortalama tutar" value={formatPrice(report.averageTicket)} />
-        <Kpi icon="cancel" label="İptal oranı" value={`%${report.cancelRate}`} invert />
+        <Kpi icon="money" label={t('Gelir')} value={formatPrice(report.revenue)} change={report.revenueChange} />
+        <Kpi icon="appointments" label={t('Randevu')} value={String(report.bookings)} change={report.bookingsChange} />
+        <Kpi icon="trendUp" label={t('Ortalama tutar')} value={formatPrice(report.averageTicket)} />
+        <Kpi icon="cancel" label={t('İptal oranı')} value={`%${report.cancelRate}`} invert />
       </View>
 
       <Card>
-        <SectionTitle hint="Onaylanan ve tamamlanan randevular">Gelir trendi</SectionTitle>
+        <SectionTitle hint={t('Onaylanan ve tamamlanan randevular')}>{t('Gelir trendi')}</SectionTitle>
         <AreaChart data={report.series.map((s) => ({ label: s.label, value: s.revenue }))} format={shortPrice} />
       </Card>
 
       <Card>
-        <SectionTitle hint={days > 31 ? 'Haftalık' : 'Günlük'}>Randevu sayısı</SectionTitle>
+        <SectionTitle hint={days > 31 ? t('Haftalık') : t('Günlük')}>{t('Randevu sayısı')}</SectionTitle>
         <BarChart
           data={report.series.slice(-14).map((s) => ({ label: s.label.split(' ')[0], value: s.count }))}
           color={colors.chart2}
           format={(v) => `${v} randevu`}
         />
-        {report.series.length > 14 ? <Text style={typography.caption}>Son 14 {days > 31 ? 'hafta' : 'gün'} gösteriliyor.</Text> : null}
+        {report.series.length > 14 ? <Text style={typography.caption}>{days > 31 ? t('Son 14 hafta gösteriliyor.') : t('Son 14 gün gösteriliyor.')}</Text> : null}
       </Card>
 
       <Card>
-        <SectionTitle>Randevu durumları</SectionTitle>
+        <SectionTitle>{t('Randevu durumları')}</SectionTitle>
         <DonutChart
           centerLabel="randevu"
           data={[
-            { label: 'Tamamlandı', value: report.status.COMPLETED, color: colors.brand },
-            { label: 'Onaylandı', value: report.status.CONFIRMED, color: colors.chart2 },
-            { label: 'Onay bekliyor', value: report.status.PENDING, color: colors.pending },
-            { label: 'İptal', value: report.status.CANCELLED, color: colors.danger },
+            { label: t('Tamamlandı'), value: report.status.COMPLETED, color: colors.brand },
+            { label: t('Onaylandı'), value: report.status.CONFIRMED, color: colors.chart2 },
+            { label: t('Onay bekliyor'), value: report.status.PENDING, color: colors.pending },
+            { label: t('İptal'), value: report.status.CANCELLED, color: colors.danger },
           ]}
         />
       </Card>
 
       <Card>
-        <SectionTitle hint="Güne göre randevu sayısı">Haftalık yoğunluk</SectionTitle>
+        <SectionTitle hint={t('Güne göre randevu sayısı')}>{t('Haftalık yoğunluk')}</SectionTitle>
         <BarChart data={DAY_NAMES.map((name, i) => ({ label: name.slice(0, 3), value: d.byDay[i] }))} format={(v) => `${v} randevu`} />
       </Card>
 
       <Card>
-        <SectionTitle hint="Başlangıç saatine göre">Saatlik yoğunluk</SectionTitle>
+        <SectionTitle hint={t('Başlangıç saatine göre')}>{t('Saatlik yoğunluk')}</SectionTitle>
         <BarChart data={d.hours.map((h, i) => ({ label: String(h), value: d.byHour[i] }))} color={colors.chart3} format={(v) => `${v} randevu`} />
       </Card>
 
       <Card>
-        <SectionTitle>En çok tercih edilen hizmetler</SectionTitle>
+        <SectionTitle>{t('En çok tercih edilen hizmetler')}</SectionTitle>
         <RankBars data={report.topServices} format={(v) => `${v}`} />
       </Card>
 
       <Card>
-        <SectionTitle>En çok randevu alan çalışanlar</SectionTitle>
+        <SectionTitle>{t('En çok randevu alan çalışanlar')}</SectionTitle>
         <RankBars data={report.topEmployees} format={(v) => `${v}`} />
       </Card>
 
@@ -112,19 +113,19 @@ export default function AnalyticsScreen() {
             <Icon name={icons.repeat} size={18} color={colors.brand} />
           </View>
           <View style={styles.flex}>
-            <Text style={typography.heading}>Tekrar gelen müşteri</Text>
-            <Text style={typography.caption}>{overall.customerCount} müşteri içinde (tüm zamanlar)</Text>
+            <Text style={typography.heading}>{t('Tekrar gelen müşteri')}</Text>
+            <Text style={typography.caption}>{t('{0} müşteri içinde (tüm zamanlar)', overall.customerCount)}</Text>
           </View>
           <Text style={[typography.title, { color: colors.brand }]}>%{overall.repeatRate}</Text>
         </View>
       </Card>
 
       <Card>
-        <SectionTitle>Büyüme önerileri</SectionTitle>
+        <SectionTitle>{t('Büyüme önerileri')}</SectionTitle>
         <Text style={typography.body}>
           {d.peakDay && d.peakHour
-            ? `Bu dönemde en yoğun gününüz ${d.peakDay}, en yoğun başlangıç saatiniz ${d.peakHour}. Sakin saatler için kampanya düşünebilirsiniz.`
-            : 'Yoğunluk analizi için bu dönemde yeterli randevu yok.'}
+            ? t('Bu dönemde en yoğun gününüz {0}, en yoğun başlangıç saatiniz {1}. Sakin saatler için kampanya düşünebilirsiniz.', d.peakDay, d.peakHour)
+            : t('Yoğunluk analizi için bu dönemde yeterli randevu yok.')}
         </Text>
         {insights ? (
           insights.actionableTips.map((tip) => (
@@ -134,7 +135,7 @@ export default function AnalyticsScreen() {
             </View>
           ))
         ) : (
-          <Button label="Sektör önerilerini getir" icon="sparkles" variant="secondary" onPress={loadInsights} busy={ai.busy} />
+          <Button label={t('Sektör önerilerini getir')} icon="sparkles" variant="secondary" onPress={loadInsights} busy={ai.busy} />
         )}
         <InlineError message={ai.error} />
       </Card>
@@ -159,7 +160,7 @@ function Kpi({ icon, label, value, change, invert }: { icon: keyof typeof icons;
       </Text>
       {change !== undefined ? (
         <Text style={[typography.caption, { color: good ? colors.brand : bad ? colors.danger : colors.ink3, fontWeight: '600' }]}>
-          {change === null ? 'Önceki dönemde veri yok' : `${change > 0 ? '▲' : change < 0 ? '▼' : '•'} %${Math.abs(change)} önceki döneme göre`}
+          {change === null ? t('Önceki dönemde veri yok') : t('{0} %{1} önceki döneme göre', change > 0 ? '▲' : change < 0 ? '▼' : '•', Math.abs(change))}
         </Text>
       ) : null}
     </View>

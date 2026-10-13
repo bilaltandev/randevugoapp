@@ -178,9 +178,11 @@ type ListRowProps = {
   right?: ReactNode;
   /** Leading icon in a tinted circle. */
   icon?: IconName;
+  /** Trailing chevron on tappable rows; off for choice lists that show a check instead. */
+  chevron?: boolean;
 };
 
-export function ListRow({ title, subtitle, meta, onPress, muted, right, icon }: ListRowProps) {
+export function ListRow({ title, subtitle, meta, onPress, muted, right, icon, chevron = true }: ListRowProps) {
   const { colors, typography } = useTheme();
   const styles = useStyles();
   return (
@@ -206,7 +208,7 @@ export function ListRow({ title, subtitle, meta, onPress, muted, right, icon }: 
       </View>
       {meta ? <Text style={typography.label}>{meta}</Text> : null}
       {right}
-      {onPress ? <Icon name={icons.chevronRight} size={16} color={colors.ink3} /> : null}
+      {onPress && chevron ? <Icon name={icons.chevronRight} size={16} color={colors.ink3} /> : null}
     </Pressable>
   );
 }

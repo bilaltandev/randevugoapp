@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 
 import type { PickedImage } from '@/api/panel';
+import { t } from '@/i18n';
 
 /** Max upload size of the server's image endpoints. */
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -18,6 +19,6 @@ export async function pickImage(options: { aspect?: [number, number] } = {}): Pr
   });
   if (result.canceled || !result.assets?.length) return null;
   const asset = result.assets[0];
-  if (asset.fileSize && asset.fileSize > MAX_BYTES) throw new Error('Görsel 10 MB’tan büyük olamaz.');
+  if (asset.fileSize && asset.fileSize > MAX_BYTES) throw new Error(t('Görsel 10 MB’tan büyük olamaz.'));
   return { uri: asset.uri, mimeType: asset.mimeType, fileName: asset.fileName };
 }

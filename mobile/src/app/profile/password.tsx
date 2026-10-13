@@ -6,6 +6,7 @@ import { changePassword } from '@/api/panel';
 import { Button, InlineError, Page, TextField } from '@/components/ui';
 import { useApiMutation } from '@/hooks/useApiQuery';
 import { useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 const MIN_PASSWORD = 8;
 
@@ -19,9 +20,9 @@ export default function ChangePasswordScreen() {
 
   const submit = async () => {
     setFormError(null);
-    if (!current) return setFormError('Mevcut şifrenizi girin.');
-    if (next.length < MIN_PASSWORD) return setFormError(`Yeni şifre en az ${MIN_PASSWORD} karakter olmalı.`);
-    if (next !== repeat) return setFormError('Yeni şifreler birbiriyle aynı değil.');
+    if (!current) return setFormError(t('Mevcut şifrenizi girin.'));
+    if (next.length < MIN_PASSWORD) return setFormError(t('Yeni şifre en az {0} karakter olmalı.', MIN_PASSWORD));
+    if (next !== repeat) return setFormError(t('Yeni şifreler birbiriyle aynı değil.'));
 
     let signedOut = 0;
     const ok = await save.run(async (client) => {
@@ -29,8 +30,8 @@ export default function ChangePasswordScreen() {
     });
     if (ok) {
       Alert.alert(
-        'Şifreniz değişti',
-        signedOut > 0 ? `Diğer ${signedOut} cihazdaki oturum ve web oturumlarınız kapatıldı.` : 'Web panelindeki oturumlarınız kapatıldı; bu cihaz açık kalır.'
+        t('Şifreniz değişti'),
+        signedOut > 0 ? t('Diğer {0} cihazdaki oturum ve web oturumlarınız kapatıldı.', signedOut) : t('Web panelindeki oturumlarınız kapatıldı; bu cihaz açık kalır.')
       );
       router.back();
     }
@@ -38,20 +39,20 @@ export default function ChangePasswordScreen() {
 
   return (
     <Page>
-      <Text style={typography.body}>Şifre değiştiğinde bu telefon dışındaki tüm oturumlarınız (web paneli dahil) kapanır.</Text>
-      <TextField label="Mevcut şifre" value={current} onChangeText={setCurrent} secureTextEntry textContentType="password" autoComplete="current-password" />
+      <Text style={typography.body}>{t('Şifre değiştiğinde bu telefon dışındaki tüm oturumlarınız (web paneli dahil) kapanır.')}</Text>
+      <TextField label={t('Mevcut şifre')} value={current} onChangeText={setCurrent} secureTextEntry textContentType="password" autoComplete="current-password" />
       <TextField
-        label="Yeni şifre"
+        label={t('Yeni şifre')}
         value={next}
         onChangeText={setNext}
         secureTextEntry
         textContentType="newPassword"
         autoComplete="new-password"
-        hint={`En az ${MIN_PASSWORD} karakter.`}
+        hint={t('En az {0} karakter.', MIN_PASSWORD)}
       />
-      <TextField label="Yeni şifre (tekrar)" value={repeat} onChangeText={setRepeat} secureTextEntry textContentType="newPassword" />
+      <TextField label={t('Yeni şifre (tekrar)')} value={repeat} onChangeText={setRepeat} secureTextEntry textContentType="newPassword" />
       <InlineError message={formError ?? save.error} />
-      <Button label="Şifreyi değiştir" icon="key" onPress={submit} busy={save.busy} />
+      <Button label={t('Şifreyi değiştir')} icon="key" onPress={submit} busy={save.busy} />
     </Page>
   );
 }

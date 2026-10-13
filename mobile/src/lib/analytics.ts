@@ -1,9 +1,10 @@
+import { t, tc } from '../i18n/core';
 // Statistics of the "İstatistikler" screen — the same metrics as the web analytics page.
 // Pure TypeScript with no imports, so it is unit-tested from the repo root (tests/mobile-client).
 
 type Booking = { date: string; startTime: string; status: string; price: number };
 
-export const DAY_NAMES = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+export const DAY_NAMES = [t('Pazartesi'), t('Salı'), t('Çarşamba'), t('Perşembe'), t('Cuma'), t('Cumartesi'), t('Pazar')];
 
 /** 0 = Pazartesi … 6 = Pazar for a "YYYY-MM-DD" key, independent of the device time zone. */
 function mondayIndex(dateKey: string): number {
@@ -59,7 +60,7 @@ export const shiftKey = (k: string, days: number) => {
   return keyOf(d);
 };
 
-const MONTHS_SHORT = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const MONTHS_SHORT = [t('Oca'), t('Şub'), t('Mar'), t('Nis'), t('May'), t('Haz'), t('Tem'), t('Ağu'), t('Eyl'), t('Eki'), t('Kas'), tc('ay', 'Ara')];
 const shortLabel = (k: string) => `${Number(k.slice(8, 10))} ${MONTHS_SHORT[Number(k.slice(5, 7)) - 1]}`;
 
 const earns = (a: Booking) => a.status === 'COMPLETED' || a.status === 'CONFIRMED';

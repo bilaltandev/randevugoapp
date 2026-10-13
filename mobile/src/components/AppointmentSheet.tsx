@@ -14,6 +14,7 @@ import {
   type StatusAction,
 } from '@/lib/appointments';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 type Props = {
   appointment: Appointment | null;
@@ -35,7 +36,7 @@ export function AppointmentSheet({ appointment, onClose, onChangeStatus }: Props
       await onChangeStatus(a.id, action.status);
       onClose();
     } catch (e) {
-      Alert.alert('İşlem tamamlanamadı', (e as Error).message);
+      Alert.alert(t('İşlem tamamlanamadı'), (e as Error).message);
     } finally {
       setBusy(null);
     }
@@ -43,8 +44,8 @@ export function AppointmentSheet({ appointment, onClose, onChangeStatus }: Props
 
   const confirmThenRun = (action: StatusAction) => {
     if (!action.destructive) return run(action);
-    Alert.alert(action.label, a?.isBlockedSlot ? 'Bu saat tekrar rezervasyona açılacak.' : 'Randevu iptal edilecek.', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(action.label, a?.isBlockedSlot ? t('Bu saat tekrar rezervasyona açılacak.') : t('Randevu iptal edilecek.'), [
+      { text: t('Vazgeç'), style: 'cancel' },
       { text: action.label, style: 'destructive', onPress: () => run(action) },
     ]);
   };
@@ -55,7 +56,7 @@ export function AppointmentSheet({ appointment, onClose, onChangeStatus }: Props
         <SafeAreaView style={styles.safe} edges={['bottom']}>
           <View style={styles.header}>
             <Text style={typography.title} numberOfLines={1}>
-              {a.isBlockedSlot ? 'Kapalı saat' : a.customerName}
+              {a.isBlockedSlot ? t('Kapalı saat') : a.customerName}
             </Text>
             <Pressable onPress={onClose} accessibilityRole="button" hitSlop={12}>
               <Icon name={icons.close} size={20} color={colors.ink2} />
@@ -65,26 +66,26 @@ export function AppointmentSheet({ appointment, onClose, onChangeStatus }: Props
           <ScrollView contentContainerStyle={styles.content}>
             <StatusBadge appointment={a} />
             <View style={styles.card}>
-              <Row label="Tarih" value={`${shortDateFromKey(a.date)} · ${a.startTime}–${a.endTime}`} />
-              {a.service ? <Row label="Hizmet" value={a.service.name} /> : null}
-              {a.employee ? <Row label="Çalışan" value={a.employee.name} /> : null}
-              {!a.isBlockedSlot ? <Row label="Ücret" value={formatPrice(a.price)} /> : null}
+              <Row label={t('Tarih')} value={`${shortDateFromKey(a.date)} · ${a.startTime}–${a.endTime}`} />
+              {a.service ? <Row label={t('Hizmet')} value={a.service.name} /> : null}
+              {a.employee ? <Row label={t('Çalışan')} value={a.employee.name} /> : null}
+              {!a.isBlockedSlot ? <Row label={t('Ücret')} value={formatPrice(a.price)} /> : null}
               {sectorDetails(a.sectorData).map((d) => (
-                <Row key={d} label="Detay" value={d} />
+                <Row key={d} label={t('Detay')} value={d} />
               ))}
-              {a.notes ? <Row label="Not" value={a.notes} /> : null}
+              {a.notes ? <Row label={t('Not')} value={a.notes} /> : null}
             </View>
 
             {!a.isBlockedSlot ? (
               <View style={styles.card}>
-                <Row label="Telefon" value={a.customerPhone} />
+                <Row label={t('Telefon')} value={a.customerPhone} />
                 {a.customerEmail ? <Row label="E-posta" value={a.customerEmail} /> : null}
                 <Pressable
                   onPress={() => Linking.openURL(`tel:${a.customerPhone.replace(/[^\d+]/g, '')}`)}
                   accessibilityRole="button"
                   style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
                   <Icon name={icons.phone} size={16} color={colors.brand} />
-                  <Text style={[typography.label, { color: colors.ink }]}>Müşteriyi ara</Text>
+                  <Text style={[typography.label, { color: colors.ink }]}>{t('Müşteriyi ara')}</Text>
                 </Pressable>
               </View>
             ) : null}

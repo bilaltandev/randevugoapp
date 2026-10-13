@@ -12,15 +12,21 @@ import { Icon, icons } from '@/components/Icon';
 import { Button, Chip, ChipRow, InlineError, TextField } from '@/components/ui';
 import { isOptionalEmail, isPhone } from '@/lib/forms';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 const MIN_PASSWORD = 8;
 
-/** Sign-up in two steps like the web page: account, then business. Signs in on success. */
+/**
+ * Sign-up in two steps like the web page: account, then business. Or "Hazır ekibe katıl": one step with the
+ * invite code the business owner gave, which creates a team member account. Signs in on success.
+ */
 export default function RegisterScreen() {
   const { colors, typography } = useTheme();
   const styles = useStyles();
-  const { register } = useAuth();
+  const { register, joinTeam } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
+  const [mode, setMode] = useState<'business' | 'join'>('business');
+  const [code, setCode] = useState('');
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -38,17 +44,42 @@ export default function RegisterScreen() {
 
   const next = () => {
     setError(null);
-    if (!form.name.trim()) return setError('Ad soyadınızı girin.');
-    if (!form.email.trim() || !isOptionalEmail(form.email)) return setError('Geçerli bir e-posta adresi girin.');
-    if (form.password.length < MIN_PASSWORD) return setError(`Şifre en az ${MIN_PASSWORD} karakter olmalı.`);
-    if (form.phone.trim() && !isPhone(form.phone)) return setError('Telefon numarası geçerli değil.');
+    if (!form.name.trim()) return setError(t('Ad soyadınızı girin.'));
+    if (!form.email.trim() || !isOptionalEmail(form.email)) return setError(t('Geçerli bir e-posta adresi girin.'));
+    if (form.password.length < MIN_PASSWORD) return setError(t('Şifre en az {0} karakter olmalı.', MIN_PASSWORD));
+    if (form.phone.trim() && !isPhone(form.phone)) return setError(t('Telefon numarası geçerli değil.'));
     setStep(2);
   };
 
+  const submitJoin = async () => {
+    setError(null);
+    if (code.replace(/[\s-]/g, '').length < 6) return setError(t('İşletme sahibinin verdiği davet kodunu girin.'));
+    if (!form.name.trim()) return setError(t('Ad soyadınızı girin.'));
+    if (!form.email.trim() || !isOptionalEmail(form.email)) return setError(t('Geçerli bir e-posta adresi girin.'));
+    if (form.password.length < MIN_PASSWORD) return setError(t('Şifre en az {0} karakter olmalı.', MIN_PASSWORD));
+    if (form.phone.trim() && !isPhone(form.phone)) return setError(t('Telefon numarası geçerli değil.'));
+    setSubmitting(true);
+    try {
+      // On success the guard switches to the app (member view).
+      await joinTeam({
+        code: code.trim(),
+        name: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        phone: form.phone.trim() || undefined,
+      });
+    } catch (e) {
+      setError(e instanceof ApiError && e.status !== 429 && e.status < 500 ? t(e.message) : loginErrorMessage(e));
+      setSubmitting(false);
+    }
+  };
+
+  const joining = mode === 'join';
+
   const submit = async () => {
     setError(null);
-    if (!form.businessName.trim()) return setError('İşletme adını girin.');
-    if (form.whatsappNumber.trim() && !isPhone(form.whatsappNumber)) return setError('WhatsApp numarası geçerli değil.');
+    if (!form.businessName.trim()) return setError(t('İşletme adını girin.'));
+    if (form.whatsappNumber.trim() && !isPhone(form.whatsappNumber)) return setError(t('WhatsApp numarası geçerli değil.'));
     setSubmitting(true);
     try {
       // On success the guard switches to the app.
@@ -79,25 +110,48 @@ export default function RegisterScreen() {
             onPress={() => (step === 2 ? setStep(1) : router.back())}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t('Geri')}
             style={styles.back}>
             <Icon name={icons.chevronLeft} size={20} color={colors.ink} />
           </Pressable>
-          <Text style={typography.caption}>Adım {step} / 2 · {step === 1 ? 'Hesap bilgileri' : 'İşletme bilgileri'}</Text>
+          <Text style={typography.caption}>
+            {joining ? t('Hazır ekibe katıl') : t('Adım {0} / 2 · {1}', step, step === 1 ? t('Hesap bilgileri') : t('İşletme bilgileri'))}
+          </Text>
         </View>
-        <View style={styles.progress}>
-          <View style={[styles.progressBar, styles.progressOn]} />
-          <View style={[styles.progressBar, step === 2 && styles.progressOn]} />
-        </View>
+        {joining ? null : (
+          <View style={styles.progress}>
+            <View style={[styles.progressBar, styles.progressOn]} />
+            <View style={[styles.progressBar, step === 2 && styles.progressOn]} />
+          </View>
+        )}
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           {step === 1 ? (
             <Animated.View key="s1" entering={FadeInRight.duration(260)} exiting={FadeOutLeft.duration(160)} style={styles.step}>
-              <Text style={typography.display}>Hesabınızı oluşturun</Text>
-              <Text style={typography.body}>3 gün ücretsiz deneyin. Kredi kartı gerekmez.</Text>
-              <TextField label="Ad soyad" value={form.name} onChangeText={set('name')} placeholder="Ahmet Yılmaz" autoCapitalize="words" textContentType="name" />
+              <ChipRow>
+                <Chip label={t('Yeni işletme')} selected={!joining} onPress={() => { setMode('business'); setError(null); }} />
+                <Chip label={t('Hazır ekibe katıl')} selected={joining} onPress={() => { setMode('join'); setError(null); }} />
+              </ChipRow>
+              <Text style={typography.display}>{joining ? t('Ekibe katılın') : t('Hesabınızı oluşturun')}</Text>
+              <Text style={typography.body}>
+                {joining
+                  ? t('İşletme sahibinin size verdiği davet kodunu girin. Size alınan randevuları uygulamada görürsünüz.')
+                  : t('3 gün ücretsiz deneyin. Kredi kartı gerekmez.')}
+              </Text>
+              {joining ? (
+                <TextField
+                  label={t('Davet kodu')}
+                  value={code}
+                  onChangeText={(v) => setCode(v.toUpperCase())}
+                  placeholder="K7M2-QXAB"
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  maxLength={12}
+                />
+              ) : null}
+              <TextField label={t('Ad soyad')} value={form.name} onChangeText={set('name')} placeholder={t('Ahmet Yılmaz')} autoCapitalize="words" textContentType="name" />
               <TextField
-                label="E-posta adresi"
+                label={t('E-posta adresi')}
                 value={form.email}
                 onChangeText={set('email')}
                 placeholder="ornek@isletme.com"
@@ -107,42 +161,46 @@ export default function RegisterScreen() {
                 autoComplete="email"
               />
               <TextField
-                label="Şifre"
+                label={t('Şifre')}
                 value={form.password}
                 onChangeText={set('password')}
-                placeholder="Şifre belirleyin"
+                placeholder={t('Şifre belirleyin')}
                 secureTextEntry
                 textContentType="newPassword"
                 autoComplete="new-password"
-                hint={`En az ${MIN_PASSWORD} karakter.`}
+                hint={t('En az {0} karakter.', MIN_PASSWORD)}
               />
-              <TextField label="Telefon (isteğe bağlı)" value={form.phone} onChangeText={set('phone')} placeholder="0532 000 00 00" keyboardType="phone-pad" />
+              <TextField label={t('Telefon (isteğe bağlı)')} value={form.phone} onChangeText={set('phone')} placeholder={t('0532 000 00 00')} keyboardType="phone-pad" />
               <InlineError message={error} />
-              <Button label="Devam et" icon="chevronRight" onPress={next} />
+              {joining ? (
+                <Button label={t('Ekibe katıl')} icon="check" onPress={submitJoin} busy={submitting} />
+              ) : (
+                <Button label={t('Devam et')} icon="chevronRight" onPress={next} />
+              )}
             </Animated.View>
           ) : (
             <Animated.View key="s2" entering={FadeInRight.duration(260)} exiting={FadeOutLeft.duration(160)} style={styles.step}>
-              <Text style={typography.display}>İşletmenizi tanıtın</Text>
-              <Text style={typography.body}>Bu bilgiler online randevu sayfanızda görünür; sonradan değiştirebilirsiniz.</Text>
-              <TextField label="İşletme adı" value={form.businessName} onChangeText={set('businessName')} placeholder="Örn: Ahmet Berber & Stil" />
-              <Text style={typography.label}>Sektör</Text>
+              <Text style={typography.display}>{t('İşletmenizi tanıtın')}</Text>
+              <Text style={typography.body}>{t('Bu bilgiler online randevu sayfanızda görünür; sonradan değiştirebilirsiniz.')}</Text>
+              <TextField label={t('İşletme adı')} value={form.businessName} onChangeText={set('businessName')} placeholder={t('Örn: Ahmet Berber & Stil')} />
+              <Text style={typography.label}>{t('Sektör')}</Text>
               <ChipRow>
                 {SECTORS.map((s) => (
                   <Chip key={s.id} label={s.name} selected={form.sector === s.id} onPress={() => set('sector')(s.id)} />
                 ))}
               </ChipRow>
-              <TextField label="Şehir" value={form.city} onChangeText={set('city')} />
-              <TextField label="WhatsApp (isteğe bağlı)" value={form.whatsappNumber} onChangeText={set('whatsappNumber')} keyboardType="phone-pad" placeholder="0532 000 00 00" />
-              <TextField label="Açık adres (isteğe bağlı)" value={form.address} onChangeText={set('address')} multiline placeholder="Mahalle, cadde, no, ilçe" />
+              <TextField label={t('Şehir')} value={form.city} onChangeText={set('city')} />
+              <TextField label={t('WhatsApp (isteğe bağlı)')} value={form.whatsappNumber} onChangeText={set('whatsappNumber')} keyboardType="phone-pad" placeholder={t('0532 000 00 00')} />
+              <TextField label={t('Açık adres (isteğe bağlı)')} value={form.address} onChangeText={set('address')} multiline placeholder={t('Mahalle, cadde, no, ilçe')} />
               <InlineError message={error} />
-              <Button label="Hesabı oluştur" icon="check" onPress={submit} busy={submitting} />
+              <Button label={t('Hesabı oluştur')} icon="check" onPress={submit} busy={submitting} />
             </Animated.View>
           )}
 
           <View style={styles.loginRow}>
-            <Text style={typography.body}>Zaten hesabınız var mı?</Text>
+            <Text style={typography.body}>{t('Zaten hesabınız var mı?')}</Text>
             <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="link">
-              <Text style={[typography.body, { color: colors.brand, fontWeight: '700' }]}>Giriş yapın</Text>
+              <Text style={[typography.body, { color: colors.brand, fontWeight: '700' }]}>{t('Giriş yapın')}</Text>
             </Pressable>
           </View>
         </ScrollView>

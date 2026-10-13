@@ -2,12 +2,13 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Icon, icons } from '@/components/Icon';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 export function LoadingView() {
   const { colors } = useTheme();
   const styles = useStyles();
   return (
-    <View style={styles.center} accessibilityLabel="Yükleniyor">
+    <View style={styles.center} accessibilityLabel={t('Yükleniyor')}>
       <ActivityIndicator color={colors.brand} />
     </View>
   );
@@ -24,7 +25,7 @@ export function ErrorView({ message, onRetry }: { message: string; onRetry: () =
       </View>
       <Pressable onPress={onRetry} accessibilityRole="button" style={({ pressed }) => [styles.retry, pressed && styles.pressed]}>
         <Icon name={icons.refresh} size={15} color={colors.ink} />
-        <Text style={[typography.label, { color: colors.ink }]}>Tekrar dene</Text>
+        <Text style={[typography.label, { color: colors.ink }]}>{t('Tekrar dene')}</Text>
       </Pressable>
     </View>
   );

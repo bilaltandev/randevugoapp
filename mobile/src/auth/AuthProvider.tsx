@@ -3,8 +3,9 @@ import * as Device from 'expo-device';
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 
-import { createAuthClient, type AuthClient, type Profile, type RegisterInput } from '@/api/authClient';
+import { createAuthClient, type AuthClient, type Profile, type RegisterInput, type JoinTeamInput } from '@/api/authClient';
 import { secureTokenStore } from '@/auth/tokenStore';
+import { getLanguage, t } from '@/i18n';
 import { API_URL } from '@/config';
 
 /**
@@ -26,8 +27,13 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   /** Creates an owner account (web sign-up endpoint) and signs in with it. */
   register: (input: RegisterInput) => Promise<void>;
+  /** Joins a team with an invite code (member account) and signs in with it. */
+  joinTeam: (input: JoinTeamInput) => Promise<void>;
   /** Re-reads the signed-in user and business, e.g. after editing the profile or settings. */
   reloadProfile: () => Promise<void>;
+  /** True right after a new business signs up: the app shows the plan cards before anything else. */
+  welcome: boolean;
+  finishWelcome: () => void;
   signOut: () => Promise<void>;
   retryRestore: () => void;
 };
@@ -39,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [restoreAttempt, setRestoreAttempt] = useState(0);
+  const [welcome, setWelcome] = useState(false);
   const signingOut = useRef(false);
 
   const client = useMemo(
@@ -52,11 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               platform: Platform.OS,
               appVersion: Constants.expoConfig?.version ?? null,
             },
+            language: getLanguage,
+            // The server refused an action because the trial or plan is over: show the lock screen now
+            // instead of waiting for the next profile read.
+            onSubscriptionRequired: () =>
+              setProfile((current) =>
+                current?.business.subscription
+                  ? { ...current, business: { ...current.business, subscription: { ...current.business.subscription, active: false } } }
+                  : current
+              ),
             onSessionExpired: () => {
               if (signingOut.current) return;
               setProfile(null);
               setStatus('signedOut');
-              setNotice('Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.');
+              setNotice(t('Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.'));
             },
           })
         : null,
@@ -85,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      if (!client) throw new Error('API adresi yapılandırılmamış.');
+      if (!client) throw new Error(t('API adresi yapılandırılmamış.'));
       const signedIn = await client.login(email, password);
       setNotice(null);
       setProfile(signedIn);
@@ -96,8 +112,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (input: RegisterInput) => {
-      if (!client) throw new Error('API adresi yapılandırılmamış.');
+      if (!client) throw new Error(t('API adresi yapılandırılmamış.'));
       const signedIn = await client.register(input);
+      setNotice(null);
+      setWelcome(true);
+      setProfile(signedIn);
+      setStatus('signedIn');
+    },
+    [client]
+  );
+
+  const joinTeam = useCallback(
+    async (input: JoinTeamInput) => {
+      if (!client) throw new Error(t('API adresi yapılandırılmamış.'));
+      const signedIn = await client.joinTeam(input);
       setNotice(null);
       setProfile(signedIn);
       setStatus('signedIn');
@@ -120,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await client?.logout();
     } finally {
       signingOut.current = false;
+      setWelcome(false);
       setProfile(null);
       setStatus('signedOut');
     }
@@ -134,11 +163,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       client,
       signIn,
       register,
+      joinTeam,
       reloadProfile,
+      welcome,
+      finishWelcome: () => setWelcome(false),
       signOut,
       retryRestore: () => setRestoreAttempt((n) => n + 1),
     }),
-    [status, profile, notice, client, signIn, register, reloadProfile, signOut]
+    [status, profile, notice, client, signIn, register, joinTeam, reloadProfile, welcome, signOut]
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
@@ -148,4 +180,19 @@ export function useAuth(): AuthContextValue {
   const value = use(AuthContext);
   if (!value) throw new Error('useAuth must be used inside <AuthProvider>.');
   return value;
+}
+
+/**
+ * Who is signed in: the business owner, or a TEAM plan member (who only sees their own bookings), and the
+ * business's plan. Owner-only screens and menu entries check `isMember`.
+ */
+export function useAccount() {
+  const { profile } = useAuth();
+  return {
+    isMember: !!profile?.member,
+    memberEmployeeId: profile?.member?.employeeId ?? null,
+    plan: profile?.business.subscription?.plan === 'TEAM' ? ('TEAM' as const) : ('PERSON' as const),
+    /** Trial or paid period over: only the lock screen (and support) is available. */
+    locked: profile?.business.subscription?.active === false,
+  };
 }

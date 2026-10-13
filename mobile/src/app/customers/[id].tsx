@@ -10,6 +10,7 @@ import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { formatPrice, shortDateFromKey } from '@/lib/appointments';
 import { isOptionalEmail, isPhone } from '@/lib/forms';
 import { makeStyles, spacing, useTheme } from '@/theme';
+import { t, tc } from '@/i18n';
 
 export default function CustomerScreen() {
   const { typography } = useTheme();
@@ -22,7 +23,7 @@ export default function CustomerScreen() {
   if (!customer) {
     return (
       <Page>
-        <Text style={typography.body}>Müşteri bulunamadı.</Text>
+        <Text style={typography.body}>{t('Müşteri bulunamadı.')}</Text>
       </Page>
     );
   }
@@ -54,8 +55,8 @@ function CustomerDetail({ customer, onSaved }: { customer: Customer; onSaved: (n
   const submit = async () => {
     setFormError(null);
     setSaved(false);
-    if (!isPhone(phone)) return setFormError('Geçerli bir telefon numarası girin.');
-    if (!isOptionalEmail(email)) return setFormError('Geçerli bir e-posta adresi girin.');
+    if (!isPhone(phone)) return setFormError(t('Geçerli bir telefon numarası girin.'));
+    if (!isOptionalEmail(email)) return setFormError(t('Geçerli bir e-posta adresi girin.'));
     const next = { phone: phone.trim(), email: email.trim() || null, notes: notes.trim() || null };
     if (await save.run((client) => updateCustomer(client, customer.id, next))) {
       setPhone(next.phone);
@@ -71,26 +72,26 @@ function CustomerDetail({ customer, onSaved }: { customer: Customer; onSaved: (n
       <Stack.Screen options={{ title: customer.name }} />
 
       <View style={styles.stats}>
-        <Stat label="Randevu" value={String(customer.totalAppointments)} />
-        <Stat label="Toplam harcama" value={formatPrice(customer.totalSpent)} />
+        <Stat label={t('Randevu')} value={String(customer.totalAppointments)} />
+        <Stat label={t('Toplam harcama')} value={formatPrice(customer.totalSpent)} />
       </View>
 
       <View style={styles.stats}>
         <View style={styles.flex}>
-          <Button label="Ara" variant="secondary" onPress={() => Linking.openURL(`tel:${digits}`)} />
+          <Button label={tc('telefon', 'Ara')} variant="secondary" onPress={() => Linking.openURL(`tel:${digits}`)} />
         </View>
         <View style={styles.flex}>
           <Button
-            label="Randevu ver"
+            label={t('Randevu ver')}
             onPress={() => router.push({ pathname: '/appointment/new', params: { customerName: customer.name, customerPhone: customer.phone } })}
           />
         </View>
       </View>
 
-      <SectionTitle>Son randevular</SectionTitle>
+      <SectionTitle>{t('Son randevular')}</SectionTitle>
       <Card>
         {customer.appointments.length === 0 ? (
-          <Text style={typography.body}>Kayıtlı randevu yok.</Text>
+          <Text style={typography.body}>{t('Kayıtlı randevu yok.')}</Text>
         ) : (
           customer.appointments.map((a) => (
             <View key={a.id} style={styles.appt}>
@@ -106,14 +107,14 @@ function CustomerDetail({ customer, onSaved }: { customer: Customer; onSaved: (n
         )}
       </Card>
 
-      <SectionTitle>Bilgiler</SectionTitle>
-      <TextField label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+      <SectionTitle>{t('Bilgiler')}</SectionTitle>
+      <TextField label={t('Telefon')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
       <TextField label="E-posta" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-      <TextField label="Notlar" value={notes} onChangeText={setNotes} multiline maxLength={1000} placeholder="Ör. alerji, tercih edilen çalışan…" />
+      <TextField label={t('Notlar')} value={notes} onChangeText={setNotes} multiline maxLength={1000} placeholder={t('Ör. alerji, tercih edilen çalışan…')} />
 
       <InlineError message={formError ?? save.error} />
-      {saved && !dirty ? <Text style={[typography.label, { color: colors.brand }]}>Kaydedildi.</Text> : null}
-      <Button label="Kaydet" onPress={submit} busy={save.busy} disabled={!dirty} />
+      {saved && !dirty ? <Text style={[typography.label, { color: colors.brand }]}>{t('Kaydedildi.')}</Text> : null}
+      <Button label={t('Kaydet')} onPress={submit} busy={save.busy} disabled={!dirty} />
     </Page>
   );
 }

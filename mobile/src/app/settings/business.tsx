@@ -10,11 +10,12 @@ import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { isPhone } from '@/lib/forms';
 import { pickImage } from '@/lib/pickImage';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { t } from '@/i18n';
 
 export default function BusinessSettingsScreen() {
   const { data, loading, error, retry } = useApiQuery(fetchSettings);
   if (loading) return <LoadingView />;
-  if (error || !data) return <ErrorView message={error ?? 'Ayarlar yüklenemedi.'} onRetry={retry} />;
+  if (error || !data) return <ErrorView message={error ?? t('Ayarlar yüklenemedi.')} onRetry={retry} />;
   return <BusinessForm data={data} />;
 }
 
@@ -46,9 +47,9 @@ function BusinessForm({ data }: { data: BusinessSettings }) {
   const submit = async () => {
     setFormError(null);
     // The API ignores empty name/phone/address/city (they would blank the public page), so require them here.
-    if (!form.name.trim() || !form.address.trim() || !form.city.trim()) return setFormError('İşletme adı, adres ve şehir boş bırakılamaz.');
-    if (!isPhone(form.phone)) return setFormError('Geçerli bir telefon numarası girin.');
-    if (form.whatsappNumber.trim() && !isPhone(form.whatsappNumber)) return setFormError('WhatsApp numarası geçerli değil.');
+    if (!form.name.trim() || !form.address.trim() || !form.city.trim()) return setFormError(t('İşletme adı, adres ve şehir boş bırakılamaz.'));
+    if (!isPhone(form.phone)) return setFormError(t('Geçerli bir telefon numarası girin.'));
+    if (form.whatsappNumber.trim() && !isPhone(form.whatsappNumber)) return setFormError(t('WhatsApp numarası geçerli değil.'));
 
     const input = {
       name: form.name.trim(),
@@ -80,38 +81,38 @@ function BusinessForm({ data }: { data: BusinessSettings }) {
   return (
     <Page>
       <View style={styles.logoRow}>
-        {logoUrl ? <Image source={{ uri: logoUrl }} style={styles.logo} contentFit="cover" alt="Logo" /> : <View style={[styles.logo, styles.logoEmpty]} />}
+        {logoUrl ? <Image source={{ uri: logoUrl }} style={styles.logo} contentFit="cover" alt={t('Logo')} /> : <View style={[styles.logo, styles.logoEmpty]} />}
         <View style={styles.flex}>
-          <Button label={logoUrl ? 'Logoyu değiştir' : 'Logo yükle'} variant="secondary" onPress={changeLogo} busy={logoUpload.busy} />
+          <Button label={logoUrl ? t('Logoyu değiştir') : t('Logo yükle')} variant="secondary" onPress={changeLogo} busy={logoUpload.busy} />
         </View>
       </View>
       <InlineError message={logoUpload.error} />
 
-      <TextField label="İşletme adı" value={form.name} onChangeText={set('name')} maxLength={80} />
-      <SectionTitle>Sektör</SectionTitle>
+      <TextField label={t('İşletme adı')} value={form.name} onChangeText={set('name')} maxLength={80} />
+      <SectionTitle>{t('Sektör')}</SectionTitle>
       <ChipRow>
         {SECTORS.map((s) => (
           <Chip key={s.id} label={s.name} selected={form.sector === s.id} onPress={() => set('sector')(s.id)} />
         ))}
       </ChipRow>
-      <TextField label="Açıklama" value={form.description} onChangeText={set('description')} multiline maxLength={1000} />
-      <TextField label="Telefon" value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" />
-      <TextField label="WhatsApp (isteğe bağlı)" value={form.whatsappNumber} onChangeText={set('whatsappNumber')} keyboardType="phone-pad" />
-      <TextField label="Adres" value={form.address} onChangeText={set('address')} multiline maxLength={300} />
-      <TextField label="Şehir" value={form.city} onChangeText={set('city')} maxLength={40} />
+      <TextField label={t('Açıklama')} value={form.description} onChangeText={set('description')} multiline maxLength={1000} />
+      <TextField label={t('Telefon')} value={form.phone} onChangeText={set('phone')} keyboardType="phone-pad" />
+      <TextField label={t('WhatsApp (isteğe bağlı)')} value={form.whatsappNumber} onChangeText={set('whatsappNumber')} keyboardType="phone-pad" />
+      <TextField label={t('Adres')} value={form.address} onChangeText={set('address')} multiline maxLength={300} />
+      <TextField label={t('Şehir')} value={form.city} onChangeText={set('city')} maxLength={40} />
       <Card>
         <SwitchRow
-          label="Müşteri çalışan seçebilsin"
-          hint="Kapalıysa online randevuda çalışan otomatik atanır."
+          label={t('Müşteri çalışan seçebilsin')}
+          hint={t('Kapalıysa online randevuda çalışan otomatik atanır.')}
           value={form.enableStaffSelection}
           onValueChange={set('enableStaffSelection')}
         />
       </Card>
-      <Text style={typography.caption}>Online sayfanız: /{data.slug}</Text>
+      <Text style={typography.caption}>{t('Online sayfanız: /{0}', data.slug)}</Text>
 
       <InlineError message={formError ?? save.error} />
-      {saved ? <Text style={[typography.label, { color: colors.brand }]}>Kaydedildi.</Text> : null}
-      <Button label="Kaydet" onPress={submit} busy={save.busy} />
+      {saved ? <Text style={[typography.label, { color: colors.brand }]}>{t('Kaydedildi.')}</Text> : null}
+      <Button label={t('Kaydet')} onPress={submit} busy={save.busy} />
     </Page>
   );
 }

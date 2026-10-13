@@ -1,6 +1,7 @@
 import type { AuthClient } from '@/api/authClient';
 import type { Appointment } from '@/lib/appointments';
 import { API_URL } from '@/config';
+import { t } from '@/i18n';
 
 // Panel modules that mirror the web dashboard (overview, reviews, analytics, tables, page, gallery,
 // subscription, support). Shapes list only the fields the app uses.
@@ -224,7 +225,7 @@ export async function updatePage(client: AuthClient, update: PageUpdate) {
 
 export type PickedImage = { uri: string; mimeType?: string | null; fileName?: string | null };
 
-function imageForm(image: PickedImage): FormData {
+export function imageForm(image: PickedImage): FormData {
   const form = new FormData();
   const type = image.mimeType || 'image/jpeg';
   const name = image.fileName || `foto.${type.split('/')[1] || 'jpg'}`;
@@ -276,15 +277,62 @@ export async function reorderGallery(client: AuthClient, itemIds: string[]) {
 
 // ---- Subscription ----
 
+export type BillingPeriod = 'MONTHLY' | 'YEARLY';
+
 export type SubscriptionInfo = {
-  subscription: { status: string; planType: string; trialEndDate: string | null; subscriptionEndDate: string | null; paymentProvider: string | null };
+  subscription: {
+    status: string;
+    planType: string;
+    trialEndDate: string | null;
+    subscriptionEndDate: string | null;
+    paymentProvider: string | null;
+    monthlyPrice: number;
+  };
+  /** Older servers don't send it; `isExpired` then tells the same. */
+  access?: { active: boolean; kind: 'trial' | 'paid' | 'expired'; endsAt?: string | null };
   daysRemaining: number;
   isExpired: boolean;
   monthlyPrice: number;
+  plan?: 'PERSON' | 'TEAM';
+  /** Monthly prices only (older servers). Prefer `prices`. */
+  planPrices?: Record<'PERSON' | 'TEAM', number>;
+  billingPeriod?: BillingPeriod;
+  /** USD price of every plan and billing period for this business. */
+  prices?: Record<'PERSON' | 'TEAM', Record<BillingPeriod, number>>;
+  /** USD→TRY (TCMB selling rate) used for the bank transfer amount; null when unknown. */
+  rate?: { rate: number; date: string; source: string } | null;
+  /** Open bank transfer request waiting for the admin. Amounts in USD; `amountTry` is what to transfer. */
+  payment?: {
+    requestedAt: string;
+    amount: number;
+    amountTry?: number | null;
+    rate?: number | null;
+    billingPeriod?: BillingPeriod;
+    couponCode: string | null;
+  } | null;
+  bank?: { iban: string; accountName: string; bankName: string } | null;
+  reference?: string;
+  activeDiscount?: { code: string; percentOff: number; monthsRemaining: number } | null;
 };
 
 export function fetchSubscription(client: AuthClient) {
   return client.request<SubscriptionInfo>('/api/subscription');
+}
+
+/** "Satın al": records a bank transfer notice for the admin to confirm. Never activates anything itself. */
+export function requestPayment(client: AuthClient, plan: 'PERSON' | 'TEAM', billingPeriod: BillingPeriod, couponCode?: string) {
+  return client.request<{ success: boolean; amount: number; amountTry: number | null; percentOff: number; appliedCode: string | null }>(
+    '/api/subscription',
+    { method: 'POST', body: { plan, billingPeriod, couponCode } }
+  );
+}
+
+/** Checks a discount code; the percentage applies to whichever plan is bought. */
+export function checkCoupon(client: AuthClient, code: string) {
+  return client.request<{ code: string; percentOff: number; durationMonths: number }>('/api/subscription/coupon', {
+    method: 'POST',
+    body: { code },
+  });
 }
 
 // ---- Support ----
@@ -328,30 +376,30 @@ export async function closeTicket(client: AuthClient, id: string) {
 }
 
 // Same labels as src/lib/supportOptions.ts on the web.
-export const TICKET_STATUSES: Record<string, string> = { OPEN: 'Açık', IN_PROGRESS: 'İşlemde', RESOLVED: 'Çözüldü', CLOSED: 'Kapatıldı' };
+export const TICKET_STATUSES: Record<string, string> = { OPEN: t('Açık'), IN_PROGRESS: t('İşlemde'), RESOLVED: t('Çözüldü'), CLOSED: t('Kapatıldı') };
 export const TICKET_PRIORITIES = [
-  { id: 'LOW', label: 'Düşük' },
-  { id: 'NORMAL', label: 'Normal' },
-  { id: 'HIGH', label: 'Yüksek' },
-  { id: 'URGENT', label: 'Acil' },
+  { id: 'LOW', label: t('Düşük') },
+  { id: 'NORMAL', label: t('Normal') },
+  { id: 'HIGH', label: t('Yüksek') },
+  { id: 'URGENT', label: t('Acil') },
 ] as const;
 export const TICKET_CATEGORIES = [
-  { id: 'GENERAL', label: 'Genel' },
-  { id: 'TECHNICAL', label: 'Teknik sorun' },
-  { id: 'BILLING', label: 'Ödeme & abonelik' },
-  { id: 'ACCOUNT', label: 'Hesap & giriş' },
+  { id: 'GENERAL', label: t('Genel') },
+  { id: 'TECHNICAL', label: t('Teknik sorun') },
+  { id: 'BILLING', label: t('Ödeme & abonelik') },
+  { id: 'ACCOUNT', label: t('Hesap & giriş') },
 ] as const;
 export const MAX_SUBJECT_LENGTH = 150;
 export const MAX_MESSAGE_LENGTH = 5000;
 
 // Same list as SECTORS in src/lib/utils.ts on the web.
 export const SECTORS = [
-  { id: 'BERBER', name: 'Erkek Kuaförü & Berber' },
-  { id: 'GUZELLIK', name: 'Güzellik & Cilt Bakımı' },
-  { id: 'RESTORAN', name: 'Restoran & Kafe' },
-  { id: 'KLINIK', name: 'Klinik & Sağlık Merkezi' },
-  { id: 'OTO_SERVIS', name: 'Oto Servis & Ekspertiz' },
-  { id: 'DIGER', name: 'Diğer Hizmet Sektörleri' },
+  { id: 'BERBER', name: t('Erkek Kuaförü & Berber') },
+  { id: 'GUZELLIK', name: t('Güzellik & Cilt Bakımı') },
+  { id: 'RESTORAN', name: t('Restoran & Kafe') },
+  { id: 'KLINIK', name: t('Klinik & Sağlık Merkezi') },
+  { id: 'OTO_SERVIS', name: t('Oto Servis & Ekspertiz') },
+  { id: 'DIGER', name: t('Diğer Hizmet Sektörleri') },
 ] as const;
 
 export const isRestaurantSector = (sector: string | null | undefined) => sector === 'RESTORAN' || sector === 'RESTAURANT';
