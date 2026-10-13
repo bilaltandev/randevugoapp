@@ -118,9 +118,10 @@ function ico(pngs) {
   return Buffer.concat([header, ...entries, ...pngs.map((p) => p.data)]);
 }
 
-// Web: square mark (shown in black rounded tiles), white wordmark for dark headers, favicons.
+// Web: transparent mark, white wordmark for dark headers, favicons.
 const web = (...parts) => path.join(root, ...parts);
-await (await compose(art, 512, 0.86, "#000000")).toFile(web("public", "brand", "calendlygo-mark.png"));
+await (await compose(art, 512, 1)).toFile(web("public", "brand", "calendlygo-mark.png"));
+await (await compose(art, 512, 1)).toFile(out("logo-mark.png")); // in-app logo, no background
 await sharp(wordmarkSource).trim({ threshold: 1 }).resize({ width: 600 }).png().toFile(web("public", "brand", "calendlygo-text-logo.png"));
 const faviconSizes = [16, 32, 48];
 const favicons = await Promise.all(

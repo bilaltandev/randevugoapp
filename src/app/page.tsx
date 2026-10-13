@@ -96,8 +96,8 @@ const PLAN_ITEMS = [
 function Wordmark() {
   return (
     <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#5BE38F]" aria-label="CalendlyGo ana sayfa">
-      <span className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-black">
-        <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="32px" className="object-cover" unoptimized priority />
+      <span className="relative h-8 w-8 shrink-0 rounded-lg">
+        <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="32px" className="object-contain" unoptimized priority />
       </span>
       <span className="flex flex-col items-start gap-0.5">
         <Image src="/brand/calendlygo-text-logo.png" alt="CalendlyGo" width={124} height={20} className="h-5 w-auto object-contain" unoptimized priority />
