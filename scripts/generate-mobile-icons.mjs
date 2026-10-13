@@ -120,8 +120,10 @@ function ico(pngs) {
 
 // Web: transparent mark, white wordmark for dark headers, favicons.
 const web = (...parts) => path.join(root, ...parts);
-await (await compose(art, 512, 1)).toFile(web("public", "brand", "calendlygo-mark.png"));
-await (await compose(art, 512, 1)).toFile(out("logo-mark.png")); // in-app logo, no background
+// Small logos: crop most of the soft glow so the mascot fills its box.
+const tightArt = await sharp(art).trim({ threshold: 90 }).toBuffer();
+await (await compose(tightArt, 512, 1)).toFile(web("public", "brand", "calendlygo-mark.png"));
+await (await compose(tightArt, 512, 1)).toFile(out("logo-mark.png")); // in-app logo, no background
 await sharp(wordmarkSource).trim({ threshold: 1 }).resize({ width: 600 }).png().toFile(web("public", "brand", "calendlygo-text-logo.png"));
 const faviconSizes = [16, 32, 48];
 const favicons = await Promise.all(

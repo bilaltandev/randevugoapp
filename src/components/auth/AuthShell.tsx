@@ -29,8 +29,8 @@ export function AuthShell({ title, description, eyebrow, children, footer }: Aut
           className="inline-flex items-center gap-2 self-start rounded-control lg:hidden"
           aria-label="CalendlyGo ana sayfa"
         >
-          <span className="relative h-8 w-8 rounded-control">
-            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="32px" className="object-contain" unoptimized />
+          <span className="relative h-10 w-10 rounded-control">
+            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="40px" className="object-contain" unoptimized />
           </span>
           <span className="text-base font-semibold tracking-tight">CalendlyGo</span>
         </Link>
@@ -53,8 +53,8 @@ export function AuthShell({ title, description, eyebrow, children, footer }: Aut
       {/* Brand panel (large screens) */}
       <aside className="relative hidden flex-col justify-between bg-sidebar p-10 text-sidebar-text lg:flex">
         <Link href="/" className="inline-flex items-center gap-3 self-start rounded-control" aria-label="CalendlyGo ana sayfa">
-          <span className="relative h-10 w-10 rounded-control">
-            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="40px" className="object-contain" unoptimized />
+          <span className="relative h-12 w-12 rounded-control">
+            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="48px" className="object-contain" unoptimized />
           </span>
           <Image
             src="/brand/calendlygo-text-logo.png"
