@@ -1,8 +1,8 @@
 import { Stack } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Pressable, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState, type ComponentType, type ReactElement, type Ref } from 'react';
+import { BackHandler, Pressable, View, type NativeSyntheticEvent, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { WebView, type WebViewNavigation } from 'react-native-webview';
+import { WebView as RNWebView, type WebViewNavigation } from 'react-native-webview';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { Icon, icons } from '@/components/Icon';
@@ -11,6 +11,23 @@ import { API_URL } from '@/config';
 import { errorMessage } from '@/lib/errorMessage';
 import { makeStyles, useTheme } from '@/theme';
 import { t } from '@/i18n';
+
+// react-native-webview 14's typings collapse to `never` against RN 0.88's types; type the props we use.
+type WebViewHandle = { goBack: () => void; reload: () => void };
+const WebView = RNWebView as unknown as ComponentType<{
+  ref?: Ref<WebViewHandle>;
+  source: { uri: string };
+  style?: StyleProp<ViewStyle>;
+  sharedCookiesEnabled?: boolean;
+  thirdPartyCookiesEnabled?: boolean;
+  pullToRefreshEnabled?: boolean;
+  allowsBackForwardNavigationGestures?: boolean;
+  setSupportMultipleWindows?: boolean;
+  startInLoadingState?: boolean;
+  renderLoading?: () => ReactElement;
+  onLoadProgress?: (e: NativeSyntheticEvent<{ progress: number }>) => void;
+  onNavigationStateChange?: (s: WebViewNavigation) => void;
+}>;
 
 /**
  * A web panel page (e.g. the page builder) inside the app, exactly as on the web. The app's session is
@@ -21,7 +38,7 @@ export function WebPanel({ next }: { next: string }) {
   const { colors } = useTheme();
   const styles = useStyles();
   const { client } = useAuth();
-  const webRef = useRef<WebView>(null);
+  const webRef = useRef<WebViewHandle>(null);
   const [attempt, setAttempt] = useState(0);
   // The link result remembers which attempt it belongs to, so a retry shows "loading" without a reset.
   const [link, setLink] = useState<{ attempt: number; uri?: string; error?: string } | null>(null);

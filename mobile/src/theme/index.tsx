@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, type Theme } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as SystemUI from 'expo-system-ui';
 import { createContext, use, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, useColorScheme, type TextStyle } from 'react-native';
+import { Platform, StyleSheet, useColorScheme, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
 
 /**
  * CalendlyGo palettes. Values mirror the web app's tokens in `src/app/globals.css`
@@ -187,7 +187,10 @@ export function useTheme(): ThemeValue {
  * Theme-aware StyleSheet: `const useStyles = makeStyles((colors, typography) => ({ … }))` at module level,
  * then `const styles = useStyles()` in the component. Styles are built once per theme.
  */
-export function makeStyles<T extends StyleSheet.NamedStyles<T>>(factory: (colors: Colors, typography: Typography) => T) {
+// RN 0.88 dropped StyleSheet.NamedStyles from its public types.
+type NamedStyles<T> = { [P in keyof T]: ViewStyle | TextStyle | ImageStyle };
+
+export function makeStyles<T extends NamedStyles<T>>(factory: (colors: Colors, typography: Typography) => T) {
   const cache = new Map<string, T>();
   return function useStyles(): T {
     const { scheme, colors, typography } = useTheme();

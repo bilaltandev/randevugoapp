@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View, type GestureResponderEvent } from 'react-native';
+import { Pressable, ScrollView, Text, View, type GestureResponderEvent, type ScrollViewInstance } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { dateKey, statusMeta, type Appointment, type StatusTone } from '@/lib/appointments';
@@ -76,7 +76,7 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt, onPickDay }
   const { colors, typography } = useTheme();
   const styles = useStyles();
   const tones = toneColors(colors);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
