@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { hashPassword, setSessionCookie } from "@/lib/auth";
 import { getDefaultStaffSelection } from "@/lib/utils";
 import { PLAN_PRICES, isPlan, type Plan } from "@/lib/plans";
+import { BUSINESS_NAME_TAKEN, PHONE_TAKEN, isBusinessNameTaken, isPhoneTaken } from "@/lib/uniqueness";
 
 function slugify(text: string): string {
   const trMap: Record<string, string> = {
@@ -87,6 +88,13 @@ export async function POST(req: Request) {
         { error: "Bu e-posta adresi ile zaten bir hesap mevcut." },
         { status: 400 }
       );
+    }
+
+    if (await isPhoneTaken(phone)) {
+      return NextResponse.json({ error: PHONE_TAKEN, code: "PHONE_TAKEN" }, { status: 400 });
+    }
+    if (await isBusinessNameTaken(String(businessName))) {
+      return NextResponse.json({ error: BUSINESS_NAME_TAKEN, code: "BUSINESS_NAME_TAKEN" }, { status: 400 });
     }
 
     // Generate unique slug

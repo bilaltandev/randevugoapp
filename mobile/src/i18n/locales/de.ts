@@ -678,6 +678,36 @@ const dictionary: Record<string, string> = {
   'Ücret: {0}': 'Preis: {0}',
   'Fotoğraf': 'Foto',
   'Profil fotoğrafını değiştir': 'Profilfoto ändern',
+
+  // Intro slides after sign-up
+  'Atla': 'Überspringen',
+  'Başlayalım': 'Los geht’s',
+  'Tüm randevularınız tek ekranda': 'Alle Termine auf einem Bildschirm',
+  'Gününüzü, haftanızı ve ayınızı bir bakışta görün. Randevuları onaylayın, düzenleyin ya da iptal edin.':
+    'Tag, Woche und Monat auf einen Blick. Termine bestätigen, bearbeiten oder stornieren.',
+  'Müşterileriniz 7/24 randevu alsın': 'Kunden buchen rund um die Uhr',
+  'Size özel randevu sayfanızı paylaşın. Müşterileriniz boş saati seçip randevusunu kendisi oluştursun.':
+    'Teilen Sie Ihre eigene Buchungsseite. Kunden wählen einen freien Termin und buchen selbst.',
+  'Ekibinizi ve hizmetlerinizi yönetin': 'Team und Leistungen verwalten',
+  'Çalışanlarınızı ve hizmetlerinizi süre ve fiyatlarıyla ekleyin. Her çalışan kendi randevularını görsün.':
+    'Mitarbeitende und Leistungen mit Dauer und Preis anlegen. Alle sehen ihre eigenen Termine.',
+  'İşletmenizin büyümesini izleyin': 'Ihr Wachstum im Blick',
+  'Randevu sayıları, müşteri geçmişi ve yorumlarla işinizin nasıl gittiğini takip edin.':
+    'Verfolgen Sie mit Buchungszahlen, Kundenhistorie und Bewertungen, wie Ihr Geschäft läuft.',
+  'Saç kesimi': 'Haarschnitt',
+  'Sakal tıraşı': 'Bartrasur',
+  'Cilt bakımı': 'Gesichtspflege',
+  'Saat seçin': 'Uhrzeit wählen',
+  'Randevuyu onayla': 'Termin bestätigen',
+  '{0} dk': '{0} Min.',
+  'Bu ay': 'Diesen Monat',
+  'Puan': 'Bewertung',
+  'Online randevu': 'Online-Buchung',
+  'Harika hizmet, çok memnun kaldım!': 'Toller Service, sehr zufrieden!',
+
+  // Unique business names and phone numbers
+  'Bu işletme adı zaten kullanılıyor. Lütfen farklı bir ad seçin.': 'Dieser Firmenname ist bereits vergeben. Bitte wählen Sie einen anderen.',
+  'Bu telefon numarası başka bir hesapta kullanılıyor.': 'Diese Telefonnummer wird bereits von einem anderen Konto verwendet.',
 };
 
 export default dictionary;

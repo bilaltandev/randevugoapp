@@ -679,6 +679,36 @@ const dictionary: Record<string, string> = {
   'Ücret: {0}': 'Цена: {0}',
   'Fotoğraf': 'Фото',
   'Profil fotoğrafını değiştir': 'Сменить фото профиля',
+
+  // Intro slides after sign-up
+  'Atla': 'Пропустить',
+  'Başlayalım': 'Начнём',
+  'Tüm randevularınız tek ekranda': 'Все записи на одном экране',
+  'Gününüzü, haftanızı ve ayınızı bir bakışta görün. Randevuları onaylayın, düzenleyin ya da iptal edin.':
+    'День, неделя и месяц — с одного взгляда. Подтверждайте, меняйте или отменяйте записи.',
+  'Müşterileriniz 7/24 randevu alsın': 'Клиенты записываются 24/7',
+  'Size özel randevu sayfanızı paylaşın. Müşterileriniz boş saati seçip randevusunu kendisi oluştursun.':
+    'Поделитесь своей страницей записи. Клиенты сами выбирают свободное время и записываются.',
+  'Ekibinizi ve hizmetlerinizi yönetin': 'Управляйте командой и услугами',
+  'Çalışanlarınızı ve hizmetlerinizi süre ve fiyatlarıyla ekleyin. Her çalışan kendi randevularını görsün.':
+    'Добавьте сотрудников и услуги с длительностью и ценой. Каждый сотрудник видит свои записи.',
+  'İşletmenizin büyümesini izleyin': 'Следите за ростом бизнеса',
+  'Randevu sayıları, müşteri geçmişi ve yorumlarla işinizin nasıl gittiğini takip edin.':
+    'Число записей, история клиентов и отзывы покажут, как идут дела.',
+  'Saç kesimi': 'Стрижка',
+  'Sakal tıraşı': 'Стрижка бороды',
+  'Cilt bakımı': 'Уход за лицом',
+  'Saat seçin': 'Выберите время',
+  'Randevuyu onayla': 'Подтвердить запись',
+  '{0} dk': '{0} мин',
+  'Bu ay': 'В этом месяце',
+  'Puan': 'Рейтинг',
+  'Online randevu': 'Онлайн-запись',
+  'Harika hizmet, çok memnun kaldım!': 'Отличный сервис, очень довольна!',
+
+  // Unique business names and phone numbers
+  'Bu işletme adı zaten kullanılıyor. Lütfen farklı bir ad seçin.': 'Это название уже занято. Выберите другое.',
+  'Bu telefon numarası başka bir hesapta kullanılıyor.': 'Этот номер телефона уже используется другим аккаунтом.',
 };
 
 export default dictionary;

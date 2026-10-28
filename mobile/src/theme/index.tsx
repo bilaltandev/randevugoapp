@@ -124,6 +124,9 @@ const THEMES = {
   dark: { colors: dark, typography: makeTypography(dark) },
 };
 
+/** The dark palette regardless of the user's setting, for screens that are always dark (the intro). */
+export const darkColors: Colors = dark;
+
 const PREF_KEY = 'randevugo.theme';
 const ThemeContext = createContext<ThemeValue | null>(null);
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
 import { authenticateMobileAccessToken, getBearerToken } from "@/lib/mobileAuth";
+import { PHONE_TAKEN, isPhoneTaken, phoneChanged } from "@/lib/uniqueness";
 
 // Mobile app only (Bearer): the signed-in owner's own profile ("Profil" screen).
 
@@ -59,6 +60,9 @@ export async function PATCH(req: Request) {
       if (taken && taken.id !== current.id) {
         return NextResponse.json({ error: "Bu e-posta adresi başka bir hesapta kullanılıyor.", code: "EMAIL_TAKEN" }, { status: 409 });
       }
+    }
+    if (phoneChanged(current.phone, phone) && (await isPhoneTaken(phone, current.id))) {
+      return NextResponse.json({ error: PHONE_TAKEN, code: "PHONE_TAKEN" }, { status: 409 });
     }
 
     const user = await prisma.user.update({

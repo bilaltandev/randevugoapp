@@ -5,6 +5,7 @@ import { THEME_REGISTRY, getSectorRecommendations } from "@/lib/themes/registry"
 import { LAYOUTS } from "@/lib/themes/layouts";
 import { DEFAULT_HERO_ACTION_ITEMS, HERO_ITEM_METADATA } from "@/lib/hero/types";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
+import { BUSINESS_NAME_TAKEN, businessNameChanged, isBusinessNameTaken } from "@/lib/uniqueness";
 
 const DEFAULT_SECTION_ORDER = ["Hero", "Services", "Staff", "Gallery", "Reviews", "Booking", "Location"];
 
@@ -161,6 +162,14 @@ export async function POST(req: Request) {
       businessName,
       businessDescription,
     } = body;
+
+    if (
+      businessName &&
+      businessNameChanged(user.business.name, String(businessName)) &&
+      (await isBusinessNameTaken(String(businessName), user.business.id))
+    ) {
+      return NextResponse.json({ error: BUSINESS_NAME_TAKEN, code: "BUSINESS_NAME_TAKEN" }, { status: 409 });
+    }
 
     // Update Business model fields if provided
     const businessDataToUpdate: any = {};

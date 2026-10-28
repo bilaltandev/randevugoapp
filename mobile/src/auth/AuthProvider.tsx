@@ -34,6 +34,9 @@ type AuthContextValue = {
   /** True right after a new business signs up: the app shows the plan cards before anything else. */
   welcome: boolean;
   finishWelcome: () => void;
+  /** True right after any sign-up (owner or team member): the intro slides come first, once. */
+  intro: boolean;
+  finishIntro: () => void;
   signOut: () => Promise<void>;
   retryRestore: () => void;
 };
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [restoreAttempt, setRestoreAttempt] = useState(0);
   const [welcome, setWelcome] = useState(false);
+  const [intro, setIntro] = useState(false);
   const signingOut = useRef(false);
 
   const client = useMemo(
@@ -115,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!client) throw new Error(t('API adresi yapılandırılmamış.'));
       const signedIn = await client.register(input);
       setNotice(null);
+      setIntro(true);
       setWelcome(true);
       setProfile(signedIn);
       setStatus('signedIn');
@@ -127,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!client) throw new Error(t('API adresi yapılandırılmamış.'));
       const signedIn = await client.joinTeam(input);
       setNotice(null);
+      setIntro(true);
       setProfile(signedIn);
       setStatus('signedIn');
     },
@@ -148,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await client?.logout();
     } finally {
       signingOut.current = false;
+      setIntro(false);
       setWelcome(false);
       setProfile(null);
       setStatus('signedOut');
@@ -167,10 +174,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       reloadProfile,
       welcome,
       finishWelcome: () => setWelcome(false),
+      intro,
+      finishIntro: () => setIntro(false),
       signOut,
       retryRestore: () => setRestoreAttempt((n) => n + 1),
     }),
-    [status, profile, notice, client, signIn, register, joinTeam, reloadProfile, welcome, signOut]
+    [status, profile, notice, client, signIn, register, joinTeam, reloadProfile, welcome, intro, signOut]
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

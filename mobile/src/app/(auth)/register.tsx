@@ -96,8 +96,9 @@ export default function RegisterScreen() {
       });
     } catch (e) {
       // The sign-up endpoint answers in Turkish (e.g. "Bu e-posta adresi ile zaten bir hesap mevcut.").
-      setError(e instanceof ApiError && e.status === 400 ? e.message : loginErrorMessage(e));
-      if (e instanceof ApiError && /e-posta/i.test(e.message)) setStep(1);
+      setError(e instanceof ApiError && e.status === 400 ? t(e.message) : loginErrorMessage(e));
+      // E-mail and phone are on the first step; a taken business name stays here on the second.
+      if (e instanceof ApiError && /e-posta|telefon/i.test(e.message)) setStep(1);
       setSubmitting(false);
     }
   };

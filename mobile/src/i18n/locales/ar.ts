@@ -679,6 +679,36 @@ const dictionary: Record<string, string> = {
   'Ücret: {0}': 'السعر: {0}',
   'Fotoğraf': 'صورة',
   'Profil fotoğrafını değiştir': 'تغيير صورة الملف الشخصي',
+
+  // Intro slides after sign-up
+  'Atla': 'تخطي',
+  'Başlayalım': 'لنبدأ',
+  'Tüm randevularınız tek ekranda': 'كل مواعيدك في شاشة واحدة',
+  'Gününüzü, haftanızı ve ayınızı bir bakışta görün. Randevuları onaylayın, düzenleyin ya da iptal edin.':
+    'شاهد يومك وأسبوعك وشهرك بنظرة واحدة. أكّد المواعيد أو عدّلها أو ألغها.',
+  'Müşterileriniz 7/24 randevu alsın': 'دع عملاءك يحجزون على مدار الساعة',
+  'Size özel randevu sayfanızı paylaşın. Müşterileriniz boş saati seçip randevusunu kendisi oluştursun.':
+    'شارك صفحة الحجز الخاصة بك. يختار عملاؤك الوقت المتاح ويحجزون بأنفسهم.',
+  'Ekibinizi ve hizmetlerinizi yönetin': 'أدِر فريقك وخدماتك',
+  'Çalışanlarınızı ve hizmetlerinizi süre ve fiyatlarıyla ekleyin. Her çalışan kendi randevularını görsün.':
+    'أضف موظفيك وخدماتك مع مددها وأسعارها. يرى كل موظف مواعيده الخاصة.',
+  'İşletmenizin büyümesini izleyin': 'تابع نمو عملك',
+  'Randevu sayıları, müşteri geçmişi ve yorumlarla işinizin nasıl gittiğini takip edin.':
+    'تابع سير عملك من خلال أعداد الحجوزات وسجل العملاء والتقييمات.',
+  'Saç kesimi': 'قص الشعر',
+  'Sakal tıraşı': 'حلاقة اللحية',
+  'Cilt bakımı': 'العناية بالبشرة',
+  'Saat seçin': 'اختر الوقت',
+  'Randevuyu onayla': 'تأكيد الحجز',
+  '{0} dk': '{0} د',
+  'Bu ay': 'هذا الشهر',
+  'Puan': 'التقييم',
+  'Online randevu': 'الحجز عبر الإنترنت',
+  'Harika hizmet, çok memnun kaldım!': 'خدمة رائعة، أنا راضية جدًا!',
+
+  // Unique business names and phone numbers
+  'Bu işletme adı zaten kullanılıyor. Lütfen farklı bir ad seçin.': 'اسم النشاط التجاري هذا مستخدم بالفعل. يرجى اختيار اسم آخر.',
+  'Bu telefon numarası başka bir hesapta kullanılıyor.': 'رقم الهاتف هذا مستخدم في حساب آخر.',
 };
 
 export default dictionary;

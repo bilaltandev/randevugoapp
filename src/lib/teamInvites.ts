@@ -4,6 +4,7 @@ import prisma from "./prisma";
 import { hashPassword } from "./auth";
 import { revokeAllMobileSessions } from "./mobileAuth";
 import { planOf } from "./plans";
+import { PHONE_TAKEN, isPhoneTaken } from "./uniqueness";
 
 /**
  * TEAM plan invites, all single use:
@@ -183,6 +184,7 @@ const INVALID = () => new TeamInviteError(410, "INVITE_INVALID", "Bu davet geçe
 export async function acceptInvite(tokenOrCode: string, input: AcceptInput) {
   const invite = await findOpenInvite(tokenOrCode);
   if (!invite) throw INVALID();
+  if (await isPhoneTaken(input.phone)) throw new TeamInviteError(409, "PHONE_TAKEN", PHONE_TAKEN);
 
   const email = input.email.trim().toLowerCase();
   const name = input.name.trim();

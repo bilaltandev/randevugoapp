@@ -676,6 +676,36 @@ const dictionary: Record<string, string> = {
   'Ücret: {0}': 'Price: {0}',
   'Fotoğraf': 'Photo',
   'Profil fotoğrafını değiştir': 'Change profile photo',
+
+  // Intro slides after sign-up
+  'Atla': 'Skip',
+  'Başlayalım': 'Let\'s get started',
+  'Tüm randevularınız tek ekranda': 'All your appointments on one screen',
+  'Gününüzü, haftanızı ve ayınızı bir bakışta görün. Randevuları onaylayın, düzenleyin ya da iptal edin.':
+    'See your day, week and month at a glance. Confirm, edit or cancel appointments.',
+  'Müşterileriniz 7/24 randevu alsın': 'Let customers book 24/7',
+  'Size özel randevu sayfanızı paylaşın. Müşterileriniz boş saati seçip randevusunu kendisi oluştursun.':
+    'Share your own booking page. Customers pick a free slot and book it themselves.',
+  'Ekibinizi ve hizmetlerinizi yönetin': 'Manage your team and services',
+  'Çalışanlarınızı ve hizmetlerinizi süre ve fiyatlarıyla ekleyin. Her çalışan kendi randevularını görsün.':
+    'Add your staff and services with their durations and prices. Each staff member sees their own bookings.',
+  'İşletmenizin büyümesini izleyin': 'Watch your business grow',
+  'Randevu sayıları, müşteri geçmişi ve yorumlarla işinizin nasıl gittiğini takip edin.':
+    'Track how business is going with booking numbers, customer history and reviews.',
+  'Saç kesimi': 'Haircut',
+  'Sakal tıraşı': 'Beard trim',
+  'Cilt bakımı': 'Facial',
+  'Saat seçin': 'Pick a time',
+  'Randevuyu onayla': 'Confirm booking',
+  '{0} dk': '{0} min',
+  'Bu ay': 'This month',
+  'Puan': 'Rating',
+  'Online randevu': 'Online booking',
+  'Harika hizmet, çok memnun kaldım!': 'Great service, really happy with it!',
+
+  // Unique business names and phone numbers
+  'Bu işletme adı zaten kullanılıyor. Lütfen farklı bir ad seçin.': 'This business name is already taken. Please choose another one.',
+  'Bu telefon numarası başka bir hesapta kullanılıyor.': 'This phone number is already used by another account.',
 };
 
 export default dictionary;

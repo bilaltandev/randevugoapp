@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { storedTimeToMinutes } from "@/lib/appointmentRules";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
+import { BUSINESS_NAME_TAKEN, businessNameChanged, isBusinessNameTaken } from "@/lib/uniqueness";
 
 export async function GET() {
   try {
@@ -50,6 +51,10 @@ export async function PUT(req: Request) {
       enableStaffSelection,
       workingHours,
     } = body;
+
+    if (name && businessNameChanged(user.business.name, String(name)) && (await isBusinessNameTaken(String(name), user.business.id))) {
+      return NextResponse.json({ error: BUSINESS_NAME_TAKEN, code: "BUSINESS_NAME_TAKEN" }, { status: 409 });
+    }
 
     const updatedBusiness = await prisma.business.update({
       where: { id: user.business.id },

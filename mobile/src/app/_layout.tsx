@@ -45,7 +45,7 @@ function SplashController() {
 }
 
 function RootNavigator() {
-  const { status, welcome } = useAuth();
+  const { status, welcome, intro } = useAuth();
   const { locked } = useAccount();
   const { colors } = useTheme();
 
@@ -69,8 +69,9 @@ function RootNavigator() {
   if (status === 'unreachable') return <UnreachableScreen />;
 
   const signedIn = status === 'signedIn';
-  // Trial/plan over → only the lock screen (and support). Just signed up → the plan cards first.
-  const inApp = signedIn && !locked && !welcome;
+  // Trial/plan over → only the lock screen (and support). Just signed up → the intro, then the plan cards.
+  const onboarding = intro || welcome;
+  const inApp = signedIn && !locked && !onboarding;
   return (
     <DrawerProvider enabled={signedIn}>
       <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: colors.canvas } }}>
@@ -79,7 +80,10 @@ function RootNavigator() {
         <Stack.Protected guard={signedIn && locked}>
           <Stack.Screen name="locked" />
         </Stack.Protected>
-        <Stack.Protected guard={signedIn && !locked && welcome}>
+        <Stack.Protected guard={signedIn && !locked && intro}>
+          <Stack.Screen name="intro" />
+        </Stack.Protected>
+        <Stack.Protected guard={signedIn && !locked && !intro && welcome}>
           <Stack.Screen name="welcome" />
         </Stack.Protected>
         <Stack.Protected guard={inApp}>
@@ -106,7 +110,7 @@ function RootNavigator() {
           <Stack.Screen name="profile/language" options={{ ...header, title: t('Dil') }} />
         </Stack.Protected>
         {/* Support stays reachable from the lock screen. */}
-        <Stack.Protected guard={signedIn && !welcome}>
+        <Stack.Protected guard={signedIn && !onboarding}>
           <Stack.Screen name="support" options={{ ...header, title: t('Destek') }} />
           <Stack.Screen name="support/new" options={{ ...modal, title: t('Yeni destek talebi') }} />
           <Stack.Screen name="support/[id]" options={{ ...header, title: t('Destek talebi') }} />
