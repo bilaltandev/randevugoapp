@@ -1,0 +1,41 @@
+# What EAS Build uploads (used instead of .gitignore when this file exists). The mobile app lives in mobile/,
+# so everything else in the repo stays out: the web app, and the .agents/.claude skill folders whose symlinks
+# Windows can't copy. Inside mobile/ it mirrors mobile/.gitignore, except google-services.json: the Firebase
+# client config stays out of git but must reach the Android build (push notifications).
+# Build from mobile/ with:  $env:EAS_NO_VCS = "1"; npx eas-cli@latest build ...
+
+/*
+!/mobile
+
+# dependencies and generated files
+/mobile/node_modules
+/mobile/.expo
+/mobile/dist
+/mobile/web-build
+/mobile/expo-env.d.ts
+/mobile/.kotlin
+/mobile/ios
+/mobile/android
+/mobile/**/*.tsbuildinfo
+/mobile/.metro-health-check*
+/mobile/.claude
+
+# signing material and secrets
+/mobile/**/*.jks
+/mobile/**/*.p8
+/mobile/**/*.p12
+/mobile/**/*.key
+/mobile/**/*.pem
+/mobile/**/*.mobileprovision
+/mobile/credentials.json
+/mobile/GoogleService-Info.plist
+
+# env files (the build gets EXPO_PUBLIC_API_URL from eas.json)
+/mobile/.env*
+!/mobile/.env.example
+
+# debug
+/mobile/npm-debug.*
+/mobile/yarn-debug.*
+/mobile/yarn-error.*
+/mobile/**/.DS_Store

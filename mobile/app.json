@@ -10,7 +10,8 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.vastlab.randevugo",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +21,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.vastlab.randevugo"
+      "package": "com.vastlab.randevugo",
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",
@@ -55,7 +57,16 @@
     },
     "backgroundColor": "#0B0E13",
     "extra": {
-      "supportsRTL": true
-    }
+      "supportsRTL": true,
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "a924d2d1-c57e-4c66-87fe-b88a6859f6bf"
+      }
+    },
+    "owner": "bilaltan01"
   }
 }
