@@ -5,12 +5,12 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import appIcon from '../../../assets/images/logo-mark.png';
 import wordmarkDark from '../../../assets/images/wordmark-dark.png';
 import wordmarkLight from '../../../assets/images/wordmark-light.png';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { loginErrorMessage } from '@/auth/messages';
+import { AppMark } from '@/components/AppMark';
 import { Icon, icons } from '@/components/Icon';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
 import { t } from '@/i18n';
@@ -52,7 +52,7 @@ export default function LoginScreen() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Animated.View entering={FadeInDown.duration(420)} style={styles.brand}>
-            <Image source={appIcon} style={styles.mark} contentFit="contain" alt="" />
+            <AppMark size={96} style={styles.mark} />
             <Image
               source={scheme === 'dark' ? wordmarkDark : wordmarkLight}
               style={styles.wordmark}
@@ -148,7 +148,7 @@ const useStyles = makeStyles((colors, typography) => ({
   flex: { flex: 1 },
   container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.xxl },
   brand: { alignItems: 'center', gap: spacing.sm },
-  mark: { width: 104, height: 104, marginBottom: spacing.xs },
+  mark: { marginBottom: spacing.sm },
   wordmark: { width: 220, aspectRatio: 900 / 172 },
   form: { gap: spacing.lg },
   alert: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1 },

@@ -1,11 +1,9 @@
-import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import logoMark from '../../assets/images/logo-mark.png';
-
+import { AppMark } from '@/components/AppMark';
 import { makeStyles, spacing, useTheme } from '@/theme';
 
 /** Full-screen frame (no menu, no tabs) for the welcome and lock screens. */
@@ -33,7 +31,7 @@ export function GateFrame({
           onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} colors={[colors.brand]} /> : undefined
         }>
         <Animated.View entering={FadeInDown.duration(320)} style={styles.header}>
-          <Image source={logoMark} style={styles.logo} contentFit="contain" alt="" />
+          <AppMark size={64} style={styles.logo} />
           <Text style={[typography.title, styles.center]}>{title}</Text>
           {subtitle ? <Text style={[typography.body, styles.center]}>{subtitle}</Text> : null}
         </Animated.View>
@@ -47,7 +45,7 @@ const useStyles = makeStyles((colors) => ({
   safe: { flex: 1, backgroundColor: colors.canvas },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.xl },
   header: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing.lg },
-  logo: { width: 64, height: 64, marginBottom: spacing.xs },
+  logo: { marginBottom: spacing.xs },
   center: { textAlign: 'center' },
   body: { gap: spacing.lg },
 }));

@@ -29,8 +29,9 @@ export function AuthShell({ title, description, eyebrow, children, footer }: Aut
           className="inline-flex items-center gap-2 self-start rounded-control lg:hidden"
           aria-label="CalendlyGo ana sayfa"
         >
-          <span className="relative h-10 w-10 rounded-control">
-            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="40px" className="object-contain" unoptimized />
+          {/* Light background here: the icon on its dark tile (the cut-out mark washes out on white). */}
+          <span className="relative h-10 w-10 overflow-hidden rounded-[11px] bg-black shadow-raised">
+            <Image src="/brand/calendlygo-icon.png" alt="" fill sizes="40px" className="object-cover" unoptimized />
           </span>
           <span className="text-base font-semibold tracking-tight">CalendlyGo</span>
         </Link>

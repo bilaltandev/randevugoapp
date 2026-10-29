@@ -6,10 +6,10 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { Easing, FadeInLeft, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import appIcon from '../../assets/images/logo-mark.png';
 
 import { absoluteUrl, isRestaurantSector, publicPageUrl, SECTORS } from '@/api/panel';
 import { useAccount, useAuth } from '@/auth/AuthProvider';
+import { AppMark } from '@/components/AppMark';
 import { Icon, icons, type IconName } from '@/components/Icon';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
 import { localeTag, t } from '@/i18n';
@@ -190,7 +190,7 @@ function DrawerContent({ onNavigate }: { onNavigate: () => void }) {
         {logo ? (
           <Image source={{ uri: logo }} style={styles.logo} contentFit="cover" alt="" />
         ) : (
-          <Image source={appIcon} style={[styles.logo, styles.logoMark]} contentFit="contain" alt="" />
+          <AppMark size={44} />
         )}
         <View style={styles.flex}>
           <Text style={typography.heading} numberOfLines={1}>
@@ -275,7 +275,6 @@ const useStyles = makeStyles((colors) => ({
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.sm, paddingBottom: spacing.md },
   logo: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: colors.surfaceMuted },
-  logoMark: { backgroundColor: 'transparent' },
   flex: { flex: 1 },
   links: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingBottom: spacing.md },
   chip: {
