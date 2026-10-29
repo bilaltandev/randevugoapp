@@ -466,6 +466,7 @@ model MobileSession {
   absoluteExpiresAt DateTime  // hard cap (90 days from sign-in)
   revokedAt         DateTime?
   revokedReason     String?   // "LOGOUT" | "REUSE" | "PASSWORD_CHANGED" | "DEACTIVATED"
+  pushToken         String?   // Expo push token of this device; new-booking alerts go to the owner's live sessions
 
   @@index([userId])
   @@index([expiresAt])

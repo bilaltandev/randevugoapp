@@ -706,6 +706,13 @@ const dictionary: Record<string, string> = {
   // Unique business names and phone numbers
   'Bu işletme adı zaten kullanılıyor. Lütfen farklı bir ad seçin.': 'This business name is already taken. Please choose another one.',
   'Bu telefon numarası başka bir hesapta kullanılıyor.': 'This phone number is already used by another account.',
+
+  // Welcome toast
+  'Günaydın': 'Good morning',
+  'İyi günler': 'Good afternoon',
+  'İyi akşamlar': 'Good evening',
+  '{0} paneline hoş geldiniz.': 'Welcome to the {0} panel.',
+  'Yeni randevular': 'New bookings',
 };
 
 export default dictionary;

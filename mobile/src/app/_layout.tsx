@@ -7,6 +7,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAccount, useAuth } from '@/auth/AuthProvider';
 import { DrawerProvider } from '@/components/Drawer';
 import { UnreachableScreen } from '@/components/UnreachableScreen';
+import { WelcomeToast } from '@/components/WelcomeToast';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { AppThemeProvider, useTheme } from '@/theme';
 import { t } from '@/i18n';
 
@@ -31,6 +33,7 @@ function ThemedRoot() {
       <AuthProvider>
         <SplashController />
         <RootNavigator />
+        <Welcome />
       </AuthProvider>
     </ThemeProvider>
   );
@@ -42,6 +45,18 @@ function SplashController() {
     if (status !== 'loading') SplashScreen.hide();
   }, [status]);
   return null;
+}
+
+/**
+ * The welcome toast once the user is in the app itself (not on the intro, plan or lock screens), and the
+ * owner's new-booking alerts (team members don't get them yet).
+ */
+function Welcome() {
+  const { status, welcome, intro, profile, client } = useAuth();
+  const { locked, isMember } = useAccount();
+  const inApp = status === 'signedIn' && !locked && !intro && !welcome;
+  usePushNotifications({ client, enabled: status === 'signedIn' && !isMember, canNavigate: inApp });
+  return <WelcomeToast show={inApp} name={profile?.user.name} business={profile?.business.name} />;
 }
 
 function RootNavigator() {

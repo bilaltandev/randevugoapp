@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import prisma from "@/lib/prisma";
+import { notifyNewBooking } from "@/lib/pushNotifications";
 import { getStaffActor } from "@/lib/staffActor";
 import { subscriptionAccess, subscriptionLock } from "@/lib/subscriptionAccess";
 import { getWhatsAppBookingUrl } from "@/lib/utils";
@@ -368,6 +369,20 @@ export async function POST(req: Request) {
         link: "/dashboard/appointments",
       },
     });
+
+    // Push alert to the owner's phones, sent after the response so booking stays as fast as before.
+    if (!blocking) {
+      after(() =>
+        notifyNewBooking(businessId, {
+          appointmentId: appointment.id,
+          customerName,
+          serviceName: service.name,
+          date,
+          startTime,
+          tableName: selectedTable?.name ?? null,
+        })
+      );
+    }
 
     // WhatsApp URL for quick client or owner messaging
     const whatsappUrl = getWhatsAppBookingUrl({
