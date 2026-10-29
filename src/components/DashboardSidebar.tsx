@@ -151,7 +151,7 @@ export function DashboardSidebar({
         >
           {/* The icon on its own dark tile, like an app icon: the cut-out mark washes out on light backgrounds. */}
           <div className="relative w-9 h-9 shrink-0 overflow-hidden rounded-[10px] bg-black shadow-raised">
-            <Image src="/brand/calendlygo-icon.png" alt="" fill sizes="36px" className="object-cover" unoptimized />
+            <Image src="/brand/calendlygo-icon-192.png" alt="" fill sizes="36px" className="object-cover" unoptimized />
           </div>
           {showLabels && (
             <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-nav-text-strong">
