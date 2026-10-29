@@ -31,7 +31,7 @@ export function AuthShell({ title, description, eyebrow, children, footer }: Aut
         >
           {/* Light background here: the icon on its dark tile (the cut-out mark washes out on white). */}
           <span className="relative h-10 w-10 overflow-hidden rounded-[11px] bg-black shadow-raised">
-            <Image src="/brand/calendlygo-icon.png" alt="" fill sizes="40px" className="object-cover" unoptimized />
+            <Image src="/brand/calendlygo-icon-192.png" alt="" fill sizes="40px" className="object-cover" unoptimized />
           </span>
           <span className="text-base font-semibold tracking-tight">CalendlyGo</span>
         </Link>
