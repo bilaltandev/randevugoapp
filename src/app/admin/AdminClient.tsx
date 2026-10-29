@@ -43,6 +43,8 @@ import {
   UserCog,
   Headset,
   Ticket,
+  Inbox,
+  Loader2,
 } from "lucide-react";
 import { formatCurrency, formatPhoneNumber, SECTORS } from "@/lib/utils";
 import { formatTL as formatCurrencyTry } from "@/lib/couponOptions";
@@ -51,6 +53,7 @@ import { AdminThemeManagement } from "@/components/admin/AdminThemeManagement";
 import { AdminProfileSettings, type AdminProfile } from "@/components/admin/AdminProfileSettings";
 import { AdminSupportAgents } from "@/components/admin/AdminSupportAgents";
 import { AdminCoupons } from "@/components/admin/AdminCoupons";
+import { AdminPaymentRequests, hasPendingPayment } from "@/components/admin/AdminPaymentRequests";
 import { Modal } from "@/components/Modal";
 import { BILLING_PERIODS, PERIOD_NAMES, PERIOD_SUFFIX, PLAN_NAMES, PLAN_PRICES, PLANS, formatUSD, paymentReference, periodOf, planOf, type BillingPeriod, type Plan } from "@/lib/plans";
 
@@ -93,7 +96,7 @@ export default function AdminClient({
 }: AdminClientProps) {
   // Navigation tab
   const [activeTab, setActiveTab] = useState<
-    "overview" | "businesses" | "features" | "subscriptions" | "audit" | "themes" | "coupons" | "agents" | "profile"
+    "overview" | "payments" | "businesses" | "features" | "subscriptions" | "audit" | "themes" | "coupons" | "agents" | "profile"
   >("overview");
 
   // Admin profile (kept in state so header reflects edits from the profile tab)
@@ -118,6 +121,7 @@ export default function AdminClient({
   const [metrics, setMetrics] = useState(initialMetrics);
   const [featureFlags, setFeatureFlags] = useState(initialFeatureFlags);
   const [auditLogs, setAuditLogs] = useState(initialAuditLogs);
+  const pendingPayments = businesses.filter(hasPendingPayment).length;
 
   // Business filtering & search
   const [businessSearch, setBusinessSearch] = useState("");
@@ -149,9 +153,9 @@ export default function AdminClient({
     setTimeout(() => setNotificationMsg(null), 4000);
   };
 
-  // Helper to trigger API and refresh state
+  // Helper to trigger API and refresh state. loadingAction is "<action>:<businessId>" so each button can show its own spinner.
   const handleApiAction = async (payload: any) => {
-    setLoadingAction(payload.action);
+    setLoadingAction(`${payload.action}:${payload.businessId ?? ""}`);
     try {
       const res = await fetch("/api/admin", {
         method: "PATCH",
@@ -300,10 +304,11 @@ export default function AdminClient({
         </div>
       </div>
 
-      {/* Toast Notification */}
+      {/* Toast Notification: fixed above everything, including the business detail window */}
       {notificationMsg && (
         <div
-          className={`rounded-2xl p-4 text-xs font-semibold flex items-center justify-between shadow-lg transition-all animate-in fade-in ${
+          role="status"
+          className={`fixed right-4 top-4 z-[200] w-[min(92vw,420px)] gap-3 rounded-2xl p-4 text-xs font-semibold flex items-center justify-between shadow-2xl backdrop-blur transition-all animate-in fade-in ${
             notificationMsg.type === "success"
               ? "bg-emerald-950/80 border border-emerald-500/40 text-emerald-200"
               : "bg-rose-950/80 border border-rose-500/40 text-rose-200"
@@ -335,6 +340,21 @@ export default function AdminClient({
         >
           <Activity className="w-4 h-4" />
           <span>Gelişmiş Dashboard</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("payments")}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+            activeTab === "payments"
+              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
+              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+          }`}
+        >
+          <Inbox className="w-4 h-4" />
+          <span>Ödeme Talepleri</span>
+          {pendingPayments > 0 && (
+            <span className="min-w-5 rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white">{pendingPayments}</span>
+          )}
         </button>
 
         <button
@@ -437,6 +457,34 @@ export default function AdminClient({
       {/* ═══════════════════════════════════════════════════════════════
           TAB 1: GELİŞMİŞ DASHBOARD (OVERVIEW)
       ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === "payments" && (
+        <AdminPaymentRequests
+          businesses={businesses}
+          busyKey={loadingAction}
+          onAction={handleApiAction}
+          onOpenBusiness={(b) => {
+            setSelectedBusiness(b);
+            setDetailTab("subscription");
+          }}
+        />
+      )}
+
+      {activeTab === "overview" && pendingPayments > 0 && (
+        <button
+          type="button"
+          onClick={() => setActiveTab("payments")}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-left text-xs font-bold text-amber-200 hover:bg-amber-500/15"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Inbox className="h-4 w-4" />
+            {pendingPayments} ödeme talebi onay bekliyor
+          </span>
+          <span className="inline-flex items-center gap-1 text-amber-300">
+            Talepleri aç <ChevronRight className="h-4 w-4" />
+          </span>
+        </button>
+      )}
+
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Top 10 Core Metrics Cards */}
@@ -1370,15 +1418,19 @@ export default function AdminClient({
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <button
+                        disabled={loadingAction !== null}
                         onClick={() => handleApiAction({ action: "ACTIVATE_SUBSCRIPTION", businessId: selectedBusiness.id })}
-                        className="py-2 rounded-control bg-brand hover:bg-brand-hover text-on-brand font-semibold transition-colors"
+                        className="inline-flex items-center justify-center gap-1.5 py-2 rounded-control bg-brand hover:bg-brand-hover text-on-brand font-semibold transition-colors disabled:opacity-60"
                       >
-                        Ödemeyi onayla
+                        {loadingAction === `ACTIVATE_SUBSCRIPTION:${selectedBusiness.id}` && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        {loadingAction === `ACTIVATE_SUBSCRIPTION:${selectedBusiness.id}` ? "Onaylanıyor…" : "Ödemeyi onayla"}
                       </button>
                       <button
+                        disabled={loadingAction !== null}
                         onClick={() => handleApiAction({ action: "REJECT_PAYMENT", businessId: selectedBusiness.id })}
-                        className="py-2 rounded-control border border-danger-line bg-danger-soft text-danger font-semibold hover:brightness-110 transition-colors"
+                        className="inline-flex items-center justify-center gap-1.5 py-2 rounded-control border border-danger-line bg-danger-soft text-danger font-semibold hover:brightness-110 transition-colors disabled:opacity-60"
                       >
+                        {loadingAction === `REJECT_PAYMENT:${selectedBusiness.id}` && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                         Ödeme gelmedi, reddet
                       </button>
                     </div>

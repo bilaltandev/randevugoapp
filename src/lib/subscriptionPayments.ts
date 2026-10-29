@@ -118,28 +118,30 @@ export async function confirmPayment(businessId: string, months?: number) {
   const end = new Date(start);
   end.setMonth(end.getMonth() + paidMonths);
 
-  return prisma.$transaction(async (tx) => {
-    const code = subscription?.pendingCouponCode;
-    if (code) {
-      const running = await tx.couponRedemption.findFirst({
+  // Coupon lookups run before the transaction: production uses a single pooled connection
+  // (connection_limit=1), so a query on `prisma` from inside `$transaction` would wait for the
+  // connection the transaction holds until it timed out, and the confirmation failed.
+  const code = subscription?.pendingCouponCode;
+  const running = code
+    ? await prisma.couponRedemption.findFirst({
         where: { businessId, monthsRemaining: { gt: 0 }, coupon: { code } },
         orderBy: { createdAt: "desc" },
+      })
+    : null;
+  const newCoupon = code && !running ? await checkCouponForBusiness(code, businessId) : null;
+
+  return prisma.$transaction(async (tx) => {
+    if (running) {
+      await tx.couponRedemption.update({ where: { id: running.id }, data: { monthsRemaining: { decrement: 1 } } });
+    } else if (newCoupon?.ok) {
+      await tx.couponRedemption.create({
+        data: {
+          couponId: newCoupon.coupon.id,
+          businessId,
+          percentOff: newCoupon.coupon.percentOff,
+          monthsRemaining: newCoupon.coupon.durationMonths - 1,
+        },
       });
-      if (running) {
-        await tx.couponRedemption.update({ where: { id: running.id }, data: { monthsRemaining: { decrement: 1 } } });
-      } else {
-        const check = await checkCouponForBusiness(code, businessId);
-        if (check.ok) {
-          await tx.couponRedemption.create({
-            data: {
-              couponId: check.coupon.id,
-              businessId,
-              percentOff: check.coupon.percentOff,
-              monthsRemaining: check.coupon.durationMonths - 1,
-            },
-          });
-        }
-      }
     }
 
     const updated = await tx.subscription.upsert({
