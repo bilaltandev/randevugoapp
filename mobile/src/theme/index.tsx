@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, type Theme } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as SystemUI from 'expo-system-ui';
 import { createContext, use, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, useColorScheme, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
+import { Appearance, Platform, StyleSheet, useColorScheme, type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
 
 /**
  * CalendlyGo palettes. Values mirror the web app's tokens in `src/app/globals.css`
@@ -36,6 +36,21 @@ const light = {
   /** Secondary series in charts. */
   chart2: '#2563EB',
   chart3: '#B45309',
+
+  /** Section accents next to the brand green (same family as the intro slides). */
+  blue: '#2563EB',
+  blueSoft: '#EEF3FE',
+  violet: '#7C3AED',
+  violetSoft: '#F3EEFE',
+  amber: '#B45309',
+  amberSoft: '#FFF7E8',
+
+  /** The dot grid and the accent glow behind the screens. */
+  dot: 'rgba(13, 17, 23, 0.075)',
+  glowOpacity: 0.14,
+  /** Card elevation: soft in light mode, deeper in dark mode where shadows read less. */
+  shadow: '#1B2433',
+  shadowOpacity: 0.07,
 };
 
 export type Colors = typeof light;
@@ -67,7 +82,38 @@ const dark: Colors = {
   scrim: 'rgba(0, 0, 0, 0.6)',
   chart2: '#60A5FA',
   chart3: '#FBBF24',
+
+  blue: '#60A5FA',
+  blueSoft: 'rgba(96, 165, 250, 0.13)',
+  violet: '#A78BFA',
+  violetSoft: 'rgba(167, 139, 250, 0.13)',
+  amber: '#FBBF24',
+  amberSoft: 'rgba(251, 191, 36, 0.12)',
+
+  dot: 'rgba(255, 255, 255, 0.06)',
+  glowOpacity: 0.3,
+  shadow: '#000000',
+  shadowOpacity: 0.4,
 };
+
+/** A screen's or a card's color: the brand green or one of the section accents. */
+export type Accent = 'brand' | 'blue' | 'violet' | 'amber';
+
+export function accentColors(colors: Colors, accent: Accent): { fg: string; soft: string } {
+  if (accent === 'brand') return { fg: colors.brand, soft: colors.brandSoft };
+  return { fg: colors[accent], soft: colors[`${accent}Soft`] };
+}
+
+/** Raised card shadow (iOS) / elevation (Android). */
+export function elevation(colors: Colors, level: 1 | 2 = 1): ViewStyle {
+  return {
+    shadowColor: colors.shadow,
+    shadowOpacity: colors.shadowOpacity * (level === 2 ? 1.5 : 1),
+    shadowRadius: level === 2 ? 24 : 14,
+    shadowOffset: { width: 0, height: level === 2 ? 12 : 6 },
+    elevation: level === 2 ? 6 : 2,
+  };
+}
 
 export const spacing = {
   xs: 4,
@@ -80,8 +126,9 @@ export const spacing = {
 
 export const radius = {
   sm: 8,
-  md: 12,
-  lg: 16,
+  md: 14,
+  lg: 20,
+  xl: 26,
   pill: 999,
 } as const;
 
@@ -98,8 +145,8 @@ function makeTypography(c: Colors) {
     ...extra,
   });
   return {
-    display: text(30, 36, '700', { letterSpacing: -0.6 }),
-    title: text(22, 28, '700', { letterSpacing: -0.3 }),
+    display: text(32, 38, '800', { letterSpacing: -1 }),
+    title: text(22, 28, '700', { letterSpacing: -0.4 }),
     heading: text(17, 22, '600'),
     body: text(15, 21, '400', { color: c.ink2 }),
     label: text(13, 18, '600', { color: c.ink2 }),
@@ -130,10 +177,14 @@ export const darkColors: Colors = dark;
 const PREF_KEY = 'randevugo.theme';
 const ThemeContext = createContext<ThemeValue | null>(null);
 
-/** Follows the phone's light/dark setting unless the user picked one in Profil (stored on the device). */
+/**
+ * Dark by default; the user can pick light or the phone's setting in Profil (stored on the device).
+ * The choice is also given to the native side, so system-drawn parts (the tab bar's glass, alerts, the
+ * keyboard) match the app instead of the phone's own light/dark mode.
+ */
 export function AppThemeProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
-  const [preference, setPref] = useState<ThemePreference>('system');
+  const [preference, setPref] = useState<ThemePreference>('dark');
 
   useEffect(() => {
     SecureStore.getItemAsync(PREF_KEY)
@@ -144,6 +195,10 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const scheme: 'light' | 'dark' = preference === 'system' ? (system === 'light' ? 'light' : 'dark') : preference;
+
+  useEffect(() => {
+    Appearance.setColorScheme(preference === 'system' ? 'auto' : preference);
+  }, [preference]);
 
   useEffect(() => {
     // Root view color shows during transitions and behind the keyboard.

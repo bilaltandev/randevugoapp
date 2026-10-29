@@ -49,8 +49,8 @@ const useStyles = makeStyles((colors) => ({
     alignSelf: 'flex-start',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
   },
   pressed: { opacity: 0.8 },
 }));

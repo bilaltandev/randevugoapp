@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { fetchEmployees, type Employee } from '@/api/business';
@@ -16,7 +16,7 @@ import { Chip, ChipRow } from '@/components/ui';
 import { useApiQuery } from '@/hooks/useApiQuery';
 import { useAppointments } from '@/hooks/useAppointments';
 import { addDays, dateKey, forDay, longDate, weekOf, type Appointment } from '@/lib/appointments';
-import { makeStyles, radius, spacing, useTheme } from '@/theme';
+import { elevation, makeStyles, radius, spacing, useTheme } from '@/theme';
 import { t } from '@/i18n';
 
 type Mode = 'day' | 'week' | 'month';
@@ -115,7 +115,7 @@ export default function CalendarScreen() {
             label={t('Saat kapat')}
             onPress={() => router.push({ pathname: '/appointment/new', params: { date: bookingDate(dateKey(cursor)), mode: 'block' } })}
           />
-          <BarButton icon="add" label={t('Yeni randevu')} onPress={() => createAt(dateKey(cursor))} />
+          <BarButton icon="add" label={t('Yeni randevu')} primary onPress={() => createAt(dateKey(cursor))} />
         </View>
       }>
       <View style={styles.segment}>
@@ -221,7 +221,7 @@ function MonthGrid({ cursor, appointments, onPick }: { cursor: Date; appointment
                 accessibilityLabel={t('{0} {1}: {2} randevu', d.getDate(), MONTHS[d.getMonth()], list.length)}
                 style={({ pressed }) => [styles.monthCell, pressed && { backgroundColor: colors.surfaceMuted }]}>
                 <View style={[styles.monthNum, isToday && styles.monthNumToday]}>
-                  <Text style={[typography.label, { color: isToday ? colors.onBrand : colors.ink }]}>{d.getDate()}</Text>
+                  <Text style={[typography.label, { color: isToday ? colors.onBrand : colors.ink, fontWeight: isToday ? '800' : '600' }]}>{d.getDate()}</Text>
                 </View>
                 {list.length > 0 ? (
                   <View style={[styles.countPill, { backgroundColor: pending ? tones.pending.bg : tones.confirmed.bg }]}>
@@ -252,9 +252,9 @@ function Legend() {
   return (
     <View style={styles.legend}>
       {items.map(([tone, label]) => (
-        <View key={tone} style={styles.legendItem}>
+        <View key={tone} style={[styles.legendItem, { backgroundColor: tones[tone].bg }]}>
           <View style={[styles.legendDot, { backgroundColor: tones[tone].bar }]} />
-          <Text style={typography.caption}>{label}</Text>
+          <Text style={[typography.caption, { color: colors.ink2, fontWeight: '600' }]}>{label}</Text>
         </View>
       ))}
     </View>
@@ -278,32 +278,63 @@ function NavButton({ icon, label, onPress }: { icon: keyof typeof icons; label: 
 
 const useStyles = makeStyles((colors) => ({
   barButtons: { flexDirection: 'row', gap: spacing.sm },
-  segment: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },
-  segmentItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingVertical: spacing.sm, borderRadius: radius.sm },
+  segment: {
+    flexDirection: 'row',
+    padding: 5,
+    gap: 4,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    ...elevation(colors),
+  },
+  segmentItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingVertical: 10, borderRadius: radius.pill },
   segmentActive: { backgroundColor: colors.brand },
-  nav: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  navTitle: { flex: 1, textAlign: 'center' },
+  nav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: 6,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    ...elevation(colors),
+  },
+  navTitle: { flex: 1, textAlign: 'center', fontWeight: '700' },
   navButton: {
     width: 38,
     height: 38,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
   },
-  todayButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.brandSoft },
+  todayButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: colors.brandSoft },
   body: { gap: spacing.lg },
   list: { gap: spacing.md },
-  month: { borderRadius: radius.lg, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, padding: spacing.xs },
+  month: {
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    ...elevation(colors),
+  },
   monthRow: { flexDirection: 'row' },
-  monthHead: { flex: 1, textAlign: 'center', paddingVertical: spacing.xs },
-  monthCell: { flex: 1, aspectRatio: 0.85, alignItems: 'center', paddingTop: 6, gap: 4, borderRadius: radius.sm },
-  monthNum: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  monthNumToday: { backgroundColor: colors.brand },
+  monthHead: { flex: 1, textAlign: 'center', paddingVertical: spacing.sm, fontWeight: '700' },
+  monthCell: { flex: 1, aspectRatio: 0.85, alignItems: 'center', paddingTop: 6, gap: 4, borderRadius: radius.md },
+  monthNum: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  monthNumToday: {
+    backgroundColor: colors.brand,
+    shadowColor: colors.brand,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
   countPill: { minWidth: 20, paddingHorizontal: 5, borderRadius: radius.pill, alignItems: 'center' },
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 10, height: 10, borderRadius: 3 },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: radius.pill },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
 }));

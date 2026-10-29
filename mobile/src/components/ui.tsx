@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Children, Fragment, isValidElement, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,9 +14,10 @@ import {
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Backdrop } from '@/components/Backdrop';
 import { Icon, icons, type IconName } from '@/components/Icon';
 
-import { makeStyles, radius, spacing, useTheme, type Colors } from '@/theme';
+import { elevation, makeStyles, radius, spacing, useTheme, type Colors } from '@/theme';
 
 // Building blocks for the stack screens (lists and forms under a native header).
 
@@ -26,6 +27,7 @@ export function Page({ children, onRefresh, refreshing = false }: { children: Re
   const styles = useStyles();
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <Backdrop />
       <ScrollView
         contentContainerStyle={styles.page}
         contentInsetAdjustmentBehavior="automatic"
@@ -112,8 +114,12 @@ export function Button({ label, onPress, busy, disabled, variant = 'primary', ic
 }
 
 const buttonTones = (colors: Colors) => ({
-  primary: { box: { backgroundColor: colors.brand }, text: colors.onBrand },
-  secondary: { box: { backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.line }, text: colors.ink },
+  // The primary button glows faintly in its own color.
+  primary: {
+    box: { backgroundColor: colors.brand, shadowColor: colors.brand, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+    text: colors.onBrand,
+  },
+  secondary: { box: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, ...elevation(colors) }, text: colors.ink },
   danger: { box: { backgroundColor: colors.dangerSoft, borderWidth: 1, borderColor: colors.danger }, text: colors.danger },
 });
 
@@ -176,13 +182,18 @@ type ListRowProps = {
   onPress?: () => void;
   muted?: boolean;
   right?: ReactNode;
-  /** Leading icon in a tinted circle. */
+  /** Leading icon in a tinted tile. */
   icon?: IconName;
+  /** Tile color for the icon (defaults to the brand green). */
+  iconColor?: string;
+  iconBackground?: string;
   /** Trailing chevron on tappable rows; off for choice lists that show a check instead. */
   chevron?: boolean;
+  /** Inside a ListGroup: no card of its own. */
+  flat?: boolean;
 };
 
-export function ListRow({ title, subtitle, meta, onPress, muted, right, icon, chevron = true }: ListRowProps) {
+export function ListRow({ title, subtitle, meta, onPress, muted, right, icon, iconColor, iconBackground, chevron = true, flat }: ListRowProps) {
   const { colors, typography } = useTheme();
   const styles = useStyles();
   return (
@@ -190,10 +201,10 @@ export function ListRow({ title, subtitle, meta, onPress, muted, right, icon, ch
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      style={({ pressed }) => [styles.row, pressed && onPress && styles.rowPressed, muted && styles.muted]}>
+      style={({ pressed }) => [flat ? styles.rowFlat : styles.row, pressed && onPress && styles.rowPressed, muted && styles.muted]}>
       {icon ? (
-        <View style={styles.rowIcon}>
-          <Icon name={icon} size={19} color={colors.brand} />
+        <View style={[styles.rowIcon, iconBackground ? { backgroundColor: iconBackground } : null]}>
+          <Icon name={icon} size={18} color={iconColor ?? colors.brand} />
         </View>
       ) : null}
       <View style={styles.flex}>
@@ -210,6 +221,22 @@ export function ListRow({ title, subtitle, meta, onPress, muted, right, icon, ch
       {right}
       {onPress && chevron ? <Icon name={icons.chevronRight} size={16} color={colors.ink3} /> : null}
     </Pressable>
+  );
+}
+
+/** Settings-style group: one card with its (flat) rows separated by hairlines. */
+export function ListGroup({ children }: { children: ReactNode }) {
+  const styles = useStyles();
+  const rows = Children.toArray(children).filter(isValidElement);
+  return (
+    <View style={styles.group}>
+      {rows.map((row, i) => (
+        <Fragment key={row.key ?? i}>
+          {i > 0 ? <View style={styles.groupDivider} /> : null}
+          {row}
+        </Fragment>
+      ))}
+    </View>
   );
 }
 
@@ -240,7 +267,7 @@ const useStyles = makeStyles((colors, typography) => ({
   page: { padding: spacing.lg, paddingBottom: spacing.xxl },
   pageInner: { gap: spacing.lg },
   headerButton: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rowIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.brandSoft },
+  rowIcon: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.brandSoft },
   card: {
     gap: spacing.md,
     padding: spacing.lg,
@@ -248,23 +275,24 @@ const useStyles = makeStyles((colors, typography) => ({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.line,
     backgroundColor: colors.surface,
+    ...elevation(colors),
   },
   sectionTitle: { gap: 2, marginTop: spacing.sm },
   field: { gap: spacing.xs },
   input: {
     ...typography.body,
     color: colors.ink,
-    minHeight: 46,
-    paddingHorizontal: spacing.md,
+    minHeight: 50,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
   },
-  inputMultiline: { minHeight: 88, textAlignVertical: 'top' },
-  button: { height: 52, flexDirection: 'row', gap: spacing.sm, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md },
-  pressed: { opacity: 0.8 },
+  inputMultiline: { minHeight: 96, textAlignVertical: 'top', paddingTop: spacing.md },
+  button: { height: 54, flexDirection: 'row', gap: spacing.sm, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
   disabled: { opacity: 0.45 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
@@ -287,8 +315,19 @@ const useStyles = makeStyles((colors, typography) => ({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.line,
     backgroundColor: colors.surface,
+    ...elevation(colors),
   },
+  rowFlat: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md + 2 },
   rowPressed: { backgroundColor: colors.surfaceMuted },
+  group: {
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    ...elevation(colors),
+  },
+  groupDivider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line, marginStart: spacing.lg + 38 + spacing.md },
   muted: { opacity: 0.55 },
   error: { padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.dangerSoft },
   pill: { alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.pill },

@@ -2,18 +2,19 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Pattern, Rect, Stop } from 'react-native-svg';
 
 import { fetchMemberContext, uploadMemberPhoto } from '@/api/business';
 import { absoluteUrl, fetchSubscription, SECTORS } from '@/api/panel';
 import { useAccount, useAuth } from '@/auth/AuthProvider';
 import { Icon, icons } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
-import { Button, Card, InlineError, ListRow, Pill, SectionTitle } from '@/components/ui';
+import { Button, Card, InlineError, ListGroup, ListRow, Pill, SectionTitle } from '@/components/ui';
 import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { pickImage } from '@/lib/pickImage';
 import { formatUsd, periodSuffix } from '@/lib/plans';
-import { makeStyles, radius, spacing, useTheme, type ThemePreference } from '@/theme';
+import { elevation, makeStyles, radius, spacing, useTheme, type ThemePreference } from '@/theme';
 import { getLanguagePreference, LANGUAGES, t, tc } from '@/i18n';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: keyof typeof icons }[] = [
@@ -72,36 +73,49 @@ export default function ProfileScreen() {
     ]);
 
   return (
-    <Screen title={t('Profil')} onRefresh={sub.refresh} refreshing={sub.refreshing}>
-      <Card>
-        <View style={styles.identity}>
-          {isMember && photoUrl ? (
-            <Image source={{ uri: photoUrl }} style={styles.avatar} contentFit="cover" alt="" />
-          ) : (
-            <View style={styles.avatar}>
-              <Text style={[typography.title, { color: colors.onBrand }]}>{initials || '?'}</Text>
-            </View>
-          )}
-          <View style={styles.flex}>
-            <Text style={typography.title} numberOfLines={1}>
-              {name}
-            </Text>
-            <Text style={typography.body} numberOfLines={1}>
-              {profile?.user.email}
-            </Text>
-            <Text style={typography.caption} numberOfLines={1}>
-              {profile?.business.name}
-              {isMember ? ` · ${t('Ekip üyesi')}` : sector ? ` · ${sector}` : ''}
-            </Text>
+    <Screen title={t('Profil')} subtitle={profile?.business.name} accent="violet" onRefresh={sub.refresh} refreshing={sub.refreshing}>
+      <View style={styles.idCard}>
+        <Svg style={styles.banner} width="100%" height={88}>
+          <Defs>
+            <LinearGradient id="profileBanner" x1="0" y1="0" x2="1" y2="1">
+              <Stop offset="0" stopColor={colors.violet} />
+              <Stop offset="1" stopColor={colors.blue} />
+            </LinearGradient>
+            <Pattern id="profileDots" width={16} height={16} patternUnits="userSpaceOnUse">
+              <Circle cx={1.5} cy={1.5} r={1} fill="#FFFFFF" fillOpacity={0.18} />
+            </Pattern>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#profileBanner)" />
+          <Rect width="100%" height="100%" fill="url(#profileDots)" />
+        </Svg>
+        <View style={styles.idBody}>
+          <View style={styles.avatarRing}>
+            {isMember && photoUrl ? (
+              <Image source={{ uri: photoUrl }} style={styles.avatar} contentFit="cover" alt="" />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={[typography.title, { color: colors.onBrand }]}>{initials || '?'}</Text>
+              </View>
+            )}
           </View>
+          <Text style={typography.title} numberOfLines={1}>
+            {name}
+          </Text>
+          <Text style={typography.body} numberOfLines={1}>
+            {profile?.user.email}
+          </Text>
+          <View style={styles.tags}>
+            <Pill label={profile?.business.name ?? ''} tone="brand" />
+            {isMember ? <Pill label={t('Ekip üyesi')} /> : sector ? <Pill label={sector} /> : null}
+          </View>
+          {isMember ? (
+            <View style={styles.idActions}>
+              <Button label={t('Profil fotoğrafını değiştir')} icon="image" variant="secondary" onPress={changePhoto} busy={photoUpload.busy} />
+              <InlineError message={photoUpload.error} />
+            </View>
+          ) : null}
         </View>
-        {isMember ? (
-          <>
-            <Button label={t('Profil fotoğrafını değiştir')} icon="image" variant="secondary" onPress={changePhoto} busy={photoUpload.busy} />
-            <InlineError message={photoUpload.error} />
-          </>
-        ) : null}
-      </Card>
+      </View>
 
       {isMember ? null : (
         <View style={styles.section}>
@@ -114,8 +128,18 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <SectionTitle>{t('Hesap')}</SectionTitle>
-        <ListRow icon={icons.edit} title={t('Profili düzenle')} subtitle={t('Ad, e-posta ve telefon')} onPress={() => router.push('/profile/edit')} />
-        <ListRow icon={icons.key} title={t('Şifre değiştir')} subtitle={t('Diğer cihazlardaki oturumlar kapanır')} onPress={() => router.push('/profile/password')} />
+        <ListGroup>
+          <ListRow flat icon={icons.edit} title={t('Profili düzenle')} subtitle={t('Ad, e-posta ve telefon')} onPress={() => router.push('/profile/edit')} />
+          <ListRow
+            flat
+            icon={icons.key}
+            iconColor={colors.amber}
+            iconBackground={colors.amberSoft}
+            title={t('Şifre değiştir')}
+            subtitle={t('Diğer cihazlardaki oturumlar kapanır')}
+            onPress={() => router.push('/profile/password')}
+          />
+        </ListGroup>
       </View>
 
       <View style={styles.section}>
@@ -130,22 +154,50 @@ export default function ProfileScreen() {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
                 style={[styles.segmentItem, active && styles.segmentActive]}>
-                <Icon name={icons[o.icon]} size={18} color={active ? colors.onBrand : colors.ink2} />
-                <Text style={[typography.label, { color: active ? colors.onBrand : colors.ink2 }]}>{o.label}</Text>
+                <Icon name={icons[o.icon]} size={18} color={active ? colors.surface : colors.ink2} />
+                <Text style={[typography.label, { color: active ? colors.surface : colors.ink2, fontWeight: '700' }]}>{o.label}</Text>
               </Pressable>
             );
           })}
         </View>
         <Text style={typography.caption}>{t('“Sistem”, telefonunuzun açık/koyu ayarını takip eder.')}</Text>
-        <ListRow icon={icons.globe} title={t('Dil')} subtitle={languageLabel} onPress={() => router.push('/profile/language')} />
+        <ListGroup>
+          <ListRow
+            flat
+            icon={icons.globe}
+            iconColor={colors.blue}
+            iconBackground={colors.blueSoft}
+            title={t('Dil')}
+            subtitle={languageLabel}
+            onPress={() => router.push('/profile/language')}
+          />
+        </ListGroup>
       </View>
 
       {isMember ? null : (
         <View style={styles.section}>
           <SectionTitle>{t('İşletme')}</SectionTitle>
-          <ListRow icon={icons.settings} title={t('İşletme ayarları')} subtitle={t('Bilgiler, logo ve çalışma saatleri')} onPress={() => router.push('/settings')} />
-          <ListRow icon={icons.pageBuilder} title={t('Web sitesi düzenleyici')} subtitle={t('Tema, içerik ve bölümler')} onPress={() => router.push('/page-builder')} />
-          <ListRow icon={icons.support} title={t('Destek')} subtitle={t('Ekibimize yazın')} onPress={() => router.push('/support')} />
+          <ListGroup>
+            <ListRow flat icon={icons.settings} title={t('İşletme ayarları')} subtitle={t('Bilgiler, logo ve çalışma saatleri')} onPress={() => router.push('/settings')} />
+            <ListRow
+              flat
+              icon={icons.pageBuilder}
+              iconColor={colors.violet}
+              iconBackground={colors.violetSoft}
+              title={t('Web sitesi düzenleyici')}
+              subtitle={t('Tema, içerik ve bölümler')}
+              onPress={() => router.push('/page-builder')}
+            />
+            <ListRow
+              flat
+              icon={icons.support}
+              iconColor={colors.blue}
+              iconBackground={colors.blueSoft}
+              title={t('Destek')}
+              subtitle={t('Ekibimize yazın')}
+              onPress={() => router.push('/support')}
+            />
+          </ListGroup>
         </View>
       )}
 
@@ -214,21 +266,42 @@ function SubscriptionCard({
 }
 
 const useStyles = makeStyles((colors) => ({
-  identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  avatar: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand },
+  idCard: {
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+    ...elevation(colors, 2),
+  },
+  banner: { position: 'absolute', top: 0, start: 0, end: 0 },
+  idBody: { alignItems: 'center', gap: 4, paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, marginTop: 44 },
+  avatarRing: { padding: 4, borderRadius: 48, backgroundColor: colors.surface, marginBottom: spacing.sm },
+  avatar: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.xs, marginTop: spacing.sm },
+  idActions: { alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.md },
   flex: { flex: 1, gap: 2 },
   section: { gap: spacing.sm },
   pressed: { opacity: 0.8 },
-  segment: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },
-  segmentItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingVertical: spacing.sm, borderRadius: radius.sm },
-  segmentActive: { backgroundColor: colors.brand },
+  segment: {
+    flexDirection: 'row',
+    padding: 5,
+    gap: 4,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    ...elevation(colors),
+  },
+  segmentItem: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, paddingVertical: 10, borderRadius: radius.pill },
+  segmentActive: { backgroundColor: colors.violet },
   signOut: {
-    height: 52,
+    height: 54,
     flexDirection: 'row',
     gap: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.danger,
     backgroundColor: colors.dangerSoft,

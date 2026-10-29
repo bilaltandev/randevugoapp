@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Icon, icons } from '@/components/Icon';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
@@ -9,14 +9,16 @@ type EmptyStateProps = {
   icon?: keyof typeof icons;
 };
 
-/** Card shown when a list has nothing to show yet. */
+/** Shown when a list has nothing yet: a dashed outline (an empty slot) with a ringed icon. */
 export function EmptyState({ title, description, icon = 'sparkles' }: EmptyStateProps) {
   const { colors, typography } = useTheme();
   const styles = useStyles();
   return (
     <View style={styles.card}>
-      <View style={styles.icon}>
-        <Icon name={icons[icon]} size={22} color={colors.brand} />
+      <View style={styles.ring}>
+        <View style={styles.icon}>
+          <Icon name={icons[icon]} size={22} color={colors.brand} />
+        </View>
       </View>
       <Text style={[typography.heading, styles.center]}>{title}</Text>
       <Text style={[typography.body, styles.center]}>{description}</Text>
@@ -30,10 +32,11 @@ const useStyles = makeStyles((colors) => ({
     gap: spacing.sm,
     padding: spacing.xl,
     borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.lineStrong,
   },
-  icon: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.brandSoft, marginBottom: spacing.xs },
+  ring: { padding: 6, borderRadius: 40, borderWidth: 1, borderColor: colors.brandLine, marginBottom: spacing.xs },
+  icon: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.brandSoft },
   center: { textAlign: 'center' },
 }));
