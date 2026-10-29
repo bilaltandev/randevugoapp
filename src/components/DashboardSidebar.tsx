@@ -149,8 +149,9 @@ export function DashboardSidebar({
           className="flex items-center gap-2.5 min-w-0 rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           aria-label="CalendlyGo panel ana sayfası"
         >
-          <div className="relative w-9 h-9 rounded-[7px] shrink-0">
-            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="36px" className="object-contain" unoptimized />
+          {/* The icon on its own dark tile, like an app icon: the cut-out mark washes out on light backgrounds. */}
+          <div className="relative w-9 h-9 shrink-0 overflow-hidden rounded-[10px] bg-black shadow-raised">
+            <Image src="/brand/calendlygo-icon.png" alt="" fill sizes="36px" className="object-cover" unoptimized />
           </div>
           {showLabels && (
             <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-nav-text-strong">
