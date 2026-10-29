@@ -10,6 +10,14 @@ const TONES: Record<StatusTone, string> = {
   blocked: "bg-surface-muted text-ink-3 border-line",
 };
 
+const DOTS: Record<StatusTone, string> = {
+  pending: "bg-pending",
+  confirmed: "bg-brand",
+  completed: "bg-ink-3",
+  cancelled: "bg-danger",
+  blocked: "bg-ink-3",
+};
+
 interface StatusBadgeProps {
   status?: string | null;
   /** Renders the "closed slot" badge instead of a booking status. */
@@ -25,11 +33,12 @@ export function StatusBadge({ status, blocked, className }: StatusBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-control border px-1.5 py-0.5 text-xs font-medium leading-4 whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold leading-4 whitespace-nowrap",
         TONES[tone],
         className
       )}
     >
+      <span className={cn("h-1.5 w-1.5 rounded-full", DOTS[tone])} aria-hidden="true" />
       {label}
     </span>
   );

@@ -87,6 +87,7 @@ export default function SupportClient({ tickets }: { tickets: OwnerTicket[] }) {
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="blue"
         title="Destek"
         description="Bir sorun mu yaşıyorsunuz? Talep oluşturun, destek ekibimiz en kısa sürede yanıt versin."
         actions={tickets.length > 0 ? newTicketButton : undefined}

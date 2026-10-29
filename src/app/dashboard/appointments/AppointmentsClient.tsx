@@ -154,6 +154,7 @@ export default function AppointmentsClient({
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="blue"
         title="Rezervasyonlar"
         description="Geçmiş ve gelecek tüm randevuları filtreleyin, onaylayın veya iptal edin."
         actions={

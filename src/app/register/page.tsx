@@ -113,8 +113,8 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.error || "Kayıt tamamlanamadı.");
       } else {
-        // Next: the plan cards with "3 gün ücretsiz deneyin" under them.
-        router.push("/dashboard/subscription?hosgeldin=1");
+        // Next: the intro slides (once), then the plan cards with "3 gün ücretsiz deneyin" under them.
+        router.push("/hosgeldin");
         router.refresh();
       }
     } catch (err) {

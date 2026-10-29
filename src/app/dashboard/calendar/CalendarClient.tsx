@@ -246,6 +246,7 @@ export default function CalendarClient({
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="brand"
         title="Takvim"
         description="Randevuları gün, hafta veya ay görünümünde takip edin."
         actions={

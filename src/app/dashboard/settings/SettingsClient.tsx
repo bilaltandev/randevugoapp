@@ -93,6 +93,7 @@ export default function SettingsClient({ initialBusiness }: SettingsClientProps)
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="brand"
         title="Ayarlar"
         description="İşletme bilgileri, iletişim, rezervasyon tercihleri ve çalışma saatleri."
         actions={

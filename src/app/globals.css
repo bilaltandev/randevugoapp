@@ -46,6 +46,26 @@
   --rg-nav-line: #E6E8EC;
   --rg-nav-text: #555E6C;
   --rg-nav-text-strong: #0D1117;
+
+  /* Section accents next to the brand green (same family as the mobile app). */
+  --rg-blue: #2563EB;
+  --rg-blue-soft: #EEF3FE;
+  --rg-violet: #7C3AED;
+  --rg-violet-soft: #F3EEFE;
+  --rg-amber: #B45309;
+  --rg-amber-soft: #FFF7E8;
+  /* The panel's dot grid and accent glow. */
+  --rg-dot: rgba(13, 17, 23, 0.075);
+  --rg-glow: rgba(10, 123, 92, 0.16);
+
+  /* Shape and depth. Site-wide values; the dashboard (.dash-shell) overrides them. */
+  --rg-radius-control: 8px;
+  --rg-radius-panel: 12px;
+  --rg-radius-dialog: 16px;
+  --rg-radius-button: 8px;
+  --rg-shadow-panel: 0 1px 2px rgba(13, 17, 23, 0.04), 0 1px 1px rgba(13, 17, 23, 0.02);
+  --rg-shadow-raised: 0 1px 2px rgba(13, 17, 23, 0.06), 0 0 0 1px rgba(13, 17, 23, 0.04);
+  --rg-shadow-pop: 0 16px 40px -12px rgba(13, 17, 23, 0.22), 0 2px 6px rgba(13, 17, 23, 0.06);
 }
 
 .dark {
@@ -81,6 +101,15 @@
   --rg-nav-line: #1C222C;
   --rg-nav-text: #8A94A4;
   --rg-nav-text-strong: #EEF1F5;
+
+  --rg-blue: #60A5FA;
+  --rg-blue-soft: rgba(96, 165, 250, 0.13);
+  --rg-violet: #A78BFA;
+  --rg-violet-soft: rgba(167, 139, 250, 0.13);
+  --rg-amber: #FBBF24;
+  --rg-amber-soft: rgba(251, 191, 36, 0.12);
+  --rg-dot: rgba(255, 255, 255, 0.055);
+  --rg-glow: rgba(43, 191, 142, 0.2);
 }
 
 @theme inline {
@@ -126,15 +155,89 @@
   --color-nav-text: var(--rg-nav-text);
   --color-nav-text-strong: var(--rg-nav-text-strong);
 
-  --radius-control: 8px;
-  --radius-panel: 12px;
-  --radius-dialog: 16px;
+  --color-blue: var(--rg-blue);
+  --color-blue-soft: var(--rg-blue-soft);
+  --color-violet: var(--rg-violet);
+  --color-violet-soft: var(--rg-violet-soft);
+  --color-amber: var(--rg-amber);
+  --color-amber-soft: var(--rg-amber-soft);
+
+  /* Through --rg-* so a scope (the dashboard) can change them; `inline` would otherwise bake the values in. */
+  --radius-control: var(--rg-radius-control);
+  --radius-panel: var(--rg-radius-panel);
+  --radius-dialog: var(--rg-radius-dialog);
+  --radius-button: var(--rg-radius-button);
 
   /* Panels sit on a hairline plus a barely-there lift; menus and dialogs float. */
-  --shadow-panel: 0 1px 2px rgba(13, 17, 23, 0.04), 0 1px 1px rgba(13, 17, 23, 0.02);
-  --shadow-raised: 0 1px 2px rgba(13, 17, 23, 0.06), 0 0 0 1px rgba(13, 17, 23, 0.04);
-  --shadow-pop: 0 16px 40px -12px rgba(13, 17, 23, 0.22), 0 2px 6px rgba(13, 17, 23, 0.06);
+  --shadow-panel: var(--rg-shadow-panel);
+  --shadow-raised: var(--rg-shadow-raised);
+  --shadow-pop: var(--rg-shadow-pop);
 }
+
+/* ─────────── DASHBOARD DESIGN LANGUAGE (same as the mobile app) ───────────
+   Rounder shapes, layered depth, pill buttons, frosted chrome and a dot-grid backdrop with an accent glow.
+   Scoped to the dashboard so the public pages, admin and support panels keep their look. */
+.dash-shell {
+  --rg-radius-control: 12px;
+  --rg-radius-panel: 20px;
+  --rg-radius-dialog: 24px;
+  --rg-radius-button: 9999px;
+  --rg-shadow-panel: 0 1px 2px rgba(27, 36, 51, 0.04), 0 8px 24px -12px rgba(27, 36, 51, 0.14);
+  --rg-shadow-raised: 0 1px 2px rgba(27, 36, 51, 0.06), 0 6px 16px -8px rgba(27, 36, 51, 0.18);
+  --rg-shadow-pop: 0 24px 56px -16px rgba(13, 17, 23, 0.32), 0 4px 10px rgba(13, 17, 23, 0.08);
+}
+.dash-shell.dark {
+  --rg-shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px -14px rgba(0, 0, 0, 0.7);
+  --rg-shadow-raised: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 20px -10px rgba(0, 0, 0, 0.6);
+  --rg-shadow-pop: 0 28px 64px -18px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Dot grid fading out down the page, with a soft accent glow in the top corners. */
+.dash-backdrop {
+  position: relative;
+  isolation: isolate;
+}
+.dash-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 720px;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1.5px 1.5px, var(--rg-dot) 1.1px, transparent 1.4px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 25%, transparent 85%);
+}
+.dash-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 520px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(85% 60% at 10% 0%, var(--rg-glow), transparent 70%),
+    radial-gradient(50% 40% at 100% 4%, color-mix(in srgb, var(--rg-glow) 60%, transparent), transparent 70%);
+}
+
+/* Frosted glass for the dashboard chrome (top bar, phone tab bar, side menu). */
+.dash-glass {
+  background-color: color-mix(in srgb, var(--rg-surface) 72%, transparent);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+}
+
+/* Cards that rise slightly under the pointer. */
+.dash-lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.dash-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--rg-shadow-raised);
+}
+
+@keyframes dash-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.dash-rise { animation: dash-rise 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 /* Blocked time slots: hatched so they read as "closed", not as a booking */
 .slot-blocked {

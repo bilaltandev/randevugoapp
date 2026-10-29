@@ -355,6 +355,7 @@ export default function PageBuilderClient({
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="violet"
         title="Sayfa Düzenleyici"
         description="Online rezervasyon sayfanızın görünümünü ve içeriğini özelleştirin."
         actions={

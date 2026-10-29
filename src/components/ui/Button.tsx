@@ -18,8 +18,9 @@ const SIZES: Record<Size, string> = {
   md: "h-9 px-3.5 text-sm gap-2",
 };
 
+// rounded-button: a pill inside the dashboard, the site's usual corner elsewhere (see .dash-shell).
 const BASE =
-  "inline-flex items-center justify-center whitespace-nowrap rounded-control font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center whitespace-nowrap rounded-button font-medium transition-[color,background-color,border-color,transform] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:pointer-events-none disabled:opacity-50";
 
 interface CommonProps {
   variant?: Variant;

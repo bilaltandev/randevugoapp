@@ -34,6 +34,13 @@ interface DashboardOverviewClientProps {
   isRestaurant: boolean;
 }
 
+const SHORTCUT_TONES = {
+  brand: "bg-brand-soft text-brand",
+  amber: "bg-amber-soft text-amber",
+  violet: "bg-violet-soft text-violet",
+  blue: "bg-blue-soft text-blue",
+} as const;
+
 const toMinutes = (hhmm: string) => {
   const [h, m] = (hhmm || "0:0").split(":").map(Number);
   return h * 60 + (m || 0);
@@ -126,12 +133,12 @@ export default function DashboardOverviewClient({
       ...getSectorDetails(appt.sectorData),
     ].filter(Boolean) as string[];
 
-  const shortcuts: { label: string; href: string; icon: LucideIcon }[] = [
-    { label: "Saat kapat veya mola ekle", href: "/dashboard/calendar", icon: Clock },
+  const shortcuts: { label: string; href: string; icon: LucideIcon; tone: keyof typeof SHORTCUT_TONES }[] = [
+    { label: "Saat kapat veya mola ekle", href: "/dashboard/calendar", icon: Clock, tone: "amber" },
     isRestaurant
-      ? { label: "Masa planını düzenle", href: "/dashboard/tables", icon: UtensilsCrossed }
-      : { label: "Hizmetleri yönet", href: "/dashboard/services", icon: Scissors },
-    { label: "Rezervasyon sayfasını düzenle", href: "/dashboard/page-builder", icon: Palette },
+      ? { label: "Masa planını düzenle", href: "/dashboard/tables", icon: UtensilsCrossed, tone: "brand" }
+      : { label: "Hizmetleri yönet", href: "/dashboard/services", icon: Scissors, tone: "brand" },
+    { label: "Rezervasyon sayfasını düzenle", href: "/dashboard/page-builder", icon: Palette, tone: "violet" },
   ];
 
   return (
@@ -220,7 +227,7 @@ export default function DashboardOverviewClient({
                 <li
                   key={appt.id}
                   className={cn(
-                    "relative flex gap-3 px-4 py-3 sm:gap-4 sm:px-5",
+                    "relative flex gap-3 px-4 py-3.5 transition-colors hover:bg-surface-muted/50 sm:gap-4 sm:px-5",
                     isPast && !isNow && "opacity-60",
                     isNow && "bg-brand-soft/60",
                   )}
@@ -230,7 +237,7 @@ export default function DashboardOverviewClient({
                   <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className={cn("text-sm font-medium text-ink", isCancelled && "line-through text-ink-3")}>
+                        <span className={cn("text-[15px] font-semibold text-ink", isCancelled && "line-through text-ink-3")}>
                           {appt.customerName}
                         </span>
                         <StatusBadge status={appt.status} />
@@ -297,7 +304,7 @@ export default function DashboardOverviewClient({
           <span className="flex items-center gap-2">
             Onay bekleyenler
             {pendingCount > 0 && (
-              <span className="rounded-control bg-pending-soft px-1.5 text-xs font-medium text-pending tabular-nums">
+              <span className="rounded-full bg-pending-soft px-2 text-xs font-bold text-pending tabular-nums">
                 {pendingCount}
               </span>
             )}
@@ -390,32 +397,32 @@ export default function DashboardOverviewClient({
         )}
       </Panel>
 
-      {/* Shortcuts */}
-      <Panel title="Kısayollar" flush>
-        <ul className="divide-y divide-line">
-          {shortcuts.map(({ label, href, icon: Icon }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-2 hover:bg-surface-muted hover:text-ink sm:px-5"
-              >
-                <Icon className="w-4 h-4 text-ink-3" aria-hidden="true" />
-                <span className="flex-1">{label}</span>
-                <ChevronRight className="w-4 h-4 text-ink-3" aria-hidden="true" />
-              </Link>
-            </li>
-          ))}
-          <li>
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink-2 hover:bg-surface-muted hover:text-ink sm:px-5"
+      {/* Shortcuts: small colored tiles, like the mobile app */}
+      <Panel title="Kısayollar">
+        <div className="grid grid-cols-2 gap-2.5">
+          {shortcuts.map(({ label, href, icon: Icon, tone }) => (
+            <Link
+              key={href}
+              href={href}
+              className="dash-lift flex flex-col gap-2.5 rounded-[16px] border border-line bg-surface p-3 text-[13px] font-semibold leading-snug text-ink"
             >
-              {copied ? <Check className="w-4 h-4 text-brand" /> : <Copy className="w-4 h-4 text-ink-3" />}
-              <span className="flex-1">{copied ? "Bağlantı kopyalandı" : "Rezervasyon bağlantısını kopyala"}</span>
-            </button>
-          </li>
-        </ul>
+              <span className={cn("flex h-8 w-8 items-center justify-center rounded-[10px]", SHORTCUT_TONES[tone])}>
+                <Icon className="w-4 h-4" aria-hidden="true" />
+              </span>
+              {label}
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="dash-lift flex flex-col gap-2.5 rounded-[16px] border border-line bg-surface p-3 text-left text-[13px] font-semibold leading-snug text-ink"
+          >
+            <span className={cn("flex h-8 w-8 items-center justify-center rounded-[10px]", SHORTCUT_TONES.blue)}>
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            </span>
+            {copied ? "Bağlantı kopyalandı" : "Rezervasyon bağlantısını kopyala"}
+          </button>
+        </div>
       </Panel>
     </div>
   );
@@ -423,8 +430,8 @@ export default function DashboardOverviewClient({
 
 function TimeCell({ start, end }: { start: string; end?: string | null }) {
   return (
-    <div className="w-12 shrink-0 pt-0.5 tabular-nums">
-      <div className="font-display text-sm font-bold text-ink">{start}</div>
+    <div className="w-14 shrink-0 tabular-nums">
+      <div className="font-display text-[17px] font-extrabold leading-tight tracking-[-0.02em] text-ink">{start}</div>
       {end && <div className="text-xs text-ink-3">{end}</div>}
     </div>
   );
@@ -446,7 +453,7 @@ function Rail({ tone }: { tone: string }) {
       <span className="absolute -bottom-3 -top-3 left-1/2 w-px -translate-x-1/2 bg-line" />
       <span
         className={cn(
-          "absolute left-1/2 top-1.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full ring-4 ring-surface",
+          "absolute left-1/2 top-1.5 h-3 w-3 -translate-x-1/2 rounded-full ring-4 ring-surface",
           RAIL_TONES[tone] ?? "bg-ink-3",
         )}
       />

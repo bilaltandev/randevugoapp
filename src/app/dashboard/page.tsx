@@ -5,7 +5,9 @@ import { formatCurrency } from "@/lib/utils";
 import { SubscriptionAlert } from "@/components/SubscriptionAlert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatStrip } from "@/components/ui/StatStrip";
+import { CalendarCheck2, Hourglass, Star, Wallet } from "lucide-react";
 import DashboardOverviewClient from "./DashboardOverviewClient";
+import { TodayHero } from "./TodayHero";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -48,42 +50,51 @@ export default async function DashboardPage() {
       <SubscriptionAlert status={subscription?.status || "trial"} daysRemaining={daysRemaining} />
 
       <PageHeader
+        eyebrow={`${todayLabel.charAt(0).toLocaleUpperCase("tr-TR")}${todayLabel.slice(1)}`}
         title={firstName ? `Merhaba, ${firstName}` : "Bugün"}
-        description={`${todayLabel.charAt(0).toLocaleUpperCase("tr-TR")}${todayLabel.slice(1)}`}
+      />
+
+      <TodayHero
+        total={bookingsToday.length}
+        pending={pendingToday}
+        done={bookingsToday.filter((a) => a.status === "COMPLETED").length}
       />
 
       <StatStrip
+        variant="tiles"
         stats={[
-          {
-            label: "Bugünkü randevular",
-            value: bookingsToday.length,
-            hint:
-              bookingsToday.length === 0
-                ? "Bugün randevu yok"
-                : pendingToday > 0
-                ? `${pendingToday} tanesi onay bekliyor`
-                : "Hepsi onaylı",
-            href: "/dashboard/calendar",
-            trend: { values: bookingsPerDay, label: `Son 7 günde günlük randevu: ${bookingsPerDay.join(", ")}` },
-          },
           {
             label: "Onay bekleyen",
             value: pendingCount,
             hint: pendingCount > 0 ? "Bugün ve sonrası" : "Bekleyen talep yok",
             href: "/dashboard/appointments",
-            attention: pendingCount > 0,
+            icon: Hourglass,
+            accent: "amber",
           },
           {
             label: `${monthName.charAt(0).toLocaleUpperCase("tr-TR")}${monthName.slice(1)} geliri`,
             value: formatCurrency(monthRevenue),
             hint: `${completedThisMonthCount} tamamlanan randevudan`,
             trend: { values: revenuePerDay, label: "Son 7 günün günlük geliri" },
+            icon: Wallet,
+            accent: "blue",
+          },
+          {
+            label: "Son 7 gün",
+            value: bookingsPerDay.reduce((sum, n) => sum + n, 0),
+            hint: "Randevu",
+            href: "/dashboard/calendar",
+            trend: { values: bookingsPerDay, label: `Son 7 günde günlük randevu: ${bookingsPerDay.join(", ")}` },
+            icon: CalendarCheck2,
+            accent: "brand",
           },
           {
             label: "Müşteri puanı",
             value: avgRating != null ? avgRating.toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : "—",
             hint: reviewCount > 0 ? `${reviewCount} yorum` : "Henüz yorum yok",
             href: "/dashboard/reviews",
+            icon: Star,
+            accent: "violet",
           },
         ]}
       />

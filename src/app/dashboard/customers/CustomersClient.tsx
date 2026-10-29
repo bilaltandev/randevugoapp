@@ -70,6 +70,7 @@ export default function CustomersClient({
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="blue"
         title="Müşteriler"
         description="Randevu alan müşterilerin geçmişi, toplam harcaması ve size özel notlarınız."
         actions={

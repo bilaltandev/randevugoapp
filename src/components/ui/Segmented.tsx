@@ -32,7 +32,8 @@ export function Segmented<T extends string>({
       role="tablist"
       aria-label={rest["aria-label"]}
       className={cn(
-        "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[10px] border border-line bg-surface-muted p-[3px]",
+        // Pill-shaped inside the dashboard (like the mobile app), squarer elsewhere.
+        "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[10px] border border-line bg-surface-muted p-[3px] in-[.dash-shell]:gap-1 in-[.dash-shell]:rounded-full in-[.dash-shell]:p-1",
         fill && "flex w-full",
         className
       )}
@@ -48,7 +49,7 @@ export function Segmented<T extends string>({
             aria-selected={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] px-3 text-[13px] font-medium transition-colors",
+              "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] px-3 text-[13px] font-medium transition-colors in-[.dash-shell]:rounded-full in-[.dash-shell]:px-3.5 in-[.dash-shell]:font-semibold",
               fill && "flex-1",
               active ? "bg-surface text-ink shadow-raised" : "text-ink-3 hover:text-ink"
             )}

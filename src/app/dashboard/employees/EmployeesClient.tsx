@@ -133,6 +133,7 @@ export default function EmployeesClient({
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="violet"
         title="Çalışanlar"
         description="Ekip üyelerinizi, uzmanlık alanlarını ve verdikleri hizmetleri yönetin."
         actions={

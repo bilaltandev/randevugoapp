@@ -36,8 +36,8 @@ export function DashboardShell({
   locked = false,
   children,
 }: DashboardShellProps) {
-  // Default is "light" as requested by user
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  // Dark by default, like the mobile app (user decision 2026-10-29); a saved choice wins.
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [mounted, setMounted] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -79,7 +79,7 @@ export function DashboardShell({
   return (
     <div
       className={cn(
-        "relative flex h-screen overflow-hidden",
+        "dash-shell relative flex h-screen overflow-hidden",
         theme === "dark" ? "dash-theme-dark dark" : "dash-theme-light"
       )}
     >
@@ -112,8 +112,8 @@ export function DashboardShell({
           onOpenSearch={() => setPaletteOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-24 md:pb-8 dash-content-scroll">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-28 md:pb-10 dash-content-scroll dash-backdrop">
+          <div key={pathname} className="max-w-7xl mx-auto dash-rise">
             {locked && !OPEN_WHEN_LOCKED.some((path) => pathname.startsWith(path)) ? <SubscriptionLocked /> : children}
           </div>
         </main>
@@ -128,9 +128,9 @@ export function DashboardShell({
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Mobile bottom navigation */}
+      {/* Mobile bottom navigation: a floating frosted pill, like the app's tab bar */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center gap-1 border-t border-line bg-surface px-2 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]"
+        className="md:hidden fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-30 flex items-center gap-1 rounded-[22px] border border-line px-1.5 py-1 shadow-pop dash-glass"
         aria-label="Hızlı gezinme"
       >
         {mobileNav.map((item) => {
@@ -141,7 +141,7 @@ export function DashboardShell({
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={cn(mobileItemClass, active ? "text-brand font-medium" : "text-ink-3 hover:text-ink")}
+              className={cn(mobileItemClass, active ? "bg-brand-soft text-brand font-semibold" : "text-ink-3 hover:text-ink")}
             >
               <Icon className="w-5 h-5" aria-hidden="true" />
               <span>{item.name}</span>

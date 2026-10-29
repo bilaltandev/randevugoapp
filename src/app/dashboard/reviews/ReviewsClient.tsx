@@ -62,6 +62,7 @@ export default function ReviewsClient({
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="violet"
         title="Yorumlar"
         description="Yalnızca randevusu tamamlanmış müşteriler yorum yapabilir. Yorumları buradan yanıtlayın."
         actions={

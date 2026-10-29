@@ -156,6 +156,7 @@ export default function ServicesClient({
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="amber"
         title="Hizmetler"
         description="Sunduğunuz hizmetleri, sürelerini ve fiyatlarını buradan yönetin."
         actions={

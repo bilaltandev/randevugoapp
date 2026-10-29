@@ -95,6 +95,7 @@ export default function AnalyticsClient({
   return (
     <div className="space-y-5">
       <PageHeader
+        accent="amber"
         title="İstatistikler"
         description="Performans metrikleri, yoğun gün ve saat dağılımı, büyüme önerileri."
         actions={
