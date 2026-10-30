@@ -36,6 +36,10 @@ function menuGroups(restaurant: boolean, isMember: boolean): Group[] {
         ],
       },
       {
+        label: t('Ekip'),
+        items: [{ title: t('Ekip'), href: '/team', icon: icons.employees, match: '/team' }],
+      },
+      {
         label: t('Hesap'),
         items: [{ title: t('Profil'), href: '/profile', icon: icons.profile, match: '/profile' }],
       },

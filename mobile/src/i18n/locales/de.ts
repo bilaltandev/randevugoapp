@@ -715,6 +715,13 @@ const dictionary: Record<string, string> = {
   'İyi akşamlar': 'Guten Abend',
   '{0} paneline hoş geldiniz.': 'Willkommen im Panel von {0}.',
   'Yeni randevular': 'Neue Buchungen',
+
+  // Team screen (members)
+  'Ekip yöneticisi': 'Teamleitung',
+  'Yönetici': 'Leitung',
+  'Ekip üyeleri: {0}': 'Teammitglieder: {0}',
+  'Henüz başka ekip üyesi yok': 'Noch keine weiteren Teammitglieder',
+  'Yöneticiniz yeni kişiler eklediğinde burada görünür.': 'Neue Personen erscheinen hier, sobald Ihre Leitung sie hinzufügt.',
 };
 
 export default dictionary;

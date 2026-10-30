@@ -171,6 +171,17 @@ export async function fetchMemberContext(client: AuthClient) {
   return client.request<{ employee: Employee & { photo: string | null; employeeServices: { serviceId: string }[] }; services: Service[] }>('/api/mobile/team/me');
 }
 
+export type TeamRoster = {
+  businessName: string;
+  manager: { name: string; specialty: string | null; photo: string | null };
+  members: { id: string; name: string; specialty: string; photo: string | null; isMe: boolean }[];
+};
+
+/** Team member: their team (manager and active staff), read-only and without contact details. */
+export async function fetchTeamRoster(client: AuthClient) {
+  return client.request<TeamRoster>('/api/mobile/team/roster');
+}
+
 // ---- Customers ----
 
 export async function fetchCustomers(client: AuthClient): Promise<Customer[]> {

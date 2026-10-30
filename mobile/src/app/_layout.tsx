@@ -110,6 +110,7 @@ function RootNavigator() {
           <Stack.Screen name="services/edit" options={{ ...header, title: t('Hizmet') }} />
           <Stack.Screen name="employees" options={{ ...header, title: t('Çalışanlar') }} />
           <Stack.Screen name="employees/edit" options={{ ...header, title: t('Çalışan') }} />
+          <Stack.Screen name="team" options={{ ...header, title: t('Ekip') }} />
           <Stack.Screen name="tables" options={{ ...header, title: t('Masa Planı') }} />
           <Stack.Screen name="tables/edit" options={{ ...header, title: t('Masa') }} />
           <Stack.Screen name="reviews" options={{ ...header, title: t('Yorumlar') }} />
