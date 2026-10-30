@@ -91,6 +91,12 @@ export default function LoginPage() {
           />
         </Field>
 
+        <div className="text-right text-sm">
+          <Link href="/sifremi-unuttum" className="font-medium text-brand hover:text-brand-hover">
+            Şifremi unuttum
+          </Link>
+        </div>
+
         <Button type="submit" variant="primary" disabled={loading} className="h-10 w-full">
           {loading ? (
             <>

@@ -21,6 +21,10 @@ export const RATE_LIMITS = {
   teamInviteIp: { limit: 30, windowSeconds: 15 * 60 },
   /** Invite e-mails one business may send (Gmail caps the whole account at ~500 a day). */
   teamInviteEmail: { limit: 20, windowSeconds: 60 * 60 },
+  /** Password reset requests and link uses per client IP. */
+  passwordResetIp: { limit: 20, windowSeconds: 15 * 60 },
+  /** Reset e-mails to one address, so nobody can flood a mailbox. */
+  passwordResetEmail: { limit: 3, windowSeconds: 60 * 60 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitResult = { allowed: boolean; count: number; retryAfterSeconds: number };

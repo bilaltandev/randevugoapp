@@ -17,6 +17,8 @@ const RESERVED_SLUGS = new Set([
   'login',
   'register',
   'review',
+  'sifre-yenile',
+  'sifremi-unuttum',
   'support',
   'uploads',
 ]);

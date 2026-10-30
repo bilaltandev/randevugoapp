@@ -22,7 +22,21 @@ model User {
   updatedAt  DateTime   @updatedAt
   businesses Business[]
   mobileSessions MobileSession[]
+  passwordResetTokens PasswordResetToken[]
   employee   Employee?  // TEAM_MEMBER: the staff record this account works as
+}
+
+// Single-use "forgot password" links (src/lib/passwordReset.ts). Only the token's SHA-256 hash is stored.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([userId])
 }
 
 model Business {

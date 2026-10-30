@@ -176,6 +176,7 @@ const dictionary: Record<string, string> = {
   'İşletme paneline giriş yapın': 'Im Unternehmens-Panel anmelden',
   'Şifre': 'Passwort',
   'Şifreniz': 'Ihr Passwort',
+  'Şifremi unuttum': 'Passwort vergessen?',
   'Şifreyi gizle': 'Passwort ausblenden',
   'Şifreyi göster': 'Passwort anzeigen',
   'Giriş yap': 'Anmelden',

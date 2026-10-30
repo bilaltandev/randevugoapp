@@ -177,6 +177,7 @@ const dictionary: Record<string, string> = {
   'İşletme paneline giriş yapın': 'سجّل الدخول إلى لوحة النشاط',
   'Şifre': 'كلمة المرور',
   'Şifreniz': 'كلمة المرور',
+  'Şifremi unuttum': 'نسيت كلمة المرور؟',
   'Şifreyi gizle': 'إخفاء كلمة المرور',
   'Şifreyi göster': 'إظهار كلمة المرور',
   'Giriş yap': 'تسجيل الدخول',
