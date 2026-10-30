@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useId } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -44,7 +45,7 @@ export function Modal({
     "2xl": "max-w-2xl",
   }[maxWidth];
 
-  return (
+  const dialog = (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div
@@ -75,4 +76,10 @@ export function Modal({
       </div>
     </div>
   );
+
+  // In the dashboard, render at the shell's root: the page content fades in (an animation makes it a stacking
+  // context for a moment) and must never trap the dialog under the top bar. The shell keeps the theme classes.
+  // Elsewhere (admin, support) the dialog stays where it is.
+  const shell = typeof document !== "undefined" ? document.querySelector(".dash-shell") : null;
+  return shell ? createPortal(dialog, shell) : dialog;
 }

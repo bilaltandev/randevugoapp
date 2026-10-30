@@ -113,7 +113,7 @@ export function DashboardShell({
         />
 
         <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6 lg:px-8 pb-28 md:pb-10 dash-content-scroll dash-backdrop">
-          <div key={pathname} className="max-w-7xl mx-auto dash-rise">
+          <div key={pathname} className="relative max-w-7xl mx-auto dash-rise">
             {locked && !OPEN_WHEN_LOCKED.some((path) => pathname.startsWith(path)) ? <SubscriptionLocked /> : children}
           </div>
         </main>

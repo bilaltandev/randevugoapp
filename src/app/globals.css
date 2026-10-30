@@ -192,32 +192,24 @@
   --rg-shadow-pop: 0 28px 64px -18px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-/* Dot grid fading out down the page, with a soft accent glow in the top corners. */
+/* Dot grid fading out down the page, with a soft accent glow in the top corners. One layer, painted first; the
+   page content must be `relative` to sit above it. Deliberately no z-index, isolation or lingering transform
+   here: any of those would trap the pages' modals (position: fixed) inside the content area, under the top bar. */
 .dash-backdrop {
   position: relative;
-  isolation: isolate;
 }
 .dash-backdrop::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
   height: 720px;
-  z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(circle at 1.5px 1.5px, var(--rg-dot) 1.1px, transparent 1.4px);
-  background-size: 22px 22px;
-  mask-image: linear-gradient(to bottom, #000 0%, #000 25%, transparent 85%);
-}
-.dash-backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 520px;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(85% 60% at 10% 0%, var(--rg-glow), transparent 70%),
-    radial-gradient(50% 40% at 100% 4%, color-mix(in srgb, var(--rg-glow) 60%, transparent), transparent 70%);
+  background-image:
+    radial-gradient(85% 45% at 10% 0%, var(--rg-glow), transparent 70%),
+    radial-gradient(50% 30% at 100% 4%, color-mix(in srgb, var(--rg-glow) 60%, transparent), transparent 70%),
+    radial-gradient(circle at 1.5px 1.5px, var(--rg-dot) 1.1px, transparent 1.4px);
+  background-size: auto, auto, 22px 22px;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 90%);
 }
 
 /* Frosted glass for the dashboard chrome (top bar, phone tab bar, side menu). */
@@ -236,8 +228,10 @@
   box-shadow: var(--rg-shadow-raised);
 }
 
-@keyframes dash-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.dash-rise { animation: dash-rise 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+/* Page enter: a fade only. No transform, not even while it runs: a transform on the page content makes the
+   pages' fixed modals position against the content instead of the window (they slid under the top bar). */
+@keyframes dash-rise { from { opacity: 0; } to { opacity: 1; } }
+.dash-rise { animation: dash-rise 0.35s ease-out backwards; }
 
 /* Blocked time slots: hatched so they read as "closed", not as a booking */
 .slot-blocked {
