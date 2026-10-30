@@ -9,14 +9,14 @@ import { SECTORS } from '@/api/panel';
 import { useAuth } from '@/auth/AuthProvider';
 import { loginErrorMessage } from '@/auth/messages';
 import { Icon, icons } from '@/components/Icon';
+import { PasswordRules } from '@/components/PasswordRules';
 import { PrivacyConsent } from '@/components/PrivacyConsent';
 import { Button, Chip, ChipRow, InlineError, TextField } from '@/components/ui';
 import { isOptionalEmail, isPhone } from '@/lib/forms';
+import { WEAK_PASSWORD, isStrongPassword } from '@/lib/password';
 import { businessSlug } from '@/lib/slug';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
 import { t } from '@/i18n';
-
-const MIN_PASSWORD = 8;
 
 /**
  * Sign-up in two steps like the web page: account, then business. Or "Hazır ekibe katıl": one step with the
@@ -36,7 +36,8 @@ export default function RegisterScreen() {
     phone: '',
     businessName: '',
     sector: 'BERBER',
-    city: 'İstanbul',
+    city: '',
+    district: '',
     address: '',
     whatsappNumber: '',
   });
@@ -50,8 +51,8 @@ export default function RegisterScreen() {
     setError(null);
     if (!form.name.trim()) return setError(t('Ad soyadınızı girin.'));
     if (!form.email.trim() || !isOptionalEmail(form.email)) return setError(t('Geçerli bir e-posta adresi girin.'));
-    if (form.password.length < MIN_PASSWORD) return setError(t('Şifre en az {0} karakter olmalı.', MIN_PASSWORD));
-    if (form.phone.trim() && !isPhone(form.phone)) return setError(t('Telefon numarası geçerli değil.'));
+    if (!isStrongPassword(form.password)) return setError(t(WEAK_PASSWORD));
+    if (!isPhone(form.phone)) return setError(t('Telefon numarası geçerli değil.'));
     if (!noticeAccepted) return setError(noticeError);
     setStep(2);
   };
@@ -61,8 +62,8 @@ export default function RegisterScreen() {
     if (code.replace(/[\s-]/g, '').length < 6) return setError(t('İşletme sahibinin verdiği davet kodunu girin.'));
     if (!form.name.trim()) return setError(t('Ad soyadınızı girin.'));
     if (!form.email.trim() || !isOptionalEmail(form.email)) return setError(t('Geçerli bir e-posta adresi girin.'));
-    if (form.password.length < MIN_PASSWORD) return setError(t('Şifre en az {0} karakter olmalı.', MIN_PASSWORD));
-    if (form.phone.trim() && !isPhone(form.phone)) return setError(t('Telefon numarası geçerli değil.'));
+    if (!isStrongPassword(form.password)) return setError(t(WEAK_PASSWORD));
+    if (!isPhone(form.phone)) return setError(t('Telefon numarası geçerli değil.'));
     if (!noticeAccepted) return setError(noticeError);
     setSubmitting(true);
     try {
@@ -72,7 +73,7 @@ export default function RegisterScreen() {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
-        phone: form.phone.trim() || undefined,
+        phone: form.phone.trim(),
         privacyNoticeAccepted: noticeAccepted,
       });
     } catch (e) {
@@ -86,6 +87,7 @@ export default function RegisterScreen() {
   const submit = async () => {
     setError(null);
     if (!form.businessName.trim()) return setError(t('İşletme adını girin.'));
+    if (!form.city.trim() || !form.district.trim() || !form.address.trim()) return setError(t('Lütfen şehir, ilçe ve açık adresi giriniz.'));
     if (form.whatsappNumber.trim() && !isPhone(form.whatsappNumber)) return setError(t('WhatsApp numarası geçerli değil.'));
     setSubmitting(true);
     try {
@@ -94,11 +96,12 @@ export default function RegisterScreen() {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
-        phone: form.phone.trim() || undefined,
+        phone: form.phone.trim(),
         businessName: form.businessName.trim(),
         sector: form.sector,
-        city: form.city.trim() || undefined,
-        address: form.address.trim() || undefined,
+        city: form.city.trim(),
+        district: form.district.trim(),
+        address: form.address.trim(),
         whatsappNumber: form.whatsappNumber.trim() || undefined,
         privacyNoticeAccepted: noticeAccepted,
       });
@@ -177,9 +180,9 @@ export default function RegisterScreen() {
                 secureTextEntry
                 textContentType="newPassword"
                 autoComplete="new-password"
-                hint={t('En az {0} karakter.', MIN_PASSWORD)}
               />
-              <TextField label={t('Telefon (isteğe bağlı)')} value={form.phone} onChangeText={set('phone')} placeholder={t('0532 000 00 00')} keyboardType="phone-pad" />
+              <PasswordRules password={form.password} />
+              <TextField label={t('Telefon')} value={form.phone} onChangeText={set('phone')} placeholder={t('0532 000 00 00')} keyboardType="phone-pad" />
               <PrivacyConsent checked={noticeAccepted} onChange={setNoticeAccepted} />
               <InlineError message={error} />
               {joining ? (
@@ -205,9 +208,10 @@ export default function RegisterScreen() {
                   <Chip key={s.id} label={s.name} selected={form.sector === s.id} onPress={() => set('sector')(s.id)} />
                 ))}
               </ChipRow>
-              <TextField label={t('Şehir')} value={form.city} onChangeText={set('city')} />
+              <TextField label={t('Şehir')} value={form.city} onChangeText={set('city')} placeholder={t('Örn: Adana')} />
+              <TextField label={t('İlçe')} value={form.district} onChangeText={set('district')} placeholder={t('Örn: Seyhan')} />
               <TextField label={t('WhatsApp (isteğe bağlı)')} value={form.whatsappNumber} onChangeText={set('whatsappNumber')} keyboardType="phone-pad" placeholder={t('0532 000 00 00')} />
-              <TextField label={t('Açık adres (isteğe bağlı)')} value={form.address} onChangeText={set('address')} multiline placeholder={t('Mahalle, cadde, no, ilçe')} />
+              <TextField label={t('Açık adres')} value={form.address} onChangeText={set('address')} multiline placeholder={t('Mahalle, cadde, no, ilçe')} />
               <InlineError message={error} />
               <Button label={t('Hesabı oluştur')} icon="check" onPress={submit} busy={submitting} />
             </Animated.View>

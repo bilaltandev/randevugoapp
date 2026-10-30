@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
-import { AGENT_SELECT, getSuperAdmin, MIN_AGENT_PASSWORD_LENGTH, SUPPORT_ROLE } from "@/lib/support";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
+import { AGENT_SELECT, getSuperAdmin, SUPPORT_ROLE } from "@/lib/support";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -40,11 +41,8 @@ export async function POST(req: Request) {
     if (!EMAIL_REGEX.test(email)) {
       return NextResponse.json({ error: "Geçerli bir e-posta adresi girin." }, { status: 400 });
     }
-    if (password.length < MIN_AGENT_PASSWORD_LENGTH) {
-      return NextResponse.json(
-        { error: `Şifre en az ${MIN_AGENT_PASSWORD_LENGTH} karakter olmalıdır.` },
-        { status: 400 }
-      );
+    if (!isStrongPassword(password)) {
+      return NextResponse.json({ error: WEAK_PASSWORD }, { status: 400 });
     }
     if (await prisma.user.findUnique({ where: { email } })) {
       return NextResponse.json({ error: "Bu e-posta adresi başka bir hesapta kullanılıyor." }, { status: 409 });

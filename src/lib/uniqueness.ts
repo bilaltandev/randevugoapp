@@ -10,6 +10,7 @@ export { businessNameChanged, phoneChanged } from "@/lib/uniquenessKeys";
 
 export const BUSINESS_NAME_TAKEN = "Bu işletme adı zaten kullanılıyor. Lütfen farklı bir ad seçin.";
 export const PHONE_TAKEN = "Bu telefon numarası başka bir hesapta kullanılıyor.";
+export const PHONE_REQUIRED = "Lütfen geçerli bir telefon numarası girin.";
 
 /** Another business already uses this name. Names without Latin letters or digits compare case-insensitively. */
 export async function isBusinessNameTaken(name: string, exceptBusinessId?: string): Promise<boolean> {

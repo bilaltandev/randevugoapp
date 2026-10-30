@@ -10,7 +10,9 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { choiceClasses } from "@/components/ui/choice";
+import { PasswordRules } from "@/components/auth/PasswordRules";
 import { PrivacyConsent } from "@/components/auth/PrivacyConsent";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
 import { businessSlug } from "@/lib/slug";
 
 // 16px on phones so iOS doesn't zoom into focused fields.
@@ -30,7 +32,8 @@ export default function RegisterPage() {
   // Business details
   const [businessName, setBusinessName] = useState("");
   const [sector, setSector] = useState("BERBER");
-  const [city, setCity] = useState("İstanbul");
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
   const [address, setAddress] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
 
@@ -47,8 +50,12 @@ export default function RegisterPage() {
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteCode.trim() || !name || !email || !password) {
+    if (!inviteCode.trim() || !name || !email || !password || !phone) {
       setError("Lütfen davet kodunu ve zorunlu alanları doldurunuz.");
+      return;
+    }
+    if (!isStrongPassword(password)) {
+      setError(WEAK_PASSWORD);
       return;
     }
     setLoading(true);
@@ -71,8 +78,12 @@ export default function RegisterPage() {
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone) {
       setError("Lütfen zorunlu alanları doldurunuz.");
+      return;
+    }
+    if (!isStrongPassword(password)) {
+      setError(WEAK_PASSWORD);
       return;
     }
     setError("");
@@ -101,6 +112,7 @@ export default function RegisterPage() {
           businessName,
           sector,
           city,
+          district,
           address,
           whatsappNumber: whatsappNumber || phone,
           privacyNoticeAccepted: noticeAccepted,
@@ -220,7 +232,7 @@ export default function RegisterPage() {
                   className={AUTH_INPUT}
                 />
               </Field>
-              <Field label="Şifre *" htmlFor="join-password" hint="En az 8 karakter.">
+              <Field label="Şifre *" htmlFor="join-password">
                 <PasswordInput
                   id="join-password"
                   required
@@ -230,8 +242,9 @@ export default function RegisterPage() {
                   className={AUTH_INPUT}
                 />
               </Field>
-              <Field label="Telefon numarası" htmlFor="join-phone">
-                <Input id="join-phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={AUTH_INPUT} />
+              <PasswordRules password={password} />
+              <Field label="Telefon numarası *" htmlFor="join-phone">
+                <Input id="join-phone" type="tel" required autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={AUTH_INPUT} />
               </Field>
               <PrivacyConsent id="join-notice" checked={noticeAccepted} onChange={setNoticeAccepted} />
               <Button type="submit" variant="primary" disabled={loading} className="h-10 w-full">
@@ -309,7 +322,7 @@ export default function RegisterPage() {
             />
           </Field>
 
-          <Field label="Şifre *" htmlFor="reg-password" hint="En az 6 karakter önerilir.">
+          <Field label="Şifre *" htmlFor="reg-password">
             <PasswordInput
               id="reg-password"
               required
@@ -320,11 +333,13 @@ export default function RegisterPage() {
               className={AUTH_INPUT}
             />
           </Field>
+          <PasswordRules password={password} />
 
-          <Field label="Telefon numarası" htmlFor="reg-phone">
+          <Field label="Telefon numarası *" htmlFor="reg-phone">
             <Input
               id="reg-phone"
               type="tel"
+              required
               autoComplete="tel"
               placeholder="0532 000 00 00"
               value={phone}
@@ -391,31 +406,47 @@ export default function RegisterPage() {
 
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Şehir" htmlFor="reg-city">
+            <Field label="Şehir *" htmlFor="reg-city">
               <Input
                 id="reg-city"
                 type="text"
-                autoComplete="address-level2"
+                required
+                autoComplete="address-level1"
+                placeholder="Örn: Adana"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className={AUTH_INPUT}
               />
             </Field>
-            <Field label="WhatsApp numarası" htmlFor="reg-wa">
+            <Field label="İlçe *" htmlFor="reg-district">
               <Input
-                id="reg-wa"
-                type="tel"
-                placeholder="0532 000 00 00"
-                value={whatsappNumber}
-                onChange={(e) => setWhatsappNumber(e.target.value)}
+                id="reg-district"
+                type="text"
+                required
+                autoComplete="address-level2"
+                placeholder="Örn: Seyhan"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
                 className={AUTH_INPUT}
               />
             </Field>
           </div>
 
-          <Field label="Açık adres" htmlFor="reg-address">
+          <Field label="WhatsApp numarası" htmlFor="reg-wa">
+            <Input
+              id="reg-wa"
+              type="tel"
+              placeholder="0532 000 00 00"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              className={AUTH_INPUT}
+            />
+          </Field>
+
+          <Field label="Açık adres *" htmlFor="reg-address">
             <Textarea
               id="reg-address"
+              required
               rows={2}
               autoComplete="street-address"
               placeholder="Mahalle, cadde, no, ilçe"

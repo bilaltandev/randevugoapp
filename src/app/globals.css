@@ -178,18 +178,45 @@
    Rounder shapes, layered depth, pill buttons, frosted chrome and a dot-grid backdrop with an accent glow.
    Scoped to the dashboard so the public pages, admin and support panels keep their look. */
 .dash-shell {
+  /* Apple's system grays: a soft canvas, white cards, hairlines that are barely there. */
+  --rg-canvas: #F5F5F7;
+  --rg-surface-muted: #F2F2F4;
+  --rg-line: rgba(0, 0, 0, 0.06);
+  --rg-line-strong: rgba(0, 0, 0, 0.13);
+  --rg-ink: #1D1D1F;
+  --rg-ink-2: #424245;
+  --rg-ink-3: #6E6E73;
+  --rg-nav: #F5F5F7;
+  --rg-nav-line: rgba(0, 0, 0, 0.06);
+  --rg-nav-text: #515154;
+  --rg-nav-text-strong: #1D1D1F;
+  --rg-dot: transparent;
+
   --rg-radius-control: 12px;
-  --rg-radius-panel: 20px;
-  --rg-radius-dialog: 24px;
+  --rg-radius-panel: 22px;
+  --rg-radius-dialog: 26px;
   --rg-radius-button: 9999px;
-  --rg-shadow-panel: 0 1px 2px rgba(27, 36, 51, 0.04), 0 8px 24px -12px rgba(27, 36, 51, 0.14);
-  --rg-shadow-raised: 0 1px 2px rgba(27, 36, 51, 0.06), 0 6px 16px -8px rgba(27, 36, 51, 0.18);
-  --rg-shadow-pop: 0 24px 56px -16px rgba(13, 17, 23, 0.32), 0 4px 10px rgba(13, 17, 23, 0.08);
+  --rg-shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.03), 0 8px 24px -16px rgba(0, 0, 0, 0.1);
+  --rg-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.05), 0 12px 28px -14px rgba(0, 0, 0, 0.16);
+  --rg-shadow-pop: 0 28px 64px -18px rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 .dash-shell.dark {
-  --rg-shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px -14px rgba(0, 0, 0, 0.7);
-  --rg-shadow-raised: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 20px -10px rgba(0, 0, 0, 0.6);
-  --rg-shadow-pop: 0 28px 64px -18px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --rg-canvas: #000000;
+  --rg-surface: #1C1C1E;
+  --rg-surface-muted: #2C2C2E;
+  --rg-line: rgba(255, 255, 255, 0.08);
+  --rg-line-strong: rgba(255, 255, 255, 0.16);
+  --rg-ink: #F5F5F7;
+  --rg-ink-2: #D1D1D6;
+  --rg-ink-3: #98989D;
+  --rg-nav: #000000;
+  --rg-nav-raised: #1C1C1E;
+  --rg-nav-line: rgba(255, 255, 255, 0.08);
+  --rg-nav-text: #98989D;
+  --rg-nav-text-strong: #F5F5F7;
+  --rg-shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --rg-shadow-raised: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 12px 28px -14px rgba(0, 0, 0, 0.8);
+  --rg-shadow-pop: 0 28px 64px -18px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 /* Dot grid fading out down the page, with a soft accent glow in the top corners. One layer, painted first; the
@@ -232,6 +259,109 @@
    pages' fixed modals position against the content instead of the window (they slid under the top bar). */
 @keyframes dash-rise { from { opacity: 0; } to { opacity: 1; } }
 .dash-rise { animation: dash-rise 0.35s ease-out backwards; }
+
+/* ─────────── AURORA BACKDROP ───────────
+   Slow, blurred light behind the auth screens and the admin panel, over a fine dot grid. Colors only: nothing here
+   may carry a transform or filter onto an ancestor of a modal, so it is always a separate, empty layer. */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.aurora-fixed {
+  position: fixed;
+}
+.aurora::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, var(--aurora-dot, var(--rg-dot)) 1px, transparent 1.3px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(90% 70% at 50% 20%, #000, transparent 75%);
+  mask-image: radial-gradient(90% 70% at 50% 20%, #000, transparent 75%);
+}
+.aurora-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  will-change: transform;
+  animation: aurora-drift 28s ease-in-out infinite alternate;
+}
+.aurora-orb-a {
+  top: -18%;
+  left: -8%;
+  width: 56vmax;
+  height: 56vmax;
+  background: radial-gradient(circle, rgba(43, 191, 142, 0.34), transparent 65%);
+}
+.aurora-orb-b {
+  top: 8%;
+  right: -16%;
+  width: 46vmax;
+  height: 46vmax;
+  background: radial-gradient(circle, rgba(56, 132, 255, 0.24), transparent 65%);
+  animation-duration: 34s;
+  animation-direction: alternate-reverse;
+}
+.aurora-orb-c {
+  bottom: -30%;
+  left: 24%;
+  width: 50vmax;
+  height: 50vmax;
+  background: radial-gradient(circle, rgba(124, 92, 255, 0.18), transparent 65%);
+  animation-duration: 40s;
+}
+@keyframes aurora-drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(6vmax, 4vmax, 0) scale(1.14); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-orb { animation: none; }
+}
+
+/* ─────────── AUTH SCREENS ─────────── */
+.auth-shell {
+  --rg-radius-control: 12px;
+  --rg-radius-button: 9999px;
+}
+.auth-card {
+  border: 1px solid color-mix(in srgb, var(--rg-surface) 60%, var(--rg-line));
+  border-radius: 28px;
+  background-color: color-mix(in srgb, var(--rg-surface) 76%, transparent);
+  -webkit-backdrop-filter: saturate(170%) blur(28px);
+  backdrop-filter: saturate(170%) blur(28px);
+  box-shadow: 0 1px 1px rgba(13, 17, 23, 0.03), 0 32px 64px -32px rgba(13, 17, 23, 0.28);
+}
+/* Movement only, no fade: if a browser ever stalls this animation the form must still be visible. */
+@keyframes auth-rise {
+  from { transform: translateY(14px); }
+  to { transform: none; }
+}
+.auth-rise { animation: auth-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .auth-rise { animation: none; }
+}
+
+/* ─────────── ADMIN PANEL ───────────
+   Dark glass on the aurora. Remaps the slate scale the admin screens are written in, so every tab follows. */
+.admin-shell {
+  --aurora-dot: rgba(255, 255, 255, 0.05);
+  --color-slate-950: #0A0C11;
+  --color-slate-900: #14171E;
+  --color-slate-800: rgba(255, 255, 255, 0.09);
+  --color-slate-700: rgba(255, 255, 255, 0.16);
+  --color-slate-400: #98A1B0;
+  --color-slate-300: #C4CAD5;
+  background-color: #07090D;
+}
+.admin-glass {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.045);
+  -webkit-backdrop-filter: blur(26px) saturate(165%);
+  backdrop-filter: blur(26px) saturate(165%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 48px -32px rgba(0, 0, 0, 0.9);
+}
 
 /* Blocked time slots: hatched so they read as "closed", not as a booking */
 .slot-blocked {

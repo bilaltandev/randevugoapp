@@ -15,7 +15,7 @@ export function Panel({ title, description, action, flush, className, children }
   return (
     <section className={cn("rounded-panel border border-line bg-surface shadow-panel", className)}>
       {(title || action) && (
-        <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5">
+        <header className="flex items-start justify-between gap-3 px-4 pb-1 pt-4 sm:px-5 sm:pt-5">
           <div className="min-w-0">
             {title && <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>}
             {description && <p className="mt-0.5 text-[13px] text-ink-3">{description}</p>}

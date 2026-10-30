@@ -15,14 +15,16 @@ interface AdminProfileSettingsProps {
   notify: (type: "success" | "error", text: string) => void;
 }
 
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
+
 const MIN_PASSWORD_LENGTH = 8;
 
 const INPUT_CLASS =
   "w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-base sm:text-xs text-slate-100 placeholder-slate-600 focus:border-amber-500 focus:outline-none";
 const LABEL_CLASS = "text-[11px] font-semibold text-slate-400 block mb-1.5";
-const CARD_CLASS = "rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl";
+const CARD_CLASS = "rounded-3xl admin-glass p-5 sm:p-6 backdrop-blur-xl";
 const SUBMIT_CLASS =
-  "inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-1.5 rounded-full bg-white hover:bg-white/85 px-4 py-2 text-xs font-semibold text-slate-950 transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
 
 export function AdminProfileSettings({ admin, onProfileUpdated, notify }: AdminProfileSettingsProps) {
   // Profile form
@@ -67,8 +69,8 @@ export function AdminProfileSettings({ admin, onProfileUpdated, notify }: AdminP
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      notify("error", `Yeni şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`);
+    if (!isStrongPassword(newPassword)) {
+      notify("error", WEAK_PASSWORD);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -181,7 +183,7 @@ export function AdminProfileSettings({ admin, onProfileUpdated, notify }: AdminP
             <span>Şifre Değiştir</span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Yeni şifreniz en az {MIN_PASSWORD_LENGTH} karakter olmalıdır.
+            {WEAK_PASSWORD}
           </p>
         </div>
 

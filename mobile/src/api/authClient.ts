@@ -45,18 +45,19 @@ export type RegisterInput = {
   name: string;
   email: string;
   password: string;
-  phone?: string;
+  phone: string;
   businessName: string;
   sector: string;
-  city?: string;
-  address?: string;
+  city: string;
+  district: string;
+  address: string;
   whatsappNumber?: string;
   plan?: 'PERSON' | 'TEAM';
   privacyNoticeAccepted: boolean;
 };
 
 /** "Hazır ekibe katıl": a team member's sign-up with the invite code the owner gave them. */
-export type JoinTeamInput = { code: string; name: string; email: string; password: string; phone?: string; privacyNoticeAccepted: boolean };
+export type JoinTeamInput = { code: string; name: string; email: string; password: string; phone: string; privacyNoticeAccepted: boolean };
 
 export type DeviceInfo = { deviceName?: string | null; platform?: string | null; appVersion?: string | null };
 
@@ -252,6 +253,13 @@ export function createAuthClient(options: Options) {
       const body = await readJson(res);
       if (!res.ok) throw apiError(res, body);
       return this.login(input.email, input.password);
+    },
+
+    /** Asks for a password reset e-mail. Answers the same whether or not the account exists. */
+    async requestPasswordReset(email: string): Promise<void> {
+      const res = await send("/api/auth/password-reset/request", { method: "POST", body: { email } });
+      const body = await readJson(res);
+      if (!res.ok) throw apiError(res, body);
     },
 
     /**

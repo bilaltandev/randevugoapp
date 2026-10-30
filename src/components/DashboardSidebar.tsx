@@ -16,6 +16,7 @@ import {
   BarChart3,
   CreditCard,
   Settings,
+  UserRound,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
@@ -110,6 +111,7 @@ export function DashboardSidebar({
     {
       label: "Hesap",
       items: [
+        { name: "Profil", href: "/dashboard/profile", icon: UserRound },
         { name: "Abonelik", href: "/dashboard/subscription", icon: CreditCard },
         { name: "Ayarlar", href: "/dashboard/settings", icon: Settings },
         { name: "Destek", href: "/dashboard/support", icon: LifeBuoy, matchPrefix: "/dashboard/support" },

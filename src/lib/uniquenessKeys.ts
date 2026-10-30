@@ -22,6 +22,11 @@ export function phoneKey(phone: string | null | undefined): string | null {
   return digits.length < 7 ? null : digits.slice(-10);
 }
 
+/** A full phone number: at least 10 digits. */
+export function isPhoneNumber(phone: unknown): boolean {
+  return typeof phone === "string" && phone.replace(/\D/g, "").length >= 10;
+}
+
 /** The business name changed in a way that matters for uniqueness (not just case or spacing). */
 export function businessNameChanged(current: string, next: string): boolean {
   const a = businessNameKey(current);

@@ -7,8 +7,8 @@ import { AuthShell, AuthError } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
-
-const MIN_PASSWORD = 8;
+import { PasswordRules } from "@/components/auth/PasswordRules";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
 
 export function ResetForm({ token }: { token: string }) {
   const [password, setPassword] = useState("");
@@ -19,8 +19,8 @@ export function ResetForm({ token }: { token: string }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < MIN_PASSWORD) {
-      setError(`Şifre en az ${MIN_PASSWORD} karakter olmalıdır.`);
+    if (!isStrongPassword(password)) {
+      setError(WEAK_PASSWORD);
       return;
     }
     setLoading(true);
@@ -58,7 +58,7 @@ export function ResetForm({ token }: { token: string }) {
         <>
           {error && <AuthError>{error}</AuthError>}
           <form onSubmit={submit} className="space-y-4">
-            <Field label="Yeni şifre" htmlFor="reset-password" hint={`En az ${MIN_PASSWORD} karakter.`}>
+            <Field label="Yeni şifre" htmlFor="reset-password">
               <PasswordInput
                 id="reset-password"
                 required
@@ -68,6 +68,7 @@ export function ResetForm({ token }: { token: string }) {
                 className="h-10 text-base sm:text-sm"
               />
             </Field>
+            <PasswordRules password={password} />
             <Button type="submit" variant="primary" disabled={loading} className="h-10 w-full">
               {loading ? (
                 <>

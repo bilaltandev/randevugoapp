@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { RATE_LIMITS, getClientIp, hitRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { TeamInviteError, acceptInvite, type AcceptInput } from "@/lib/teamInvites";
 import { PRIVACY_NOTICE_REQUIRED, privacyNoticeAccepted } from "@/lib/privacyNotice";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
+import { isPhoneNumber } from "@/lib/uniquenessKeys";
+import { PHONE_REQUIRED } from "@/lib/uniqueness";
 
 // Shared by the public invite endpoints (/api/team/invites/[token] and /api/team/join). Not a route.
 
 export const NO_STORE = { "Cache-Control": "no-store" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const MIN_PASSWORD = 8;
 
 /** Per-IP cap on invite lookups and joins; null when the request may go on. */
 export async function inviteRateLimited(req: Request) {
@@ -32,8 +34,9 @@ export async function joinTeamResponse(tokenOrCode: string, body: Record<string,
   };
   if (!input.name || input.name.length > 80) return bad("Ad soyad 1–80 karakter olmalıdır.");
   if (!EMAIL_RE.test(input.email) || input.email.length > 254) return bad("Geçerli bir e-posta adresi girin.");
-  if (input.password.length < MIN_PASSWORD || input.password.length > 200) return bad(`Şifre en az ${MIN_PASSWORD} karakter olmalıdır.`);
+  if (!isStrongPassword(input.password)) return bad(WEAK_PASSWORD);
   if ((input.phone ?? "").length > 30) return bad("Telefon numarası çok uzun.");
+  if (!isPhoneNumber(input.phone)) return bad(PHONE_REQUIRED);
   if ((input.specialty ?? "").length > 80) return bad("Uzmanlık alanı çok uzun.");
   if (!privacyNoticeAccepted(body)) return bad(PRIVACY_NOTICE_REQUIRED);
 

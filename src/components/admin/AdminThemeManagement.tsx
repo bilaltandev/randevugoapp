@@ -107,7 +107,7 @@ export function AdminThemeManagement({ initialThemes = [] }: { initialThemes?: T
   };
 
   return (
-    <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl space-y-6">
+    <div className="rounded-3xl admin-glass p-6 backdrop-blur-xl space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">

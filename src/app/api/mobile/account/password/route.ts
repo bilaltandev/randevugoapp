@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/auth";
 import { authenticateMobileAccessToken, getBearerToken } from "@/lib/mobileAuth";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
 
 // Mobile app only (Bearer): change the signed-in owner's password.
 // Every other session ends: other phones are revoked here, web sessions end through their password stamp.
 // This phone stays signed in.
-
-const MIN_PASSWORD_LENGTH = 8;
 
 export async function POST(req: Request) {
   try {
@@ -16,11 +15,8 @@ export async function POST(req: Request) {
     if (!auth) return NextResponse.json({ error: "Oturum bulunamadı.", code: "UNAUTHORIZED" }, { status: 401 });
 
     const { currentPassword, newPassword } = await req.json().catch(() => ({}));
-    if (typeof newPassword !== "string" || newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > 200) {
-      return NextResponse.json(
-        { error: `Yeni şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`, code: "WEAK_PASSWORD" },
-        { status: 400 }
-      );
+    if (!isStrongPassword(newPassword)) {
+      return NextResponse.json({ error: WEAK_PASSWORD, code: "WEAK_PASSWORD" }, { status: 400 });
     }
 
     const user = await prisma.user.findUniqueOrThrow({ where: { id: auth.user.id } });

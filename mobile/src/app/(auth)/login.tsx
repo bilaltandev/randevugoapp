@@ -1,6 +1,5 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, type TextInputInstance } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -17,7 +16,6 @@ import { makeStyles, radius, spacing, useTheme } from '@/theme';
 import { t } from '@/i18n';
 
 const CONFIG_MISSING = t('Uygulamanın sunucu adresi yapılandırılmamış (EXPO_PUBLIC_API_URL).');
-const FORGOT_PASSWORD_URL = 'https://www.calendlygo.com/sifremi-unuttum';
 
 export default function LoginScreen() {
   const { colors, typography, scheme } = useTheme();
@@ -122,7 +120,7 @@ export default function LoginScreen() {
                 </Pressable>
               </View>
               <Pressable
-                onPress={() => WebBrowser.openBrowserAsync(FORGOT_PASSWORD_URL)}
+                onPress={() => router.push('/forgot-password')}
                 hitSlop={8}
                 accessibilityRole="link"
                 disabled={submitting}

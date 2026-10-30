@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { RATE_LIMITS, getClientIp, hitRateLimit, rateLimitKey } from "@/lib/rateLimit";
-import { MIN_PASSWORD_LENGTH, resetPassword } from "@/lib/passwordReset";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
+import { resetPassword } from "@/lib/passwordReset";
 
 // Public: POST { token, newPassword } from the link in the reset e-mail.
 
@@ -16,8 +17,8 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const token = typeof body?.token === "string" ? body.token : "";
   const newPassword = typeof body?.newPassword === "string" ? body.newPassword : "";
-  if (newPassword.length < MIN_PASSWORD_LENGTH || newPassword.length > 200) {
-    return NextResponse.json({ error: `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.`, code: "WEAK_PASSWORD" }, { status: 400 });
+  if (!isStrongPassword(newPassword)) {
+    return NextResponse.json({ error: WEAK_PASSWORD, code: "WEAK_PASSWORD" }, { status: 400 });
   }
 
   try {

@@ -20,9 +20,9 @@ interface AdminSupportAgentsProps {
 const INPUT_CLASS =
   "w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-base sm:text-xs text-slate-100 placeholder-slate-600 focus:border-amber-500 focus:outline-none";
 const LABEL_CLASS = "text-[11px] font-semibold text-slate-400 block mb-1.5";
-const CARD_CLASS = "rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl";
+const CARD_CLASS = "rounded-3xl admin-glass p-5 sm:p-6 backdrop-blur-xl";
 const PRIMARY_BTN =
-  "inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-black text-slate-950 transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-1.5 rounded-full bg-white hover:bg-white/85 px-4 py-2 text-xs font-semibold text-slate-950 transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
 const GHOST_BTN =
   "inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-2.5 py-1.5 text-[11px] font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-60";
 
@@ -187,7 +187,7 @@ export function AdminSupportAgents({ notify }: AdminSupportAgentsProps) {
               <input id="agent-phone" type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="agent-password" className={LABEL_CLASS}>İlk şifre (en az {MIN_AGENT_PASSWORD_LENGTH} karakter)</label>
+              <label htmlFor="agent-password" className={LABEL_CLASS}>İlk şifre (en az {MIN_AGENT_PASSWORD_LENGTH} karakter; büyük harf, rakam, özel karakter)</label>
               <input
                 id="agent-password"
                 type="text"
@@ -207,7 +207,7 @@ export function AdminSupportAgents({ notify }: AdminSupportAgentsProps) {
         </form>
       )}
 
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-xl">
+      <div className="rounded-3xl admin-glass overflow-hidden backdrop-blur-xl">
         {loading ? (
           <div className="p-12 flex justify-center text-slate-400">
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -288,7 +288,7 @@ export function AdminSupportAgents({ notify }: AdminSupportAgentsProps) {
                       required
                       minLength={MIN_AGENT_PASSWORD_LENGTH}
                       autoComplete="new-password"
-                      placeholder={`Yeni şifre (en az ${MIN_AGENT_PASSWORD_LENGTH} karakter)`}
+                      placeholder="Yeni şifre (büyük harf, rakam, özel karakter)"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       className={`${INPUT_CLASS} font-mono sm:max-w-xs`}

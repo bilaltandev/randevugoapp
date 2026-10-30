@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser, hashPassword, verifyPassword, setSessionCookie } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MIN_PASSWORD_LENGTH = 8;
 
 function isAuthorizedAdmin(role?: string | null): boolean {
   const normalized = role?.trim().toUpperCase();
@@ -101,11 +101,8 @@ export async function POST(req: Request) {
     if (!currentPassword || !(await verifyPassword(currentPassword, admin.password))) {
       return NextResponse.json({ error: "Mevcut şifre hatalı." }, { status: 400 });
     }
-    if (typeof newPassword !== "string" || newPassword.length < MIN_PASSWORD_LENGTH) {
-      return NextResponse.json(
-        { error: `Yeni şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalıdır.` },
-        { status: 400 }
-      );
+    if (!isStrongPassword(newPassword)) {
+      return NextResponse.json({ error: WEAK_PASSWORD }, { status: 400 });
     }
     if (await verifyPassword(newPassword, admin.password)) {
       return NextResponse.json({ error: "Yeni şifre mevcut şifreyle aynı olamaz." }, { status: 400 });

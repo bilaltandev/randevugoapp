@@ -49,6 +49,7 @@ import {
 import { formatCurrency, formatPhoneNumber, SECTORS } from "@/lib/utils";
 import { formatTL as formatCurrencyTry } from "@/lib/couponOptions";
 import { SectorBadge } from "@/components/SectorBadge";
+import { AdminNav, type AdminNavItem } from "@/components/admin/AdminNav";
 import { AdminThemeManagement } from "@/components/admin/AdminThemeManagement";
 import { AdminProfileSettings, type AdminProfile } from "@/components/admin/AdminProfileSettings";
 import { AdminSupportAgents } from "@/components/admin/AdminSupportAgents";
@@ -56,6 +57,18 @@ import { AdminCoupons } from "@/components/admin/AdminCoupons";
 import { AdminPaymentRequests, hasPendingPayment } from "@/components/admin/AdminPaymentRequests";
 import { Modal } from "@/components/Modal";
 import { BILLING_PERIODS, PERIOD_NAMES, PERIOD_SUFFIX, PLAN_NAMES, PLAN_PRICES, PLANS, formatUSD, paymentReference, periodOf, planOf, type BillingPeriod, type Plan } from "@/lib/plans";
+
+type AdminTab = "overview" | "payments" | "businesses" | "features" | "subscriptions" | "audit" | "themes" | "coupons" | "agents" | "profile";
+
+function AdminStat({ label, value, detail, accent }: { label: string; value: React.ReactNode; detail: string; accent?: boolean }) {
+  return (
+    <div className="admin-glass rounded-3xl p-5">
+      <p className="text-xs text-slate-400">{label}</p>
+      <p className={`mt-2 font-display text-[2rem] font-semibold leading-none tracking-[-0.03em] sm:text-[2.5rem] ${accent ? "text-[#34D399]" : "text-white"}`}>{value}</p>
+      <p className="mt-2.5 text-xs text-slate-400">{detail}</p>
+    </div>
+  );
+}
 
 interface AdminClientProps {
   initialBusinesses: any[];
@@ -95,9 +108,7 @@ export default function AdminClient({
   adminUser,
 }: AdminClientProps) {
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "payments" | "businesses" | "features" | "subscriptions" | "audit" | "themes" | "coupons" | "agents" | "profile"
-  >("overview");
+  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
 
   // Admin profile (kept in state so header reflects edits from the profile tab)
   const [adminProfile, setAdminProfile] = useState<AdminProfile>({
@@ -251,58 +262,36 @@ export default function AdminClient({
     return flag.isEnabled;
   };
 
+  const navItems: AdminNavItem<AdminTab>[] = [
+    { id: "overview", label: "Genel Bakış", icon: Activity },
+    { id: "payments", label: "Ödeme Talepleri", icon: Inbox, badge: pendingPayments },
+    { id: "businesses", label: "İşletmeler", icon: Building2 },
+    { id: "subscriptions", label: "Abonelikler", icon: CreditCard },
+    { id: "features", label: "Özellikler", icon: Zap },
+    { id: "coupons", label: "Kuponlar", icon: Ticket },
+    { id: "themes", label: "Temalar", icon: Palette },
+    { id: "agents", label: "Yetkililer", icon: Headset },
+    { id: "audit", label: "Denetim Kaydı", icon: History },
+    { id: "profile", label: "Profil", icon: UserCog },
+  ];
+  const activeTitle = navItems.find((item) => item.id === activeTab)?.label;
+
   return (
-    <div className="space-y-6">
-      {/* Top Super Admin Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-3xl border border-amber-500/20 bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 shadow-xl backdrop-blur-xl">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                CalendlyGo Süper Yönetici
-              </h1>
-              <span className="rounded-full bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black text-amber-300 tracking-wider uppercase">
-                SUPER ADMIN
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Yönetici: <span className="text-slate-200 font-semibold">{adminProfile.name}</span> ({adminProfile.email})
-            </p>
-          </div>
-        </div>
+    <div className="lg:grid lg:grid-cols-[248px_minmax(0,1fr)] lg:gap-6">
+      <AdminNav
+        items={navItems}
+        active={activeTab}
+        onChange={setActiveTab}
+        adminName={adminProfile.name}
+        adminEmail={adminProfile.email}
+        loggingOut={loggingOut}
+        onLogout={handleLogout}
+      />
 
-        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition-colors shadow-xs"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>İşletme Paneli</span>
-          </Link>
-
-          <Link
-            href="/"
-            target="_blank"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-md shadow-amber-500/20 transition-all active:scale-95"
-          >
-            <span>Ana Sayfa</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 hover:text-rose-200 transition-colors disabled:opacity-60"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>{loggingOut ? "Çıkılıyor..." : "Çıkış Yap"}</span>
-          </button>
-        </div>
-      </div>
+      <div className="min-w-0 space-y-6">
+      <header className="pt-1 lg:pt-3">
+        <h1 className="font-display text-3xl font-semibold tracking-[-0.03em] text-white sm:text-[2.5rem]">{activeTitle}</h1>
+      </header>
 
       {/* Toast Notification: fixed above everything, including the business detail window */}
       {notificationMsg && (
@@ -327,132 +316,6 @@ export default function AdminClient({
           </button>
         </div>
       )}
-
-      {/* Main Tab Navigation */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800 scrollbar-none">
-        <button
-          onClick={() => setActiveTab("overview")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "overview"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <Activity className="w-4 h-4" />
-          <span>Gelişmiş Dashboard</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("payments")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "payments"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <Inbox className="w-4 h-4" />
-          <span>Ödeme Talepleri</span>
-          {pendingPayments > 0 && (
-            <span className="min-w-5 rounded-full bg-rose-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white">{pendingPayments}</span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab("businesses")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "businesses"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          <span>İşletme Yönetimi ({businesses.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("features")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "features"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span>Özellik Yönetimi (Flags)</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("subscriptions")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "subscriptions"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          <span>Abonelik Yönetimi</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("audit")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "audit"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <History className="w-4 h-4" />
-          <span>Audit Log ({auditLogs.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("themes")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "themes"
-              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <Palette className="w-4 h-4" />
-          <span>Tema Yönetimi</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("coupons")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "coupons"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <Ticket className="w-4 h-4" />
-          <span>Kuponlar</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("agents")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "agents"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <Headset className="w-4 h-4" />
-          <span>Yetkililer</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("profile")}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
-            activeTab === "profile"
-              ? "bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20"
-              : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
-          }`}
-        >
-          <UserCog className="w-4 h-4" />
-          <span>Profil Ayarları</span>
-        </button>
-      </div>
 
       {/* ═══════════════════════════════════════════════════════════════
           TAB 1: GELİŞMİŞ DASHBOARD (OVERVIEW)
@@ -487,85 +350,31 @@ export default function AdminClient({
 
       {activeTab === "overview" && (
         <div className="space-y-6">
-          {/* Top 10 Core Metrics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-            {/* 1. Toplam İşletme */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-slate-400 font-semibold block">Toplam İşletme</span>
-              <div className="text-2xl font-black text-white mt-1">{metrics.totalBusinesses}</div>
-              <span className="text-[10px] text-slate-400 mt-0.5 block">Kayıtlı hesap</span>
-            </div>
+          {/* The numbers that matter first, the rest in one quiet strip */}
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+            <AdminStat label="Tahmini aylık gelir" value={formatUSD(metrics.monthlyRecurringRevenue)} detail="MRR (abonelik)" accent />
+            <AdminStat label="Aktif abonelik" value={metrics.activeSubscriptions} detail={`${metrics.expiredSubscriptions} süresi dolmuş · ${metrics.cancelledSubscriptions} iptal`} />
+            <AdminStat label="Bugünkü rezervasyon" value={metrics.todayAppointmentsCount} detail={`Bu ay ${metrics.monthlyAppointmentsCount}`} />
+            <AdminStat label="Toplam işletme" value={metrics.totalBusinesses} detail={`${metrics.activeBusinesses} aktif · ${metrics.passiveBusinesses} pasif`} />
+          </div>
 
-            {/* 2. Aktif İşletme */}
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-emerald-400 font-semibold block">Aktif İşletme</span>
-              <div className="text-2xl font-black text-emerald-300 mt-1">{metrics.activeBusinesses}</div>
-              <span className="text-[10px] text-emerald-400/80 mt-0.5 block">{metrics.passiveBusinesses} pasif</span>
-            </div>
-
-            {/* 3. Trial İşletme */}
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-950/20 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-amber-400 font-semibold block">Trial (Deneme)</span>
-              <div className="text-2xl font-black text-amber-300 mt-1">{metrics.trialBusinesses}</div>
-              <span className="text-[10px] text-amber-400/80 mt-0.5 block">14 günlük süreçte</span>
-            </div>
-
-            {/* 4. Aktif Abonelik */}
-            <div className="rounded-2xl border border-indigo-500/20 bg-indigo-950/20 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-indigo-400 font-semibold block">Aktif Abonelik</span>
-              <div className="text-2xl font-black text-indigo-300 mt-1">{metrics.activeSubscriptions}</div>
-              <span className="text-[10px] text-indigo-400/80 mt-0.5 block">Ödeme yapan PRO</span>
-            </div>
-
-            {/* 5. Süresi Dolmuş Abonelik */}
-            <div className="rounded-2xl border border-rose-500/20 bg-rose-950/20 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-rose-400 font-semibold block">Süresi Dolmuş</span>
-              <div className="text-2xl font-black text-rose-300 mt-1">{metrics.expiredSubscriptions}</div>
-              <span className="text-[10px] text-rose-400/80 mt-0.5 block">{metrics.cancelledSubscriptions} iptal</span>
-            </div>
-
-            {/* 6. Toplam Kullanıcı */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-slate-400 font-semibold block">Toplam Kullanıcı</span>
-              <div className="text-2xl font-black text-slate-200 mt-1">{metrics.totalUsers}</div>
-              <span className="text-[10px] text-slate-400 mt-0.5 block">Sistem üyesi</span>
-            </div>
-
-            {/* 7. Toplam Rezervasyon */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-slate-400 font-semibold block">Toplam Rezervasyon</span>
-              <div className="text-2xl font-black text-slate-200 mt-1">{metrics.totalAppointments}</div>
-              <span className="text-[10px] text-slate-400 mt-0.5 block">Tüm zamanlar</span>
-            </div>
-
-            {/* 8. Bugünkü Rezervasyon */}
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/15 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-emerald-400 font-semibold block">Bugünkü Rezervasyon</span>
-              <div className="text-2xl font-black text-emerald-300 mt-1">{metrics.todayAppointmentsCount}</div>
-              <span className="text-[10px] text-emerald-400/80 mt-0.5 block">Bugün planlanan</span>
-            </div>
-
-            {/* 9. Aylık Rezervasyon */}
-            <div className="rounded-2xl border border-indigo-500/20 bg-indigo-950/15 p-4 backdrop-blur-md">
-              <span className="text-[11px] text-indigo-400 font-semibold block">Aylık Rezervasyon</span>
-              <div className="text-2xl font-black text-indigo-300 mt-1">{metrics.monthlyAppointmentsCount}</div>
-              <span className="text-[10px] text-indigo-400/80 mt-0.5 block">Bu ayki hacim</span>
-            </div>
-
-            {/* 10. Tahmini Aylık Gelir (MRR) */}
-            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 to-slate-900 p-4 backdrop-blur-md shadow-lg shadow-amber-500/10">
-              <span className="text-[11px] text-amber-300 font-bold block">Tahmini Aylık Gelir</span>
-              <div className="text-2xl font-black text-amber-400 mt-1">
-                {formatUSD(metrics.monthlyRecurringRevenue)}
+          <div className="admin-glass grid grid-cols-2 divide-white/[0.07] rounded-3xl sm:grid-cols-3 sm:divide-x">
+            {[
+              { label: "Deneme sürecinde", value: metrics.trialBusinesses },
+              { label: "Toplam kullanıcı", value: metrics.totalUsers },
+              { label: "Toplam rezervasyon", value: metrics.totalAppointments },
+            ].map((item) => (
+              <div key={item.label} className="px-5 py-4">
+                <p className="text-xs text-slate-400">{item.label}</p>
+                <p className="mt-1 font-display text-xl font-semibold tracking-tight text-white">{item.value}</p>
               </div>
-              <span className="text-[10px] text-slate-400 mt-0.5 block">MRR (Abonelik)</span>
-            </div>
+            ))}
           </div>
 
           {/* Sector Breakdown & Most Active Businesses */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Sector Distribution */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl">
+            <div className="rounded-3xl admin-glass p-5 sm:p-6 backdrop-blur-xl">
               <h3 className="text-sm font-bold text-slate-100 mb-4 flex items-center justify-between">
                 <span>İşletme Sektör Dağılımı</span>
                 <span className="text-xs text-slate-400 font-normal">{metrics.totalBusinesses} işletme</span>
@@ -586,7 +395,7 @@ export default function AdminClient({
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-indigo-500 transition-all duration-500"
+                          className="h-full rounded-full bg-[#34D399] transition-all duration-500"
                           style={{ width: `${Math.max(pct, count > 0 ? 3 : 0)}%` }}
                         />
                       </div>
@@ -597,7 +406,7 @@ export default function AdminClient({
             </div>
 
             {/* Most Active Businesses */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl">
+            <div className="rounded-3xl admin-glass p-5 sm:p-6 backdrop-blur-xl">
               <h3 className="text-sm font-bold text-slate-100 mb-4 flex items-center justify-between">
                 <span>En Aktif İşletmeler</span>
                 <span className="text-xs text-slate-400 font-normal">Rezervasyon Hacmine Göre</span>
@@ -639,7 +448,7 @@ export default function AdminClient({
           {/* Recent Registrations & Recent Platform Reservations */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Registrations */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl">
+            <div className="rounded-3xl admin-glass p-5 sm:p-6 backdrop-blur-xl">
               <h3 className="text-sm font-bold text-slate-100 mb-4 flex items-center justify-between">
                 <span>Son Kayıt Olan İşletmeler</span>
                 <span className="text-xs text-amber-400 font-semibold">Yeni Katılanlar</span>
@@ -681,7 +490,7 @@ export default function AdminClient({
             </div>
 
             {/* Recent Platform Reservations */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl">
+            <div className="rounded-3xl admin-glass p-5 sm:p-6 backdrop-blur-xl">
               <h3 className="text-sm font-bold text-slate-100 mb-4 flex items-center justify-between">
                 <span>Son Rezervasyonlar (Canlı Akış)</span>
                 <span className="text-xs text-emerald-400 font-semibold">Tüm Platform</span>
@@ -729,7 +538,7 @@ export default function AdminClient({
       {activeTab === "businesses" && (
         <div className="space-y-4">
           {/* Filters & Search Toolbar */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5 backdrop-blur-xl space-y-3">
+          <div className="rounded-3xl admin-glass p-4 sm:p-5 backdrop-blur-xl space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               {/* Search */}
               <div className="relative w-full sm:w-80">
@@ -767,7 +576,7 @@ export default function AdminClient({
                 onClick={() => setStatusFilter("ALL")}
                 className={`px-3 py-1.5 rounded-xl font-semibold transition-colors shrink-0 ${
                   statusFilter === "ALL"
-                    ? "bg-amber-500 text-slate-950 font-bold"
+                    ? "bg-white text-slate-950 font-semibold"
                     : "bg-slate-800/80 text-slate-400 hover:text-white"
                 }`}
               >
@@ -797,7 +606,7 @@ export default function AdminClient({
                 onClick={() => setStatusFilter("TRIAL")}
                 className={`px-3 py-1.5 rounded-xl font-semibold transition-colors shrink-0 ${
                   statusFilter === "TRIAL"
-                    ? "bg-amber-500 text-slate-950 font-bold"
+                    ? "bg-white text-slate-950 font-semibold"
                     : "bg-slate-800/80 text-slate-400 hover:text-white"
                 }`}
               >
@@ -827,7 +636,7 @@ export default function AdminClient({
           </div>
 
           {/* Business Table */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-xl">
+          <div className="rounded-3xl admin-glass overflow-hidden backdrop-blur-xl">
             {filteredBusinesses.length === 0 ? (
               <div className="p-12 text-center text-slate-400 text-xs">
                 Kriterlere uygun işletme bulunamadı.
@@ -971,7 +780,7 @@ export default function AdminClient({
       ═══════════════════════════════════════════════════════════════ */}
       {activeTab === "features" && (
         <div className="space-y-4">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl">
+          <div className="rounded-3xl admin-glass p-5 sm:p-6 backdrop-blur-xl">
             <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <Zap className="w-5 h-5 text-amber-400" />
               <span>Platform Özellik Bayrakları (Feature Flags)</span>
@@ -994,7 +803,7 @@ export default function AdminClient({
               return (
                 <div
                   key={flag.id}
-                  className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between backdrop-blur-md hover:border-slate-700 transition-colors"
+                  className="rounded-2xl admin-glass p-5 flex flex-col justify-between backdrop-blur-md hover:border-slate-700 transition-colors"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -1057,14 +866,14 @@ export default function AdminClient({
               <span className="text-xs text-rose-400 font-semibold block">Süresi Dolmuş</span>
               <div className="text-2xl font-black text-rose-300 mt-1">{metrics.expiredSubscriptions}</div>
             </div>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+            <div className="rounded-2xl admin-glass p-4">
               <span className="text-xs text-slate-400 font-semibold block">İptal Edilmiş</span>
               <div className="text-2xl font-black text-slate-300 mt-1">{metrics.cancelledSubscriptions}</div>
             </div>
           </div>
 
           {/* Subscriptions Table */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-xl">
+          <div className="rounded-3xl admin-glass overflow-hidden backdrop-blur-xl">
             <div className="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-100">İşletme Abonelik Listesi</h3>
@@ -1153,7 +962,7 @@ export default function AdminClient({
       ═══════════════════════════════════════════════════════════════ */}
       {activeTab === "audit" && (
         <div className="space-y-4">
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 backdrop-blur-xl">
+          <div className="rounded-3xl admin-glass p-5 sm:p-6 backdrop-blur-xl">
             <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
               <History className="w-5 h-5 text-amber-400" />
               <span>Süper Yönetici Denetim Kayıtları (Audit Log)</span>
@@ -1163,7 +972,7 @@ export default function AdminClient({
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden backdrop-blur-xl">
+          <div className="rounded-3xl admin-glass overflow-hidden backdrop-blur-xl">
             {auditLogs.length === 0 ? (
               <div className="p-12 text-center text-slate-400 text-xs">
                 Henüz kayıtlı bir denetim günlüğü (audit log) bulunmuyor.
@@ -1726,6 +1535,7 @@ export default function AdminClient({
         </Modal>
         </div>
       )}
+      </div>
     </div>
   );
 }

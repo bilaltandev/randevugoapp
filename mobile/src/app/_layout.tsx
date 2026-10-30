@@ -134,6 +134,7 @@ function RootNavigator() {
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="(auth)/login" />
           <Stack.Screen name="(auth)/register" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="(auth)/forgot-password" options={{ animation: 'slide_from_right' }} />
         </Stack.Protected>
       </Stack>
     </DrawerProvider>

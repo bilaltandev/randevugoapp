@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
-import { AGENT_SELECT, getSuperAdmin, MIN_AGENT_PASSWORD_LENGTH, SUPPORT_ROLE } from "@/lib/support";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
+import { AGENT_SELECT, getSuperAdmin, SUPPORT_ROLE } from "@/lib/support";
 
 async function findAgent(id: string) {
   const agent = await prisma.user.findUnique({ where: { id } });
@@ -33,11 +34,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     if (body.password !== undefined) {
-      if (typeof body.password !== "string" || body.password.length < MIN_AGENT_PASSWORD_LENGTH) {
-        return NextResponse.json(
-          { error: `Şifre en az ${MIN_AGENT_PASSWORD_LENGTH} karakter olmalıdır.` },
-          { status: 400 }
-        );
+      if (!isStrongPassword(body.password)) {
+        return NextResponse.json({ error: WEAK_PASSWORD }, { status: 400 });
       }
       data.password = await hashPassword(body.password);
       changes.push("şifre sıfırlandı");

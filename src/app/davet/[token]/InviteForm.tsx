@@ -4,13 +4,14 @@ import React, { useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { AuthError } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { PasswordRules } from "@/components/auth/PasswordRules";
 import { PrivacyConsent } from "@/components/auth/PrivacyConsent";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 
 // 16px on phones so iOS doesn't zoom into focused fields.
 const AUTH_INPUT = "h-10 text-base sm:text-sm";
-const MIN_PASSWORD = 8;
 
 export function InviteForm({ token, defaultName }: { token: string; defaultName: string }) {
   const [name, setName] = useState(defaultName);
@@ -25,8 +26,8 @@ export function InviteForm({ token, defaultName }: { token: string; defaultName:
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < MIN_PASSWORD) {
-      setError(`Şifre en az ${MIN_PASSWORD} karakter olmalıdır.`);
+    if (!isStrongPassword(password)) {
+      setError(WEAK_PASSWORD);
       return;
     }
     setLoading(true);
@@ -95,10 +96,11 @@ export function InviteForm({ token, defaultName }: { token: string; defaultName:
             className={AUTH_INPUT}
           />
         </Field>
-        <Field label="Telefon" htmlFor="inv-phone" hint="İsteğe bağlı">
+        <Field label="Telefon *" htmlFor="inv-phone">
           <Input
             id="inv-phone"
             type="tel"
+            required
             autoComplete="tel"
             inputMode="tel"
             placeholder="0532 000 00 00"
@@ -107,7 +109,7 @@ export function InviteForm({ token, defaultName }: { token: string; defaultName:
             className={AUTH_INPUT}
           />
         </Field>
-        <Field label="Şifre belirleyin *" htmlFor="inv-password" hint={`En az ${MIN_PASSWORD} karakter.`}>
+        <Field label="Şifre belirleyin *" htmlFor="inv-password">
           <PasswordInput
             id="inv-password"
             required
@@ -117,6 +119,7 @@ export function InviteForm({ token, defaultName }: { token: string; defaultName:
             className={AUTH_INPUT}
           />
         </Field>
+        <PasswordRules password={password} />
         <PrivacyConsent id="inv-notice" checked={noticeAccepted} onChange={setNoticeAccepted} />
         <Button type="submit" variant="primary" disabled={loading} className="h-10 w-full">
           {loading ? (

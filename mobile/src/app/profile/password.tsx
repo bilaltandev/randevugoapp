@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { Alert, Text } from 'react-native';
 
 import { changePassword } from '@/api/panel';
+import { PasswordRules } from '@/components/PasswordRules';
 import { Button, InlineError, Page, TextField } from '@/components/ui';
 import { useApiMutation } from '@/hooks/useApiQuery';
+import { WEAK_PASSWORD, isStrongPassword } from '@/lib/password';
 import { useTheme } from '@/theme';
 import { t } from '@/i18n';
-
-const MIN_PASSWORD = 8;
 
 export default function ChangePasswordScreen() {
   const { typography } = useTheme();
@@ -21,7 +21,7 @@ export default function ChangePasswordScreen() {
   const submit = async () => {
     setFormError(null);
     if (!current) return setFormError(t('Mevcut şifrenizi girin.'));
-    if (next.length < MIN_PASSWORD) return setFormError(t('Yeni şifre en az {0} karakter olmalı.', MIN_PASSWORD));
+    if (!isStrongPassword(next)) return setFormError(t(WEAK_PASSWORD));
     if (next !== repeat) return setFormError(t('Yeni şifreler birbiriyle aynı değil.'));
 
     let signedOut = 0;
@@ -48,8 +48,8 @@ export default function ChangePasswordScreen() {
         secureTextEntry
         textContentType="newPassword"
         autoComplete="new-password"
-        hint={t('En az {0} karakter.', MIN_PASSWORD)}
       />
+      <PasswordRules password={next} />
       <TextField label={t('Yeni şifre (tekrar)')} value={repeat} onChangeText={setRepeat} secureTextEntry textContentType="newPassword" />
       <InlineError message={formError ?? save.error} />
       <Button label={t('Şifreyi değiştir')} icon="key" onPress={submit} busy={save.busy} />

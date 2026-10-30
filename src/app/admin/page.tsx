@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import AdminClient from "./AdminClient";
+import { Aurora } from "@/components/Aurora";
 import { DEFAULT_FEATURE_FLAGS } from "../api/admin/route";
 import { monthlyEquivalent, periodOf } from "@/lib/plans";
 
@@ -153,8 +154,9 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070A12] text-slate-100 p-3 sm:p-6 lg:p-8">
-      <div className="max-w-[1500px] mx-auto space-y-6">
+    <div className="admin-shell min-h-screen text-slate-100">
+      <Aurora fixed />
+      <div className="relative mx-auto max-w-[1560px] p-3 sm:p-6">
         <AdminClient
           initialBusinesses={businesses}
           metrics={{

@@ -3,7 +3,9 @@ import prisma from "@/lib/prisma";
 import { hashPassword, setSessionCookie } from "@/lib/auth";
 import { getDefaultStaffSelection } from "@/lib/utils";
 import { PLAN_PRICES, isPlan, type Plan } from "@/lib/plans";
-import { BUSINESS_NAME_TAKEN, PHONE_TAKEN, isBusinessNameTaken, isPhoneTaken } from "@/lib/uniqueness";
+import { BUSINESS_NAME_TAKEN, PHONE_REQUIRED, PHONE_TAKEN, isBusinessNameTaken, isPhoneTaken } from "@/lib/uniqueness";
+import { isPhoneNumber } from "@/lib/uniquenessKeys";
+import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
 import { businessSlug } from "@/lib/slug";
 import { PRIVACY_NOTICE_REQUIRED, privacyNoticeAccepted, privacyNoticeRecord } from "@/lib/privacyNotice";
 
@@ -56,7 +58,7 @@ const SECTOR_DEFAULTS: Record<string, { services: Array<{ name: string; duration
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, email, password, phone, businessName, sector = "BERBER", address, city = "İstanbul", whatsappNumber } = body;
+    const { name, email, password, phone, businessName, sector = "BERBER", address, district, city, whatsappNumber } = body;
     // Chosen at sign-up; the trial runs on the chosen plan. Older clients that send nothing get PERSON.
     const plan: Plan = isPlan(body.plan) ? body.plan : "PERSON";
 
@@ -69,6 +71,16 @@ export async function POST(req: Request) {
 
     if (!privacyNoticeAccepted(body)) {
       return NextResponse.json({ error: PRIVACY_NOTICE_REQUIRED, code: "PRIVACY_NOTICE_REQUIRED" }, { status: 400 });
+    }
+    if (!isStrongPassword(password)) {
+      return NextResponse.json({ error: WEAK_PASSWORD, code: "WEAK_PASSWORD" }, { status: 400 });
+    }
+    if (!isPhoneNumber(phone)) {
+      return NextResponse.json({ error: PHONE_REQUIRED, code: "PHONE_REQUIRED" }, { status: 400 });
+    }
+    const [cityName, districtName, street] = [city, district, address].map((v) => (typeof v === "string" ? v.trim() : ""));
+    if (!cityName || !districtName || !street) {
+      return NextResponse.json({ error: "Lütfen şehir, ilçe ve açık adresi giriniz.", code: "ADDRESS_REQUIRED" }, { status: 400 });
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -121,9 +133,9 @@ export async function POST(req: Request) {
             isVerified: false,
             enableStaffSelection: getDefaultStaffSelection(sector),
             description: `${businessName} olarak kaliteli hizmet anlayışımızla yanınızdayız. Randevunuzu hemen online oluşturabilirsiniz.`,
-            phone: phone || "0850 000 00 00",
-            address: address || "Merkez Mah. No: 1",
-            city: city || "İstanbul",
+            phone,
+            address: `${street}, ${districtName}`,
+            city: cityName,
             whatsappNumber: whatsappNumber || phone || null,
             subscription: {
               create: {

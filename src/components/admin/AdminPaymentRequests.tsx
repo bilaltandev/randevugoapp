@@ -83,7 +83,7 @@ export function AdminPaymentRequests({ businesses, onAction, busyKey, onOpenBusi
           const requested = new Date(sub.paymentRequestedAt);
           const waitingDays = Math.floor((Date.now() - requested.getTime()) / 86_400_000);
           return (
-            <li key={b.id} className="rounded-3xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
+            <li key={b.id} className="rounded-3xl admin-glass p-4 sm:p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                 {/* Business and owner */}
                 <div className="min-w-0 flex-1 space-y-1">

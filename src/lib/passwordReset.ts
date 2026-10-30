@@ -13,7 +13,6 @@ import { escapeHtml, sendMail } from "./mailer";
  */
 
 export const RESET_TTL_MS = 60 * 60 * 1000;
-export const MIN_PASSWORD_LENGTH = 8;
 const SELF_SERVICE_ROLES = ["BUSINESS_OWNER", "TEAM_MEMBER"];
 
 function hashToken(token: string): string {
