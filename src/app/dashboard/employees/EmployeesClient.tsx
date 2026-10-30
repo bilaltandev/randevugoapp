@@ -275,11 +275,11 @@ export default function EmployeesClient({
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {employees.map((emp) => (
-            <section key={emp.id} className="flex flex-col rounded-panel border border-line bg-surface">
+            <section key={emp.id} className="ios-group flex flex-col">
               <div className="flex items-start gap-3 p-4">
                 <Avatar name={emp.name} src={emp.photo} size="lg" />
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-sm font-semibold text-ink">{emp.name}</h3>
+                  <h3 className="truncate text-[17px] font-semibold tracking-[-0.01em] text-ink">{emp.name}</h3>
                   {emp.specialty && <p className="truncate text-sm text-ink-2">{emp.specialty}</p>}
                   <p className="mt-0.5 text-xs text-ink-3 tabular-nums">
                     {emp._count?.appointments || 0} randevu

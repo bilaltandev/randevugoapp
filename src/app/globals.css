@@ -191,6 +191,7 @@
   --rg-nav-text: #515154;
   --rg-nav-text-strong: #1D1D1F;
   --rg-dot: transparent;
+  --rg-glow: transparent;
 
   --rg-radius-control: 12px;
   --rg-radius-panel: 22px;
@@ -217,6 +218,154 @@
   --rg-shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   --rg-shadow-raised: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 12px 28px -14px rgba(0, 0, 0, 0.8);
   --rg-shadow-pop: 0 28px 64px -18px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* A faint wash of color behind everything, so the glass rail has something to blur. */
+.dash-shell {
+  background-color: var(--rg-canvas);
+  background-image:
+    radial-gradient(60vmax 50vmax at 0% 0%, color-mix(in srgb, var(--rg-brand) 10%, transparent), transparent 70%),
+    radial-gradient(50vmax 40vmax at 100% 0%, rgba(10, 132, 255, 0.07), transparent 70%);
+}
+/* The sidebar floats free of the window edge, like a macOS sidebar. A drawer on phones, so only from md up. */
+@media (min-width: 768px) {
+  .dash-rail {
+    margin: 12px 0 12px 12px;
+    border: 1px solid var(--rg-nav-line);
+    border-radius: 24px;
+    background-color: color-mix(in srgb, var(--rg-surface) 58%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(30px);
+    backdrop-filter: saturate(180%) blur(30px);
+    box-shadow: var(--rg-shadow-panel);
+  }
+}
+
+/* iOS home screen widgets on the overview. */
+.dash-widget {
+  overflow: hidden;
+  border: 1px solid var(--rg-line);
+  border-radius: 26px;
+  padding: 20px;
+  background-color: var(--rg-surface);
+  box-shadow: var(--rg-shadow-panel);
+}
+.dash-widget-brand {
+  border-color: transparent;
+  color: #fff;
+  background-image: linear-gradient(150deg, #12A67C, #0A6E53);
+}
+@keyframes dash-ring-grow {
+  from { stroke-dasharray: 0 var(--ring-length); }
+}
+.dash-ring { animation: dash-ring-grow 1.1s cubic-bezier(0.22, 1, 0.36, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .dash-ring { animation: none; }
+}
+
+/* Calendar events: Apple Calendar's tinted blocks. Set --tone to the status color. */
+.cal-event {
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--tone) 17%, var(--rg-surface));
+  color: color-mix(in srgb, var(--tone) 58%, var(--rg-ink));
+}
+/* Moving through dates slides the page. Movement only, so a stalled animation can't hide the calendar. */
+@keyframes cal-slide-next {
+  from { transform: translateX(22px); }
+}
+@keyframes cal-slide-prev {
+  from { transform: translateX(-22px); }
+}
+.cal-slide-next { animation: cal-slide-next 0.34s cubic-bezier(0.22, 1, 0.36, 1); }
+.cal-slide-prev { animation: cal-slide-prev 0.34s cubic-bezier(0.22, 1, 0.36, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .cal-slide-next,
+  .cal-slide-prev { animation: none; }
+}
+
+/* iOS grouped lists: hairlines that start after the row's leading inset. */
+.ios-list > * {
+  position: relative;
+}
+.ios-list > * + *::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: var(--ios-inset, 14px);
+  height: 1px;
+  background-color: var(--rg-line);
+}
+.ios-group {
+  overflow: hidden;
+  border: 1px solid var(--rg-line);
+  border-radius: var(--rg-radius-panel);
+  background-color: var(--rg-surface);
+  box-shadow: var(--rg-shadow-panel);
+}
+/* Section titles that stick while their rows scroll past. */
+.ios-section-title {
+  position: sticky;
+  top: -8px;
+  z-index: 1;
+  padding: 8px 16px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rg-ink-3);
+}
+
+/* Detail sheet. */
+.dash-sheet {
+  border-radius: 24px 24px 0 0;
+  background-color: color-mix(in srgb, var(--rg-surface) 88%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(36px);
+  backdrop-filter: saturate(180%) blur(36px);
+  box-shadow: var(--rg-shadow-pop);
+  animation: sheet-up 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes sheet-up {
+  from { transform: translateY(40px); }
+}
+@keyframes sheet-side {
+  from { transform: translateX(40px); }
+}
+@media (min-width: 768px) {
+  .dash-sheet {
+    border: 1px solid var(--rg-line);
+    border-radius: 24px;
+    animation-name: sheet-side;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-sheet { animation: none; }
+}
+
+/* Quiet system-style scrollbars in the panel; none at all on sideways filter rows. */
+.dash-shell ::-webkit-scrollbar-track { background: transparent; }
+.dash-shell ::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.35); }
+.dash-shell ::-webkit-scrollbar-thumb:hover { background: rgba(128, 128, 128, 0.55); }
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Chart columns grow up from the baseline. */
+@keyframes dash-bar-grow {
+  from { transform: scaleY(0.2); }
+}
+.dash-bar {
+  transform-origin: bottom;
+  animation: dash-bar-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-bar { animation: none; }
+}
+
+/* Spotlight-style search. */
+.dash-spotlight {
+  border: 1px solid var(--rg-line-strong);
+  border-radius: 24px;
+  background-color: color-mix(in srgb, var(--rg-surface) 74%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(40px);
+  backdrop-filter: saturate(180%) blur(40px);
+  box-shadow: var(--rg-shadow-pop);
 }
 
 /* Dot grid fading out down the page, with a soft accent glow in the top corners. One layer, painted first; the

@@ -1,19 +1,18 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { CalendarCheck2, Search, MessageSquare, CheckCircle2, Plus } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { CalendarCheck2, ChevronRight, Search, MessageSquare, CheckCircle2, Phone, Plus } from "lucide-react";
 import { formatCurrency, formatPhoneNumber, cn } from "@/lib/utils";
 import { getSectorDetails } from "@/lib/appointmentStatus";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Panel } from "@/components/ui/Panel";
-import { Button, buttonClasses } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
+import { SheetAction, SheetRows, SideSheet } from "@/components/ui/SideSheet";
 import { Segmented } from "@/components/ui/Segmented";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
-import { table } from "@/components/ui/table";
-import { localDateKey } from "../calendar/TimeGrid";
+import { eventTone, localDateKey } from "../calendar/TimeGrid";
 
 interface AppointmentsClientProps {
   businessId: string;
@@ -32,6 +31,10 @@ export default function AppointmentsClient({
   const [activeTab, setActiveTab] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  // By id, so the sheet follows status changes.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = appointments.find((a) => a.id === selectedId);
+  const closeSheet = useCallback(() => setSelectedId(null), []);
 
   // New form fields
   const [name, setName] = useState("");
@@ -154,9 +157,7 @@ export default function AppointmentsClient({
   return (
     <div className="space-y-5">
       <PageHeader
-        accent="blue"
         title="Rezervasyonlar"
-        description="Geçmiş ve gelecek tüm randevuları filtreleyin, onaylayın veya iptal edin."
         actions={
           <Button onClick={() => { setFormError(null); setIsNewModalOpen(true); }}>
             <Plus className="w-4 h-4" aria-hidden="true" />
@@ -165,201 +166,133 @@ export default function AppointmentsClient({
         }
       />
 
-      <Panel flush>
-        {/* Filters */}
-        <div className="flex flex-col gap-3 border-b border-line p-3 sm:px-5 md:flex-row md:items-center md:justify-between">
-          <Segmented
-            aria-label="Duruma göre filtrele"
-            value={activeTab}
-            onChange={setActiveTab}
-            options={[
-              { value: "ALL", label: "Tümü", count: appointments.length },
-              { value: "PENDING", label: "Bekleyen", count: countBy("PENDING") },
-              { value: "CONFIRMED", label: "Onaylanan", count: countBy("CONFIRMED") },
-              { value: "COMPLETED", label: "Tamamlanan", count: countBy("COMPLETED") },
-              { value: "CANCELLED", label: "İptal", count: countBy("CANCELLED") },
-            ]}
-          />
+      {/* Filters */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <Segmented
+          aria-label="Duruma göre filtrele"
+          value={activeTab}
+          onChange={setActiveTab}
+          options={[
+            { value: "ALL", label: "Tümü", count: appointments.length },
+            { value: "PENDING", label: "Bekleyen", count: countBy("PENDING") },
+            { value: "CONFIRMED", label: "Onaylanan", count: countBy("CONFIRMED") },
+            { value: "COMPLETED", label: "Tamamlanan", count: countBy("COMPLETED") },
+            { value: "CANCELLED", label: "İptal", count: countBy("CANCELLED") },
+          ]}
+        />
 
-          <div className="relative w-full md:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
-            <Input
-              type="search"
-              placeholder="İsim, telefon veya hizmet..."
-              aria-label="Rezervasyon ara"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+        <div className="relative w-full md:w-64">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+          <Input
+            type="search"
+            placeholder="İsim, telefon veya hizmet..."
+            aria-label="Rezervasyon ara"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="rounded-full border-transparent bg-surface-muted pl-9"
+          />
         </div>
+      </div>
 
-        {filtered.length === 0 ? (
-          <EmptyState
-            icon={CalendarCheck2}
-            title="Kayıt bulunamadı"
-            description="Seçili filtreye veya aramaya uygun rezervasyon yok."
-          />
-        ) : (
-          <>
-            {/* Mobile: list rows */}
-            <div className="md:hidden">
-              {groups.map((group) => (
-                <section key={group.label} aria-label={group.label}>
-                  {group.label && (
-                    <h3 className="sticky top-0 z-[1] flex items-center gap-2 border-b border-line bg-surface-muted/95 px-4 py-2 text-xs font-semibold text-ink-2 backdrop-blur-sm">
-                      {group.label}
-                      <span className="font-medium text-ink-3 tabular-nums">{group.items.length}</span>
-                    </h3>
-                  )}
-                  <ul className="divide-y divide-line border-b border-line last:border-b-0">
-                    {group.items.map((appt) => {
-                      const extras = extrasFor(appt);
-                      const cancelled = appt.status === "CANCELLED";
-                      return (
-                        <li key={appt.id} className={cn("space-y-2.5 px-4 py-3", appt.isBlockedSlot && "slot-blocked")}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p
-                                className={cn(
-                                  "truncate text-sm font-medium text-ink",
-                                  cancelled && "text-ink-3 line-through",
-                                )}
-                              >
-                                {appt.customerName}
-                              </p>
-                              <p className="text-sm text-ink-3 tabular-nums">
-                                {formatDay(appt.date)}, {appt.startTime}
-                                {appt.endTime ? `–${appt.endTime}` : ""}
-                              </p>
-                            </div>
-                            <StatusBadge status={appt.status} blocked={appt.isBlockedSlot} />
-                          </div>
-
-                          <p className="text-sm text-ink-2">
-                            {[appt.service?.name, appt.employee?.name, ...extras].filter(Boolean).join(" · ")}
-                            {appt.price > 0 && <span className="tabular-nums"> · {formatCurrency(appt.price)}</span>}
-                          </p>
-
-                          {appt.notes && <p className="text-sm text-ink-3">“{appt.notes}”</p>}
-
-                          {!appt.isBlockedSlot && (
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <a
-                                href={whatsappHref(appt.customerPhone)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={buttonClasses("secondary", "sm")}
-                              >
-                                <MessageSquare className="w-3.5 h-3.5" aria-hidden="true" />
-                                WhatsApp
-                              </a>
-                              <span className="flex-1" />
-                              {renderActions(appt)}
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              ))}
-            </div>
-
-            {/* Desktop: table */}
-            <div className={cn(table.wrapper, "hidden md:block")}>
-              <table className={table.table}>
-                <thead className={table.head}>
-                  <tr>
-                    <th className={table.th}>Tarih ve saat</th>
-                    <th className={table.th}>Müşteri</th>
-                    <th className={table.th}>Hizmet</th>
-                    <th className={table.th}>Uzman</th>
-                    <th className={table.th}>Durum</th>
-                    <th className={cn(table.th, "text-right")}>İşlemler</th>
-                  </tr>
-                </thead>
-                {groups.map((group) => (
-                  <tbody key={group.label} className={cn(table.body, "border-b border-line last:border-b-0")}>
-                    {group.label && (
-                      <tr>
-                        <th
-                          colSpan={6}
-                          scope="colgroup"
-                          className="bg-surface-muted/60 px-4 py-2 text-left text-xs font-semibold text-ink-2 sm:px-5"
-                        >
-                          {group.label}
-                          <span className="ml-2 font-medium text-ink-3 tabular-nums">{group.items.length}</span>
-                        </th>
-                      </tr>
+      {filtered.length === 0 ? (
+        <div className="ios-group">
+          <EmptyState icon={CalendarCheck2} title="Kayıt bulunamadı" description="Seçili filtreye veya aramaya uygun rezervasyon yok." />
+        </div>
+      ) : (
+        groups.map((group) => (
+          <section key={group.label} aria-label={group.label || "Rezervasyonlar"}>
+            {group.label && (
+              <h3 className="ios-section-title">
+                {group.label} <span className="font-normal tabular-nums">· {group.items.length}</span>
+              </h3>
+            )}
+            <ul className="ios-list ios-group [--ios-inset:104px]">
+              {group.items.map((appt) => {
+                const cancelled = appt.status === "CANCELLED";
+                const summary = [appt.service?.name, appt.employee?.name, ...extrasFor(appt)].filter(Boolean).join(" · ");
+                if (appt.isBlockedSlot) {
+                  return (
+                    <li key={appt.id} className="slot-blocked flex items-center gap-3 px-4 py-3">
+                      <div className="w-[68px] shrink-0 tabular-nums">
+                        <p className="text-[15px] font-semibold text-ink-2">{appt.startTime}</p>
+                        <p className="whitespace-nowrap text-[11px] text-ink-3">{formatDay(appt.date)}</p>
+                      </div>
+                      <p className="min-w-0 flex-1 truncate text-sm text-ink-2">{appt.notes || "Kapalı saat"}</p>
+                      <StatusBadge blocked />
+                    </li>
+                  );
+                }
+                return (
+                  <li key={appt.id} className="flex items-center gap-2 pr-3 transition-colors hover:bg-surface-muted/60">
+                    <button type="button" onClick={() => setSelectedId(appt.id)} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 text-left">
+                      <div className="w-[68px] shrink-0 tabular-nums">
+                        <p className={cn("text-[15px] font-semibold text-ink", cancelled && "text-ink-3")}>{appt.startTime}</p>
+                        <p className="whitespace-nowrap text-[11px] text-ink-3">{formatDay(appt.date)}</p>
+                      </div>
+                      <span className={cn("h-2 w-2 shrink-0 rounded-full bg-(--tone)", eventTone(appt).replace("line-through", ""))} aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className={cn("truncate text-[15px] font-medium text-ink", cancelled && "text-ink-3 line-through")}>{appt.customerName}</p>
+                        <p className="truncate text-[13px] text-ink-3">
+                          {summary}
+                          {appt.price > 0 && <span className="tabular-nums"> · {formatCurrency(appt.price)}</span>}
+                        </p>
+                      </div>
+                    </button>
+                    <span className="hidden sm:inline-flex">
+                      <StatusBadge status={appt.status} />
+                    </span>
+                    {appt.status === "PENDING" && (
+                      <Button size="sm" variant="primary" className="hidden md:inline-flex" onClick={() => handleUpdateStatus(appt.id, "CONFIRMED")}>
+                        Onayla
+                      </Button>
                     )}
-                    {group.items.map((appt) => {
-                      const extras = extrasFor(appt);
-                      const cancelled = appt.status === "CANCELLED";
-                      return (
-                        <tr key={appt.id} className={cn(table.row, appt.isBlockedSlot && "slot-blocked")}>
-                          <td className={cn(table.td, "whitespace-nowrap tabular-nums")}>
-                            <div className="font-medium text-ink">{formatDay(appt.date)}</div>
-                            <div className="text-ink-3">
-                              {appt.startTime}
-                              {appt.endTime ? `–${appt.endTime}` : ""}
-                            </div>
-                          </td>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))
+      )}
 
-                          <td className={table.td}>
-                            <div className={cn("font-medium text-ink", cancelled && "text-ink-3 line-through")}>
-                              {appt.customerName}
-                            </div>
-                            {!appt.isBlockedSlot && (
-                              <div className="text-ink-3 tabular-nums">{formatPhoneNumber(appt.customerPhone)}</div>
-                            )}
-                            {appt.notes && (
-                              <div className="mt-0.5 max-w-[220px] truncate text-xs text-ink-3">“{appt.notes}”</div>
-                            )}
-                          </td>
-
-                          <td className={table.td}>
-                            <div className="text-ink">{appt.service?.name}</div>
-                            <div className="text-ink-3">
-                              {[...extras, appt.price > 0 ? formatCurrency(appt.price) : null]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </div>
-                          </td>
-
-                          <td className={cn(table.td, "text-ink-2")}>{appt.employee?.name || "—"}</td>
-
-                          <td className={cn(table.td, "whitespace-nowrap")}>
-                            <StatusBadge status={appt.status} blocked={appt.isBlockedSlot} />
-                          </td>
-
-                          <td className={cn(table.td, "whitespace-nowrap text-right")}>
-                            {!appt.isBlockedSlot && (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <a
-                                  href={whatsappHref(appt.customerPhone)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={buttonClasses("ghost", "sm", "w-8 px-0")}
-                                  title="WhatsApp'tan yaz"
-                                  aria-label={`${appt.customerName} ile WhatsApp'tan yazış`}
-                                >
-                                  <MessageSquare className="w-4 h-4" />
-                                </a>
-                                {renderActions(appt)}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                ))}
-              </table>
+      {selected && (
+        <SideSheet title="Rezervasyon" onClose={closeSheet}>
+          <div className="space-y-5">
+            <div>
+              <p className="font-display text-[26px] font-semibold leading-tight tracking-[-0.03em] text-ink">{selected.customerName}</p>
+              <div className="mt-2">
+                <StatusBadge status={selected.status} />
+              </div>
             </div>
-          </>
-        )}
-      </Panel>
+
+            <div className="flex justify-center gap-2">
+              <SheetAction icon={Phone} label="Ara" href={`tel:${selected.customerPhone}`} />
+              <SheetAction icon={MessageSquare} label="WhatsApp" href={whatsappHref(selected.customerPhone)} external />
+            </div>
+
+            <SheetRows
+              rows={[
+                ["Tarih", formatDay(selected.date)],
+                ["Saat", `${selected.startTime}${selected.endTime ? `–${selected.endTime}` : ""}`],
+                ["Hizmet", selected.service?.name],
+                ["Uzman", selected.employee?.name],
+                ...extrasFor(selected).map((detail, i): [string, string] => [i === 0 ? "Detay" : " ", detail]),
+                ["Telefon", formatPhoneNumber(selected.customerPhone)],
+                ["Tutar", formatCurrency(selected.price)],
+              ]}
+            />
+
+            {selected.notes && (
+              <div>
+                <p className="px-1 pb-1 text-[13px] font-medium text-ink-3">Müşteri notu</p>
+                <p className="rounded-[14px] bg-surface-muted/60 px-3.5 py-2.5 text-sm text-ink-2">{selected.notes}</p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap justify-end gap-2">{renderActions(selected)}</div>
+          </div>
+        </SideSheet>
+      )}
 
       {/* Manual Appointment Modal */}
       <Modal isOpen={isNewModalOpen} onClose={() => setIsNewModalOpen(false)} title="Manuel rezervasyon">

@@ -50,10 +50,10 @@ export function DashboardHeader({
   };
 
   const iconButton =
-    "inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-ink-2 shadow-panel hover:text-ink transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+    "inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-2 hover:bg-surface-muted hover:text-ink transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 w-full shrink-0 items-center justify-between gap-3 border-b border-line/70 px-3 dash-glass sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-20 flex h-14 w-full shrink-0 items-center justify-between gap-3 px-3 sm:px-6 lg:px-8">
       <div className="flex min-w-0 items-center gap-2">
         {onToggleMobileMenu && (
           <button type="button" onClick={onToggleMobileMenu} className={`md:hidden -ml-1 ${iconButton}`} aria-label="Menüyü aç">
@@ -63,7 +63,7 @@ export function DashboardHeader({
         <span className="md:hidden truncate font-display text-[15px] font-bold tracking-[-0.02em] text-ink">{business.name}</span>
 
         {/* Public booking link */}
-        <div className="hidden md:flex h-10 items-center rounded-full border border-line bg-surface pl-1 text-sm shadow-panel">
+        <div className="hidden md:flex h-9 items-center rounded-full bg-surface-muted/70 pl-1 text-[13px]">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-muted text-ink-3" aria-hidden="true">
             <Globe className="h-3.5 w-3.5" />
           </span>
@@ -94,7 +94,7 @@ export function DashboardHeader({
           <button
             type="button"
             onClick={onOpenSearch}
-            className="hidden h-10 items-center gap-2 rounded-full border border-line bg-surface pl-3.5 pr-1.5 text-sm text-ink-3 shadow-panel transition-colors hover:text-ink sm:flex lg:w-56"
+            className="hidden h-9 items-center gap-2 rounded-full bg-surface-muted/70 pl-3.5 pr-1.5 text-[13px] text-ink-3 transition-colors hover:text-ink sm:flex lg:w-56"
             aria-label="Hızlı arama"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
@@ -131,7 +131,7 @@ export function DashboardHeader({
           </button>
         )}
 
-        <Button href="/dashboard/calendar?new=1" variant="primary" className="h-10 w-10 px-0 sm:w-auto sm:px-4">
+        <Button href="/dashboard/calendar?new=1" variant="primary" className="h-9 w-9 px-0 sm:w-auto sm:px-4">
           <Plus className="w-4 h-4" aria-hidden="true" />
           <span className="hidden sm:inline">Yeni randevu</span>
           <span className="sr-only sm:hidden">Yeni randevu</span>

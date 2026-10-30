@@ -103,7 +103,7 @@ export function DashboardShell({
       />
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden dash-main-area bg-canvas text-ink min-w-0">
+      <div className="flex flex-1 flex-col overflow-hidden dash-main-area text-ink min-w-0">
         <DashboardHeader
           business={business}
           currentTheme={theme}

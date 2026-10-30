@@ -29,9 +29,6 @@ export default async function DashboardPage() {
   const now = new Date();
   const firstName = (user.name || "").trim().split(/\s+/)[0];
 
-  const bookingsToday = todayAppointments.filter((a) => !a.isBlockedSlot && a.status !== "CANCELLED");
-  const pendingToday = bookingsToday.filter((a) => a.status === "PENDING").length;
-
   // Labels use Türkiye time, like `todayStr`.
   const monthName = now.toLocaleDateString("tr-TR", { month: "long", timeZone: BUSINESS_TIME_ZONE });
   const todayLabel = now.toLocaleDateString("tr-TR", {
@@ -54,11 +51,7 @@ export default async function DashboardPage() {
         title={firstName ? `Merhaba, ${firstName}` : "Bugün"}
       />
 
-      <TodayHero
-        total={bookingsToday.length}
-        pending={pendingToday}
-        done={bookingsToday.filter((a) => a.status === "COMPLETED").length}
-      />
+      <TodayHero appointments={todayAppointments} nextDayBooking={upcomingAppointments[0]} bookingsPerDay={bookingsPerDay} />
 
       <StatStrip
         variant="tiles"

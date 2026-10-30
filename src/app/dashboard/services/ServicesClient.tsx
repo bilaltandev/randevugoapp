@@ -156,9 +156,7 @@ export default function ServicesClient({
   return (
     <div className="space-y-5">
       <PageHeader
-        accent="amber"
         title="Hizmetler"
-        description="Sunduğunuz hizmetleri, sürelerini ve fiyatlarını buradan yönetin."
         actions={
           <>
             <Button onClick={handleGetAiSuggestions} disabled={loadingAi}>
@@ -220,11 +218,11 @@ export default function ServicesClient({
             }
           />
         ) : (
-          <ul className="divide-y divide-line">
+          <ul className="ios-list [--ios-inset:20px]">
             {services.map((srv) => (
-              <li key={srv.id} className="flex items-start gap-3 px-4 py-3 sm:items-center sm:gap-4 sm:px-5">
+              <li key={srv.id} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-muted/60 sm:items-center sm:gap-4 sm:px-5">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-ink">{srv.name}</p>
+                  <p className="text-[15px] font-medium text-ink">{srv.name}</p>
                   {srv.description && <p className="mt-0.5 line-clamp-2 text-sm text-ink-3">{srv.description}</p>}
                   <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-3 sm:hidden">
                     <Clock className="h-3.5 w-3.5" aria-hidden="true" />
@@ -236,7 +234,7 @@ export default function ServicesClient({
                   <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                   {srv.durationMinutes} dk
                 </span>
-                <span className="hidden w-24 text-right text-sm font-medium text-ink tabular-nums sm:block">
+                <span className="hidden w-24 text-right text-[15px] font-semibold text-ink tabular-nums sm:block">
                   {srv.price === 0 ? "Ücretsiz" : formatCurrency(srv.price)}
                 </span>
 

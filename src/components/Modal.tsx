@@ -49,7 +49,7 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-[#101827]/50 dark:bg-black/70"
+        className="fixed inset-0 bg-black/30 dark:bg-black/60"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -61,15 +61,15 @@ export function Modal({
         aria-labelledby={titleId}
         className={`relative z-10 w-full ${maxWidthClass} sm:max-w-md md:max-w-lg rounded-t-dialog sm:rounded-dialog border border-line bg-surface text-ink p-4 sm:p-6 shadow-pop`}
       >
-        <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-line mb-4 sm:mb-5">
-          <h3 id={titleId} className="text-base font-semibold text-ink truncate pr-2">{title}</h3>
+        <div className="mb-3 flex items-center justify-between sm:mb-4">
+          <h3 id={titleId} className="truncate pr-2 font-display text-[19px] font-semibold tracking-[-0.02em] text-ink">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-control p-1.5 text-ink-3 hover:text-ink hover:bg-surface-muted transition-colors shrink-0"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-muted text-ink-2 transition-colors hover:text-ink"
             aria-label="Kapat"
           >
-            <X className="w-5 h-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
         <div className="max-h-[75vh] sm:max-h-[80vh] overflow-y-auto pr-1">{children}</div>

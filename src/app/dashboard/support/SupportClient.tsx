@@ -87,9 +87,7 @@ export default function SupportClient({ tickets }: { tickets: OwnerTicket[] }) {
   return (
     <div className="space-y-5">
       <PageHeader
-        accent="blue"
         title="Destek"
-        description="Bir sorun mu yaşıyorsunuz? Talep oluşturun, destek ekibimiz en kısa sürede yanıt versin."
         actions={tickets.length > 0 ? newTicketButton : undefined}
       />
 
@@ -102,7 +100,7 @@ export default function SupportClient({ tickets }: { tickets: OwnerTicket[] }) {
             actions={newTicketButton}
           />
         ) : (
-          <ul className="divide-y divide-line">
+          <ul className="ios-list [--ios-inset:20px]">
             {tickets.map((t) => (
               <li key={t.id}>
                 <Link
@@ -111,9 +109,9 @@ export default function SupportClient({ tickets }: { tickets: OwnerTicket[] }) {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-sm font-medium text-ink">{t.subject}</span>
+                      <span className="truncate text-[15px] font-medium text-ink">{t.subject}</span>
                       {t.awaitingOwner && (
-                        <span className="rounded-control bg-brand-soft px-1.5 py-px text-[11px] font-medium text-brand-ink">
+                        <span className="rounded-full bg-brand-soft px-2 py-px text-[11px] font-semibold text-brand-ink">
                           Yeni yanıt
                         </span>
                       )}

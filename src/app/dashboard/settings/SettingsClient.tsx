@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Save, CheckCircle2, Info, Check } from "lucide-react";
+import { Save, Check, ChevronsUpDown } from "lucide-react";
 import { SECTORS, getDefaultStaffSelection, cn } from "@/lib/utils";
 import { LogoUploader } from "@/components/LogoUploader";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
-import { Field, Input, Select, Textarea, inputClasses } from "@/components/ui/Field";
+import { Textarea } from "@/components/ui/Field";
+import { SettingsGroup, SettingsRow, settingsInput } from "@/components/ui/SettingsGroup";
 import { Switch } from "@/components/ui/Switch";
 
 interface SettingsClientProps {
@@ -42,6 +42,7 @@ export default function SettingsClient({ initialBusiness }: SettingsClientProps)
 
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleWorkingHourChange = (idx: number, field: string, value: any) => {
     setWorkingHours((prev) => {
@@ -55,6 +56,7 @@ export default function SettingsClient({ initialBusiness }: SettingsClientProps)
     e.preventDefault();
     setSaving(true);
     setSavedSuccess(false);
+    setSaveError(null);
 
     try {
       const res = await fetch("/api/business/settings", {
@@ -78,9 +80,13 @@ export default function SettingsClient({ initialBusiness }: SettingsClientProps)
       if (res.ok) {
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || "Ayarlar kaydedilemedi.");
       }
     } catch (e) {
       console.error(e);
+      setSaveError("Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.");
     } finally {
       setSaving(false);
     }
@@ -88,214 +94,164 @@ export default function SettingsClient({ initialBusiness }: SettingsClientProps)
 
   const staffOffRecommended = ["RESTORAN", "RESTAURANT", "OTO_SERVIS"].includes(sector?.toUpperCase() || "");
   const sectorName = SECTORS.find((s) => s.id === sector)?.name ?? sector;
-  const timeInput = inputClasses("h-8 w-[6.5rem] px-2 tabular-nums");
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-3xl space-y-7">
       <PageHeader
-        accent="brand"
         title="Ayarlar"
-        description="İşletme bilgileri, iletişim, rezervasyon tercihleri ve çalışma saatleri."
         actions={
           <Button variant="primary" onClick={handleSaveSettings} disabled={saving}>
             {savedSuccess ? <Check className="w-4 h-4" aria-hidden="true" /> : <Save className="w-4 h-4" aria-hidden="true" />}
-            {saving ? "Kaydediliyor..." : savedSuccess ? "Kaydedildi" : "Değişiklikleri kaydet"}
+            {saving ? "Kaydediliyor..." : savedSuccess ? "Kaydedildi" : "Kaydet"}
           </Button>
         }
       />
 
-      {savedSuccess && (
-        <div
-          role="status"
-          className="flex items-center gap-2 rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink"
-        >
-          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-          Ayarlarınız kaydedildi.
-        </div>
+      {saveError && (
+        <p role="alert" className="rounded-[14px] bg-danger-soft px-4 py-2.5 text-sm text-danger">
+          {saveError}
+        </p>
       )}
 
-      <form onSubmit={handleSaveSettings} className="space-y-5">
-        {/* Business Profile */}
-        <Panel title="İşletme bilgileri" description="Rezervasyon sayfanızda görünen temel bilgiler.">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="İşletme adı *" htmlFor="set-name">
-                <Input id="set-name" type="text" required value={name} onChange={(e) => setName(e.target.value)} />
-              </Field>
-
-              <Field label="Sektör" htmlFor="set-sector">
-                <Select id="set-sector" value={sector} onChange={(e) => setSector(e.target.value)}>
-                  {SECTORS.map((sec) => (
-                    <option key={sec.id} value={sec.id}>
-                      {sec.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-
-            <Field label="Hakkımızda / açıklama" htmlFor="set-desc">
-              <Textarea id="set-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
-            </Field>
-
-            <div className="space-y-1.5 border-t border-line pt-4">
-              <p className="text-sm font-medium text-ink-2">İşletme logosu</p>
-              <LogoUploader
-                currentLogo={logo}
-                businessName={name}
-                onLogoChange={(newUrl) => setLogo(newUrl || "")}
-              />
-            </div>
-
-            <Field label="Kapak fotoğrafı URL" htmlFor="set-cover">
-              <Input
-                id="set-cover"
-                type="url"
-                value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
-                placeholder="https://..."
-              />
-            </Field>
+      <form onSubmit={handleSaveSettings} className="space-y-7">
+        <SettingsGroup title="İşletme" footer="Rezervasyon sayfanızda görünen temel bilgiler.">
+          <SettingsRow label="İşletme adı">
+            <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className={settingsInput} />
+          </SettingsRow>
+          <SettingsRow label="Sektör">
+            <select value={sector} onChange={(e) => setSector(e.target.value)} className={cn(settingsInput, "cursor-pointer appearance-none")}>
+              {SECTORS.map((sec) => (
+                <option key={sec.id} value={sec.id}>
+                  {sec.name}
+                </option>
+              ))}
+            </select>
+            <ChevronsUpDown className="h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+          </SettingsRow>
+          <div className="px-4 py-3">
+            <label htmlFor="set-desc" className="text-[15px] text-ink">
+              Hakkımızda
+            </label>
+            <Textarea
+              id="set-desc"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="mt-2 border-transparent bg-surface-muted/60"
+            />
           </div>
-        </Panel>
+        </SettingsGroup>
 
-        {/* Contact and Location */}
-        <Panel title="İletişim ve konum" description="Müşterilerin size ulaşacağı numaralar ve adres.">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <Field label="Telefon numarası" htmlFor="set-phone">
-                <Input id="set-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </Field>
-              <Field label="WhatsApp randevu hattı" htmlFor="set-wa">
-                <Input
-                  id="set-wa"
-                  type="tel"
-                  value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value)}
-                  placeholder="905321112233"
-                />
-              </Field>
-              <Field label="Şehir" htmlFor="set-city">
-                <Input id="set-city" type="text" value={city} onChange={(e) => setCity(e.target.value)} />
-              </Field>
-            </div>
-
-            <Field label="Açık adres" htmlFor="set-address">
-              <Textarea id="set-address" rows={2} value={address} onChange={(e) => setAddress(e.target.value)} />
-            </Field>
+        <SettingsGroup title="Görseller">
+          <div className="space-y-1.5 px-4 py-3">
+            <p className="text-[15px] text-ink">Logo</p>
+            <LogoUploader currentLogo={logo} businessName={name} onLogoChange={(newUrl) => setLogo(newUrl || "")} />
           </div>
-        </Panel>
+          <SettingsRow label="Kapak fotoğrafı">
+            <input type="url" value={coverImage} onChange={(e) => setCoverImage(e.target.value)} placeholder="https://..." className={settingsInput} />
+          </SettingsRow>
+        </SettingsGroup>
 
-        {/* Staff Selection Configuration */}
-        <Panel title="Rezervasyonda uzman seçimi">
-          <div className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p id="staff-toggle-label" className="text-sm font-medium text-ink">
-                  Müşteriler personel seçebilsin
-                </p>
-                <p className="mt-0.5 text-sm text-ink-3">
-                  {enableStaffSelection
-                    ? "Müşteri hizmeti veren uzmanlar arasından seçim yapar; uzmanın kendi takvimi dikkate alınır."
-                    : "Uzman seçimi adımı gizlenir; rezervasyon Hizmet → Tarih/Saat (veya Masa) olarak tamamlanır, atamayı sonradan siz yaparsınız."}
-                </p>
-              </div>
+        <SettingsGroup title="İletişim ve konum" footer="Müşterilerin size ulaşacağı numaralar ve adres.">
+          <SettingsRow label="Telefon">
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={settingsInput} />
+          </SettingsRow>
+          <SettingsRow label="WhatsApp">
+            <input type="tel" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="905321112233" className={settingsInput} />
+          </SettingsRow>
+          <SettingsRow label="Şehir">
+            <input type="text" value={city} onChange={(e) => setCity(e.target.value)} className={settingsInput} />
+          </SettingsRow>
+          <SettingsRow label="Açık adres">
+            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className={settingsInput} />
+          </SettingsRow>
+        </SettingsGroup>
 
-              <Switch
-                checked={enableStaffSelection}
-                onChange={setEnableStaffSelection}
-                aria-labelledby="staff-toggle-label"
-                className="mt-0.5"
-              />
-            </div>
-
-            <p className="flex items-start gap-2 rounded-control bg-surface-muted px-3 py-2 text-sm text-ink-2">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
-              <span>
-                {sectorName} için önerilen ayar: <strong className="font-medium text-ink">{staffOffRecommended ? "Kapalı" : "Açık"}</strong>.
-                Son karar sizindir; dilediğiniz zaman değiştirebilirsiniz.
-              </span>
-            </p>
-          </div>
-        </Panel>
-
-        {/* Working Hours Weekly Scheduler */}
-        <Panel
-          title="Çalışma ve mola saatleri"
-          description="Müşterilere gösterilen uygun saatler bu aralıklara göre hesaplanır."
-          flush
+        <SettingsGroup
+          title="Rezervasyon"
+          footer={
+            <>
+              {enableStaffSelection
+                ? "Müşteri hizmeti veren uzmanlar arasından seçim yapar; uzmanın kendi takvimi dikkate alınır."
+                : "Uzman seçimi adımı gizlenir; atamayı sonradan siz yaparsınız."}{" "}
+              {sectorName} için önerilen: {staffOffRecommended ? "Kapalı" : "Açık"}.
+            </>
+          }
         >
-          <ul className="divide-y divide-line">
-            {workingHours.map((wh, idx) => (
-              <li
-                key={wh.id || idx}
-                className="flex flex-col gap-3 px-4 py-3 sm:px-5 md:flex-row md:items-center md:justify-between"
-              >
-                <label className="flex min-w-[150px] cursor-pointer items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    checked={wh.isOpen}
-                    onChange={(e) => handleWorkingHourChange(idx, "isOpen", e.target.checked)}
-                    className="h-4 w-4 rounded accent-brand"
-                  />
-                  <span className={cn("text-sm font-medium", wh.isOpen ? "text-ink" : "text-ink-3")}>
-                    {DAYS[wh.dayOfWeek]}
-                  </span>
-                </label>
+          <div className="flex min-h-12 items-center justify-between gap-4 px-4 py-2">
+            <span id="staff-toggle-label" className="text-[15px] text-ink">
+              Müşteriler personel seçebilsin
+            </span>
+            <Switch checked={enableStaffSelection} onChange={setEnableStaffSelection} aria-labelledby="staff-toggle-label" />
+          </div>
+        </SettingsGroup>
 
-                {wh.isOpen ? (
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 text-sm text-ink-3">Mesai</span>
-                      <input
-                        type="time"
-                        aria-label={`${DAYS[wh.dayOfWeek]} açılış`}
-                        value={wh.openTime}
-                        onChange={(e) => handleWorkingHourChange(idx, "openTime", e.target.value)}
-                        className={timeInput}
-                      />
-                      <span className="text-ink-3">–</span>
-                      <input
-                        type="time"
-                        aria-label={`${DAYS[wh.dayOfWeek]} kapanış`}
-                        value={wh.closeTime}
-                        onChange={(e) => handleWorkingHourChange(idx, "closeTime", e.target.value)}
-                        className={timeInput}
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-12 text-sm text-ink-3">Mola</span>
-                      <input
-                        type="time"
-                        aria-label={`${DAYS[wh.dayOfWeek]} mola başlangıcı`}
-                        value={wh.breakStartTime || "13:00"}
-                        onChange={(e) => handleWorkingHourChange(idx, "breakStartTime", e.target.value)}
-                        className={timeInput}
-                      />
-                      <span className="text-ink-3">–</span>
-                      <input
-                        type="time"
-                        aria-label={`${DAYS[wh.dayOfWeek]} mola bitişi`}
-                        value={wh.breakEndTime || "14:00"}
-                        onChange={(e) => handleWorkingHourChange(idx, "breakEndTime", e.target.value)}
-                        className={timeInput}
-                      />
-                    </div>
+        <SettingsGroup title="Çalışma saatleri" footer="Müşterilere gösterilen uygun saatler bu aralıklara göre hesaplanır.">
+          {workingHours.map((wh, idx) => {
+            const day = DAYS[wh.dayOfWeek];
+            return (
+              <div key={wh.id || idx} className="px-4 py-2.5">
+                <div className="flex min-h-8 items-center justify-between gap-4">
+                  <span className={cn("text-[15px]", wh.isOpen ? "text-ink" : "text-ink-3")}>{day}</span>
+                  <Switch checked={wh.isOpen} onChange={(open) => handleWorkingHourChange(idx, "isOpen", open)} aria-label={`${day} açık`} />
+                </div>
+                {wh.isOpen && (
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <HoursRange
+                      label="Mesai"
+                      day={day}
+                      from={wh.openTime}
+                      to={wh.closeTime}
+                      onFrom={(v) => handleWorkingHourChange(idx, "openTime", v)}
+                      onTo={(v) => handleWorkingHourChange(idx, "closeTime", v)}
+                    />
+                    <HoursRange
+                      label="Mola"
+                      day={day}
+                      from={wh.breakStartTime || "13:00"}
+                      to={wh.breakEndTime || "14:00"}
+                      onFrom={(v) => handleWorkingHourChange(idx, "breakStartTime", v)}
+                      onTo={(v) => handleWorkingHourChange(idx, "breakEndTime", v)}
+                    />
                   </div>
-                ) : (
-                  <span className="text-sm text-ink-3">Kapalı · online randevu alınmaz</span>
                 )}
-              </li>
-            ))}
-          </ul>
-        </Panel>
+              </div>
+            );
+          })}
+        </SettingsGroup>
 
-        <div className="flex justify-end">
-          <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto">
-            {saving ? "Kaydediliyor..." : "Tüm ayarları kaydet"}
-          </Button>
-        </div>
+        <Button type="submit" variant="primary" disabled={saving} className="w-full">
+          {saving ? "Kaydediliyor..." : "Değişiklikleri kaydet"}
+        </Button>
       </form>
+    </div>
+  );
+}
+
+function HoursRange({
+  label,
+  day,
+  from,
+  to,
+  onFrom,
+  onTo,
+}: {
+  label: string;
+  day: string;
+  from: string;
+  to: string;
+  onFrom: (value: string) => void;
+  onTo: (value: string) => void;
+}) {
+  const time = "h-8 rounded-[8px] border-0 bg-surface-muted px-1.5 text-sm text-ink tabular-nums outline-none";
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-[12px] bg-surface-muted/50 px-3 py-1.5">
+      <span className="text-[13px] text-ink-3">{label}</span>
+      <span className="flex items-center gap-1.5">
+        <input type="time" aria-label={`${day} ${label} başlangıcı`} value={from} onChange={(e) => onFrom(e.target.value)} className={time} />
+        <span className="text-ink-3">–</span>
+        <input type="time" aria-label={`${day} ${label} bitişi`} value={to} onChange={(e) => onTo(e.target.value)} className={time} />
+      </span>
     </div>
   );
 }

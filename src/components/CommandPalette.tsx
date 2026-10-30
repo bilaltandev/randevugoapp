@@ -218,17 +218,17 @@ function PaletteDialog({
 
   let lastGroup = "";
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/35 px-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={() => onOpenChange(false)}>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/20 px-4 pt-[14vh]" onMouseDown={() => onOpenChange(false)}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Hızlı arama"
-        className="w-full max-w-[600px] overflow-hidden rounded-dialog border border-line bg-surface text-ink shadow-pop"
+        className="dash-spotlight w-full max-w-[640px] overflow-hidden text-ink"
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
       >
-        <div className="flex items-center gap-3 border-b border-line px-4">
-          <Search className="h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+        <div className="flex items-center gap-3 border-b border-line px-5">
+          <Search className="h-5 w-5 shrink-0 text-ink-3" aria-hidden="true" />
           <input
             ref={inputRef}
             // The caret shows focus here; the global :focus-visible ring would box the whole field.
@@ -239,7 +239,7 @@ function PaletteDialog({
               setActive(0);
             }}
             placeholder="Sayfa, işlem veya müşteri arayın..."
-            className="h-14 w-full border-0 bg-transparent text-base text-ink shadow-none outline-none ring-0 placeholder:text-ink-3 focus:border-0 focus:shadow-none focus:outline-none focus:ring-0 focus-visible:outline-none sm:text-[15px]"
+            className="h-16 w-full border-0 bg-transparent text-xl font-light text-ink shadow-none outline-none ring-0 placeholder:text-ink-3 focus:border-0 focus:shadow-none focus:outline-none focus:ring-0 focus-visible:outline-none"
             role="combobox"
             aria-expanded="true"
             aria-controls="command-list"
@@ -273,13 +273,13 @@ function PaletteDialog({
                   onMouseMove={() => setActive(i)}
                   onClick={() => cmd.run()}
                   className={cn(
-                    "flex h-10 cursor-pointer items-center gap-3 rounded-control px-3 text-sm",
-                    i === active ? "bg-surface-muted text-ink" : "text-ink-2"
+                    "flex h-10 cursor-pointer items-center gap-3 rounded-[10px] px-3 text-sm",
+                    i === active ? "bg-brand text-on-brand" : "text-ink-2"
                   )}
                 >
-                  <Icon className={cn("h-4 w-4 shrink-0", i === active ? "text-brand" : "text-ink-3")} aria-hidden="true" />
+                  <Icon className={cn("h-4 w-4 shrink-0", i === active ? "text-on-brand" : "text-ink-3")} aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">{cmd.label}</span>
-                  {cmd.hint && <span className="shrink-0 truncate text-xs text-ink-3 tabular-nums">{cmd.hint}</span>}
+                  {cmd.hint && <span className={cn("shrink-0 truncate text-xs tabular-nums", i === active ? "text-on-brand/80" : "text-ink-3")}>{cmd.hint}</span>}
                 </li>
               </React.Fragment>
             );

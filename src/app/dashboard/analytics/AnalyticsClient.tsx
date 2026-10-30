@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Sparkles, CheckCircle2 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
-import { StatStrip } from "@/components/ui/StatStrip";
+
+const DAY_SHORT: Record<string, string> = { Pazartesi: "Pzt", Salı: "Sal", Çarşamba: "Çar", Perşembe: "Per", Cuma: "Cum", Cumartesi: "Cmt", Pazar: "Paz" };
 
 interface AnalyticsClientProps {
   business: any;
@@ -92,12 +92,22 @@ export default function AnalyticsClient({
     "WhatsApp ile randevudan 2 saat önce hatırlatma göndererek randevuya gelmeme (no-show) oranını sıfıra yaklaştırın.",
   ];
 
+  const peakDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0];
+  const peakHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0];
+  const hasData = appointments.length > 0;
+
+  // Most booked services, from the bookings themselves.
+  const serviceCounts = new Map<string, number>();
+  appointments.forEach((a) => {
+    if (a.service?.name) serviceCounts.set(a.service.name, (serviceCounts.get(a.service.name) ?? 0) + 1);
+  });
+  const topServices = [...serviceCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topServiceMax = topServices[0]?.[1] ?? 1;
+
   return (
     <div className="space-y-5">
       <PageHeader
-        accent="amber"
         title="İstatistikler"
-        description="Performans metrikleri, yoğun gün ve saat dağılımı, büyüme önerileri."
         actions={
           <Button onClick={handleGenerateAiReport} disabled={loadingAi}>
             <Sparkles className="w-4 h-4" aria-hidden="true" />
@@ -106,100 +116,129 @@ export default function AnalyticsClient({
         }
       />
 
-      <StatStrip
-        stats={[
-          { label: "Toplam gelir", value: formatCurrency(totalRevenue), hint: "Onaylanan ve tamamlanan" },
-          { label: "Ortalama randevu tutarı", value: formatCurrency(avgTicket), hint: "Randevu başına" },
-          { label: "Toplam randevu", value: appointments.length, hint: `${completed.length} onaylı/tamamlanan` },
-          { label: "Tekrar gelen müşteri", value: `%${repeatRate}`, hint: `${customers.length} müşteri içinde` },
-        ]}
-      />
+      {/* Highlights: one plain sentence first, like the Health app's summary */}
+      <section className="dash-widget dash-widget-brand" aria-label="Öne çıkanlar">
+        <p className="text-[13px] font-medium opacity-80">Öne çıkanlar</p>
+        <p className="mt-2 max-w-3xl font-display text-[clamp(1.4rem,3vw,2rem)] font-semibold leading-[1.2] tracking-[-0.03em]">
+          {hasData
+            ? `En yoğun gününüz ${peakDay[0]}, en yoğun saatiniz ${peakHour[0]}. Müşterilerinizin %${repeatRate} kadarı tekrar geliyor.`
+            : "İlk randevularınız geldiğinde işletmenizin özeti burada görünecek."}
+        </p>
+      </section>
+
+      <dl className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {[
+          { label: "Toplam gelir", value: totalRevenue, format: formatCurrency, hint: "Onaylanan ve tamamlanan" },
+          { label: "Ortalama tutar", value: avgTicket, format: formatCurrency, hint: "Randevu başına" },
+          { label: "Toplam randevu", value: appointments.length, format: String, hint: `${completed.length} onaylı/tamamlanan` },
+          { label: "Tekrar gelen", value: repeatRate, format: (n: number) => `%${n}`, hint: `${customers.length} müşteri içinde` },
+        ].map((stat) => (
+          <div key={stat.label} className="dash-widget">
+            <dt className="text-[13px] font-medium text-ink-3">{stat.label}</dt>
+            <dd className="mt-1.5 truncate font-display text-[clamp(1.5rem,3vw,2rem)] font-semibold leading-none tracking-[-0.03em] text-ink tabular-nums">
+              <AnimatedNumber value={stat.value} format={stat.format} />
+            </dd>
+            <dd className="mt-2 truncate text-[13px] text-ink-3">{stat.hint}</dd>
+          </div>
+        ))}
+      </dl>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Days of week: horizontal bars, single series */}
-        <Panel title="Haftalık talep dağılımı" description="Güne göre randevu sayısı">
-          <ul className="space-y-2.5">
-            {Object.entries(dayCounts).map(([day, count]) => {
-              const pct = (count / maxDayCount) * 100;
-              return (
-                <li key={day} className="grid grid-cols-[5.5rem_1fr_2.5rem] items-center gap-3 text-sm" title={`${day}: ${count} randevu`}>
-                  <span className="text-ink-2">{day}</span>
-                  <span className="h-2 overflow-hidden rounded-full bg-surface-muted">
-                    <span
-                      className="block h-full rounded-full bg-brand"
-                      style={{ width: count > 0 ? `${Math.max(2, pct)}%` : 0 }}
-                    />
-                  </span>
-                  <span className="text-right tabular-nums text-ink">{count}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </Panel>
+        <section className="dash-widget" aria-label="Güne göre randevu">
+          <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-ink">Günler</h2>
+          <p className="text-[13px] text-ink-3">Güne göre randevu sayısı</p>
+          <BarChart bars={Object.entries(dayCounts).map(([day, value]) => ({ key: day, label: DAY_SHORT[day], value, title: `${day}: ${value} randevu` }))} />
+        </section>
 
-        {/* Hours: column chart, peak labelled */}
-        <Panel title="Saatlere göre yoğunluk" description="Başlangıç saatine göre randevu sayısı">
-          <div className="flex h-44 items-end gap-1.5" role="list">
-            {Object.entries(hourCounts).map(([hour, count]) => {
-              const isPeak = count >= maxHourCount && count > 0;
-              const pct = (count / maxHourCount) * 100;
-              return (
-                <div
-                  key={hour}
-                  role="listitem"
-                  className="group flex h-full flex-1 flex-col items-center justify-end gap-1"
-                  title={`${hour}: ${count} randevu`}
-                >
-                  <span className={cn("text-xs tabular-nums", isPeak ? "font-medium text-ink" : "text-ink-3")}>
-                    {count > 0 ? count : ""}
-                  </span>
-                  <span
-                    className={cn(
-                      "w-full rounded-t-[4px] transition-colors",
-                      count > 0 ? (isPeak ? "bg-brand" : "bg-brand/45 group-hover:bg-brand/70") : "bg-surface-muted"
-                    )}
-                    style={{ height: count > 0 ? `${Math.max(4, pct * 0.8)}%` : "2px" }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-2 flex gap-1.5 border-t border-line pt-2">
-            {Object.keys(hourCounts).map((hour) => (
-              <span key={hour} className="flex-1 text-center text-[10px] tabular-nums text-ink-3 sm:text-xs">
-                {hour.slice(0, 2)}
-              </span>
-            ))}
-          </div>
-        </Panel>
+        <section className="dash-widget" aria-label="Saate göre randevu">
+          <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-ink">Saatler</h2>
+          <p className="text-[13px] text-ink-3">Başlangıç saatine göre randevu sayısı</p>
+          <BarChart bars={Object.entries(hourCounts).map(([hour, value]) => ({ key: hour, label: hour.slice(0, 2), value, title: `${hour}: ${value} randevu` }))} />
+        </section>
       </div>
 
-      {/* Growth insights */}
-      <Panel
-        title="Büyüme önerileri"
-        description={aiReport ? "Yapay zeka analizinden" : "Genel öneriler · kişisel analiz için “Yapay zeka analizi”ni çalıştırın"}
-      >
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-medium text-ink">Yoğun saatler ve talep</h3>
-            <p className="mt-1 text-sm leading-relaxed text-ink-2">
-              {aiReport?.peakHoursAnalysis ||
-                "Hafta sonu Cumartesi 13:00 - 18:00 ve hafta içi 17:30 sonrası randevu talebiniz %85'e çıkıyor. Pazartesi ve Salı sabahları ise doluluk %30 seviyesinde kalıyor."}
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-ink">Uygulanabilir öneriler</h3>
-            <ul className="mt-2 space-y-2">
-              {tips.map((tip, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-sm text-ink-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
-                  <span>{tip}</span>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <section className="dash-widget" aria-label="En çok tercih edilen hizmetler">
+          <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-ink">En çok tercih edilenler</h2>
+          {topServices.length === 0 ? (
+            <p className="mt-2 text-sm text-ink-3">Henüz veri yok.</p>
+          ) : (
+            <ol className="mt-4 space-y-3">
+              {topServices.map(([name, count]) => (
+                <li key={name}>
+                  <div className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="truncate text-ink">{name}</span>
+                    <span className="font-medium text-ink-2 tabular-nums">{count}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                    <div className="h-full rounded-full bg-brand" style={{ width: `${(count / topServiceMax) * 100}%` }} />
+                  </div>
                 </li>
               ))}
-            </ul>
-          </div>
-        </div>
-      </Panel>
+            </ol>
+          )}
+        </section>
+
+        <section className="dash-widget" aria-label="Büyüme önerileri">
+          <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-ink">Büyüme önerileri</h2>
+          <p className="text-[13px] text-ink-3">{aiReport ? "Yapay zeka analizinden" : "Genel öneriler. Kişisel analiz için yukarıdan başlatın."}</p>
+          {aiReport?.peakHoursAnalysis && <p className="mt-3 text-sm leading-relaxed text-ink-2">{aiReport.peakHoursAnalysis}</p>}
+          <ul className="ios-list mt-2 [--ios-inset:26px]">
+            {tips.map((tip, idx) => (
+              <li key={idx} className="flex items-start gap-2.5 py-2.5 text-sm leading-relaxed text-ink-2">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                <span>{tip}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
     </div>
   );
+}
+
+/** Rounded columns in one color; the busiest stands out, the rest stay quiet. */
+function BarChart({ bars }: { bars: { key: string; label: string; value: number; title: string }[] }) {
+  const max = Math.max(1, ...bars.map((b) => b.value));
+  return (
+    <div className="mt-5">
+      <div className="flex h-40 items-end gap-1.5 sm:gap-2" role="list">
+        {bars.map((bar) => {
+          const peak = bar.value === max && bar.value > 0;
+          return (
+            <div key={bar.key} role="listitem" title={bar.title} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
+              <span className={cn("text-[11px] tabular-nums", peak ? "font-semibold text-ink" : "text-ink-3")}>{bar.value > 0 ? bar.value : ""}</span>
+              <span
+                className={cn("dash-bar w-full max-w-7 rounded-full", peak ? "bg-brand" : "bg-brand/25")}
+                style={{ height: bar.value > 0 ? `${Math.max(6, (bar.value / max) * 82)}%` : "6px" }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex gap-1.5 sm:gap-2">
+        {bars.map((bar) => (
+          <span key={bar.key} className="flex-1 truncate text-center text-[11px] text-ink-3">
+            {bar.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Counts up from zero once. Starts on the final value, so without JS timing it simply shows the number. */
+function AnimatedNumber({ value, format }: { value: number; format: (n: number) => string }) {
+  const [shown, setShown] = useState(value);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const start = performance.now();
+    let frame = requestAnimationFrame(function step(now) {
+      const t = Math.min((now - start) / 800, 1);
+      setShown(value * (1 - (1 - t) ** 3));
+      if (t < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return <>{format(Number.isInteger(value) ? Math.round(shown) : shown)}</>;
 }

@@ -270,8 +270,8 @@ export default function SubscriptionClient({
       {!welcome && (
         <Panel>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-base font-semibold text-ink">CalendlyGo {PLAN_NAMES[currentPlan]}</h2>
-            <span className={cn("inline-flex items-center rounded-control border px-1.5 py-0.5 text-xs font-medium leading-4", status.cls)}>
+            <h2 className="font-display text-[20px] font-semibold tracking-[-0.02em] text-ink">CalendlyGo {PLAN_NAMES[currentPlan]}</h2>
+            <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold leading-4", status.cls)}>
               {status.label}
             </span>
           </div>
@@ -314,7 +314,7 @@ export default function SubscriptionClient({
       )}
 
       <div className="flex justify-center">
-        <div className="inline-flex gap-1 rounded-control border border-line bg-surface-muted p-1" role="radiogroup" aria-label="Ödeme dönemi">
+        <div className="inline-flex gap-1 rounded-full border border-line bg-surface-muted p-1" role="radiogroup" aria-label="Ödeme dönemi">
           {BILLING_PERIODS.map((option) => (
             <button
               key={option}
@@ -323,7 +323,7 @@ export default function SubscriptionClient({
               aria-checked={period === option}
               onClick={() => setPeriod(option)}
               className={cn(
-                "rounded-[6px] px-4 py-1.5 text-sm font-medium transition-colors",
+                "rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
                 period === option ? "bg-surface text-ink shadow-raised" : "text-ink-3 hover:text-ink"
               )}
             >
@@ -356,13 +356,13 @@ export default function SubscriptionClient({
                 }
               }}
               className={cn(
-                "flex cursor-pointer flex-col rounded-panel border bg-surface p-5 shadow-panel transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                "flex cursor-pointer flex-col rounded-[26px] border bg-surface p-6 shadow-panel transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                 selected ? "border-brand ring-1 ring-brand" : "border-line hover:border-line-strong"
               )}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-lg font-bold text-ink">{PLAN_NAMES[plan]}</h3>
+                  <h3 className="font-display text-[22px] font-semibold tracking-[-0.02em] text-ink">{PLAN_NAMES[plan]}</h3>
                   <p className="text-sm text-ink-3">{PLAN_INFO[plan].tagline}</p>
                 </div>
                 {isCurrent && !welcome && (
@@ -371,8 +371,8 @@ export default function SubscriptionClient({
                   </span>
                 )}
               </div>
-              <p className="mt-4">
-                <span className="font-display text-3xl font-bold tabular-nums text-ink">{formatUSD(priceOf(plan))}</span>
+              <p className="mt-5">
+                <span className="font-display text-[44px] font-semibold leading-none tracking-[-0.04em] tabular-nums text-ink">{formatUSD(priceOf(plan))}</span>
                 <span className="text-sm text-ink-3"> {PERIOD_SUFFIX[period]}</span>
                 {period === "YEARLY" && (
                   <span className="mt-0.5 block text-xs text-ink-3">

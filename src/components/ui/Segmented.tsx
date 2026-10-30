@@ -33,7 +33,7 @@ export function Segmented<T extends string>({
       aria-label={rest["aria-label"]}
       className={cn(
         // Pill-shaped inside the dashboard (like the mobile app), squarer elsewhere.
-        "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[10px] border border-line bg-surface-muted p-[3px] in-[.dash-shell]:gap-1 in-[.dash-shell]:rounded-full in-[.dash-shell]:p-1",
+        "scrollbar-none inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[10px] border border-line bg-surface-muted p-[3px] in-[.dash-shell]:gap-1 in-[.dash-shell]:rounded-full in-[.dash-shell]:p-1",
         fill && "flex w-full",
         className
       )}

@@ -8,19 +8,17 @@ interface EmptyStateProps {
   actions?: React.ReactNode;
 }
 
-/** Nothing to show yet: a ringed icon over a short explanation. */
+/** Nothing to show yet: a large quiet icon over a short explanation, like an empty iOS list. */
 export function EmptyState({ icon: Icon, title, description, actions }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center px-4 py-10 text-center">
+    <div className="flex flex-col items-center px-6 py-14 text-center">
       {Icon && (
-        <span className="mb-4 rounded-full border border-brand-line p-1.5" aria-hidden="true">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-soft text-brand">
-            <Icon className="h-5 w-5" />
-          </span>
+        <span className="mb-4 text-ink-3" aria-hidden="true">
+          <Icon className="h-11 w-11" strokeWidth={1.25} />
         </span>
       )}
-      <p className="text-[15px] font-semibold text-ink">{title}</p>
-      {description && <p className="mt-1 max-w-sm text-sm text-ink-3">{description}</p>}
+      <p className="font-display text-[20px] font-semibold tracking-[-0.02em] text-ink">{title}</p>
+      {description && <p className="mt-1.5 max-w-sm text-[15px] leading-relaxed text-ink-3">{description}</p>}
       {actions && <div className="mt-5 flex flex-wrap justify-center gap-2">{actions}</div>}
     </div>
   );

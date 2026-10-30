@@ -137,7 +137,7 @@ export function DashboardSidebar({
   return (
     <aside
       className={cn(
-        "fixed md:relative inset-y-0 left-0 z-50 md:z-30 flex flex-col shrink-0 bg-nav text-nav-text border-r border-nav-line transition-[width,transform] duration-200",
+        "dash-rail fixed md:relative inset-y-0 left-0 z-50 md:z-30 flex flex-col shrink-0 bg-nav text-nav-text border-r border-nav-line transition-[width,transform] duration-200",
         mobileOpen ? "translate-x-0 w-72 max-w-[85vw] shadow-pop" : "-translate-x-full md:translate-x-0",
         collapsed ? "md:w-[68px]" : "md:w-64"
       )}
@@ -225,14 +225,14 @@ export function DashboardSidebar({
                       aria-current={active ? "page" : undefined}
                       title={!showLabels ? item.name : undefined}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-control px-2.5 h-9 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                        "flex items-center gap-2.5 rounded-[10px] px-2.5 h-[34px] text-[13.5px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
                         !showLabels && "md:justify-center md:px-0",
                         active
-                          ? "bg-nav-raised text-nav-text-strong font-semibold shadow-raised"
+                          ? "bg-brand-soft text-brand-ink font-semibold"
                           : "text-nav-text hover:bg-nav-hover hover:text-nav-text-strong"
                       )}
                     >
-                      <Icon className={cn("w-[18px] h-[18px] shrink-0", active ? "text-brand" : "opacity-80")} aria-hidden="true" />
+                      <Icon className={cn("w-[17px] h-[17px] shrink-0", active ? "text-brand" : "text-brand/80")} aria-hidden="true" />
                       {showLabels && <span className="truncate">{item.name}</span>}
                       {showLabels && item.name === "Abonelik" && subscriptionStatus === "trial" && (
                         <span className="ml-auto rounded-full border border-pending-line bg-pending-soft px-2 py-0.5 text-[11px] font-medium text-pending">

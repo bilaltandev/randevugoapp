@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/Segmented";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
-import { TimeGrid, localDateKey } from "./TimeGrid";
+import { TimeGrid, eventTone, localDateKey } from "./TimeGrid";
 
 interface CalendarClientProps {
   businessId: string;
@@ -35,6 +35,13 @@ export default function CalendarClient({
   const [appointments, setAppointments] = useState(initialAppointments);
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("week");
   const [currentDate, setCurrentDate] = useState(new Date());
+  // Which way the page slides when moving through dates.
+  const [slide, setSlide] = useState<"next" | "prev">("next");
+
+  // A week doesn't fit a phone: start on the day, like Apple Calendar.
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) setViewMode("day");
+  }, []);
 
   // Modals
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -72,6 +79,7 @@ export default function CalendarClient({
 
   // Navigation handlers
   const handlePrev = () => {
+    setSlide("prev");
     const d = new Date(currentDate);
     if (viewMode === "day") d.setDate(d.getDate() - 1);
     else if (viewMode === "week") d.setDate(d.getDate() - 7);
@@ -80,6 +88,7 @@ export default function CalendarClient({
   };
 
   const handleNext = () => {
+    setSlide("next");
     const d = new Date(currentDate);
     if (viewMode === "day") d.setDate(d.getDate() + 1);
     else if (viewMode === "week") d.setDate(d.getDate() + 7);
@@ -88,6 +97,7 @@ export default function CalendarClient({
   };
 
   const handleToday = () => {
+    setSlide(currentDate < new Date() ? "next" : "prev");
     setCurrentDate(new Date());
   };
 
@@ -246,52 +256,22 @@ export default function CalendarClient({
   return (
     <div className="space-y-5">
       <PageHeader
-        accent="brand"
-        title="Takvim"
-        description="Randevuları gün, hafta veya ay görünümünde takip edin."
+        eyebrow="Takvim"
+        title={
+          <span className="inline-block first-letter:uppercase" aria-live="polite">
+            {rangeLabel}
+          </span>
+        }
         actions={
-          <>
-            <Button onClick={() => { setBlockError(null); setIsBlockModalOpen(true); }}>
-              <Lock className="w-4 h-4" aria-hidden="true" />
-              Saat kapat
-            </Button>
-          </>
+          <Button onClick={() => { setBlockError(null); setIsBlockModalOpen(true); }}>
+            <Lock className="w-4 h-4" aria-hidden="true" />
+            Saat kapat
+          </Button>
         }
       />
 
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-control border border-line-strong bg-surface shadow-[0_1px_2px_rgba(13,17,23,0.05)]">
-            <button
-              type="button"
-              onClick={handlePrev}
-              className="flex h-9 w-9 items-center justify-center text-ink-2 hover:bg-surface-muted hover:text-ink rounded-l-control"
-              aria-label="Önceki"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleToday}
-              className="h-9 border-x border-line px-3 text-sm font-medium text-ink hover:bg-surface-muted"
-            >
-              Bugün
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              className="flex h-9 w-9 items-center justify-center text-ink-2 hover:bg-surface-muted hover:text-ink rounded-r-control"
-              aria-label="Sonraki"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-          <h2 className="ml-1 font-display text-lg font-bold tracking-[-0.02em] text-ink first-letter:uppercase sm:text-xl" aria-live="polite">
-            {rangeLabel}
-          </h2>
-        </div>
-
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Segmented
           aria-label="Görünüm"
           value={viewMode}
@@ -302,33 +282,60 @@ export default function CalendarClient({
             { value: "month", label: "Ay" },
           ]}
         />
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handlePrev}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-muted hover:text-ink"
+            aria-label="Önceki"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleToday}
+            className="h-9 rounded-full px-3.5 text-sm font-semibold text-[#FF3B30] transition-colors hover:bg-surface-muted"
+          >
+            Bugün
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-surface-muted hover:text-ink"
+            aria-label="Sonraki"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* VIEW: WEEK / DAY (time grid) */}
       {(viewMode === "week" || viewMode === "day") && (
         <Panel flush className="overflow-hidden">
-          <TimeGrid
-            days={viewMode === "week" ? weekDays : [currentDate]}
-            appointments={appointments}
-            onSelect={setSelectedAppt}
-            onCreateAt={handleCreateAt}
-          />
+          <div key={`${viewMode}-${rangeLabel}`} className={`cal-slide-${slide}`}>
+            <TimeGrid
+              days={viewMode === "week" ? weekDays : [currentDate]}
+              appointments={appointments}
+              onSelect={setSelectedAppt}
+              onCreateAt={handleCreateAt}
+            />
+          </div>
         </Panel>
       )}
 
       {/* VIEW: MONTHLY */}
       {viewMode === "month" && (
-        <Panel className="overflow-x-auto">
-          <div className="min-w-[520px]">
-            <div className="mb-2 grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-ink-3">
+        <Panel flush className="overflow-hidden">
+          <div key={rangeLabel} className={`cal-slide-${slide}`}>
+            <div className="grid grid-cols-7 border-b border-line py-2.5 text-center text-xs font-medium text-ink-3">
               {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((day) => (
                 <div key={day}>{day}</div>
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-1.5">
+            <div className="grid grid-cols-7 gap-px bg-line">
               {Array.from({ length: leadingBlanks }).map((_, i) => (
-                <div key={`blank-${i}`} aria-hidden="true" />
+                <div key={`blank-${i}`} className="bg-surface" aria-hidden="true" />
               ))}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const dayNum = i + 1;
@@ -346,31 +353,37 @@ export default function CalendarClient({
                       setCurrentDate(new Date(year, month, dayNum, 12));
                       setViewMode("day");
                     }}
-                    className="flex min-h-[104px] flex-col gap-1 rounded-control border border-line bg-surface p-1.5 text-left transition-colors hover:border-line-strong hover:bg-surface-muted"
+                    aria-label={`${dayNum}, ${dayList.length} randevu`}
+                    className="flex min-h-[72px] flex-col gap-1 bg-surface p-1 text-left transition-colors hover:bg-surface-muted sm:min-h-[112px] sm:p-1.5"
                   >
                     <span
                       className={cn(
-                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium tabular-nums",
-                        isToday ? "bg-brand text-on-brand" : "text-ink"
+                        "inline-flex h-7 w-7 items-center justify-center self-center rounded-full text-[13px] font-medium tabular-nums sm:self-end",
+                        isToday ? "bg-[#FF3B30] font-semibold text-white" : "text-ink"
                       )}
                     >
                       {dayNum}
                     </span>
                     {dayList.slice(0, 3).map((a) => (
-                      <span
-                        key={a.id}
-                        className={cn(
-                          "block truncate rounded-[5px] px-1.5 py-0.5 text-[11px] font-medium",
-                          a.status === "PENDING" ? "bg-pending-soft text-pending" : "bg-brand-soft text-brand-ink"
-                        )}
-                      >
+                      <span key={a.id} className={cn("cal-event hidden truncate px-1.5 py-0.5 text-[11px] font-medium sm:block", eventTone(a))}>
                         <span className="tabular-nums">{a.startTime}</span> {a.customerName}
                       </span>
                     ))}
-                    {dayList.length > 3 && <span className="px-1.5 text-[11px] text-ink-3">+{dayList.length - 3} daha</span>}
+                    {dayList.length > 3 && <span className="hidden px-1.5 text-[11px] text-ink-3 sm:block">+{dayList.length - 3} daha</span>}
+                    {/* Phones have no room for names: a dot per booking. */}
+                    {dayList.length > 0 && (
+                      <span className="flex flex-wrap justify-center gap-0.5 sm:hidden" aria-hidden="true">
+                        {dayList.slice(0, 4).map((a) => (
+                          <span key={a.id} className={cn("h-1.5 w-1.5 rounded-full bg-(--tone)", eventTone(a))} />
+                        ))}
+                      </span>
+                    )}
                   </button>
                 );
               })}
+              {Array.from({ length: (7 - ((leadingBlanks + daysInMonth) % 7)) % 7 }).map((_, i) => (
+                <div key={`end-${i}`} className="bg-surface" aria-hidden="true" />
+              ))}
             </div>
           </div>
         </Panel>

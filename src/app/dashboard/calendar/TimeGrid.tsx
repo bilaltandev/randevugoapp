@@ -20,13 +20,20 @@ const DEFAULT_START = 8;
 const DEFAULT_END = 21;
 const SNAP_MIN = 15;
 
+/** Apple Calendar's tinted blocks: each status is one system color (see .cal-event). */
 const TONES: Record<StatusTone, string> = {
-  pending: "border-pending-line bg-pending-soft text-ink [--tone:var(--rg-pending)]",
-  confirmed: "border-brand-line bg-brand-soft text-ink [--tone:var(--rg-brand)]",
-  completed: "border-line bg-surface-muted text-ink-2 [--tone:var(--rg-ink-3)]",
-  cancelled: "border-line bg-surface text-ink-3 line-through opacity-70 [--tone:var(--rg-danger)]",
-  blocked: "slot-blocked border-line bg-surface-muted text-ink-2 [--tone:var(--rg-line-strong)]",
+  pending: "[--tone:#FF9F0A]",
+  confirmed: "[--tone:#30B857]",
+  completed: "[--tone:#8E8E93]",
+  cancelled: "[--tone:#FF3B30] line-through opacity-60",
+  blocked: "slot-blocked [--tone:#8E8E93]",
 };
+
+export function eventTone(appt: { isBlockedSlot?: boolean | null; status: string }) {
+  return TONES[appt.isBlockedSlot ? "blocked" : getAppointmentStatus(appt.status).tone];
+}
+
+const NOW_RED = "#FF3B30";
 
 interface Placed {
   appt: any;
@@ -118,6 +125,7 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt }: TimeGridP
   }, [now === null, dayKeys.join()]);
 
   const single = days.length === 1;
+  const todayIndex = todayKey ? dayKeys.indexOf(todayKey) : -1;
 
   return (
     <div className="overflow-x-auto">
@@ -129,15 +137,15 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt }: TimeGridP
             const isToday = dayKeys[i] === todayKey;
             const count = (byDay.get(dayKeys[i]) ?? []).filter((p) => !p.appt.isBlockedSlot && p.appt.status !== "CANCELLED").length;
             return (
-              <div key={dayKeys[i]} className={cn("border-l border-line px-2 py-2.5", single ? "text-left" : "text-center")}>
+              <div key={dayKeys[i]} className={cn("px-2 py-2.5", single ? "text-left" : "text-center")}>
                 <div className={cn("flex items-center gap-2", !single && "flex-col gap-1")}>
-                  <span className={cn("text-xs font-medium", isToday ? "text-brand-ink" : "text-ink-3")}>
+                  <span className={cn("text-xs font-medium", isToday ? "text-[#FF3B30]" : "text-ink-3")}>
                     {d.toLocaleDateString("tr-TR", { weekday: single ? "long" : "short" })}
                   </span>
                   <span
                     className={cn(
-                      "flex h-8 min-w-8 items-center justify-center rounded-full px-1.5 font-display text-base font-bold tabular-nums",
-                      isToday ? "bg-brand text-on-brand" : "text-ink"
+                      "flex h-8 min-w-8 items-center justify-center rounded-full px-1.5 font-display text-[17px] font-semibold tabular-nums",
+                      isToday ? "bg-[#FF3B30] text-white" : "text-ink"
                     )}
                   >
                     {d.getDate()}
@@ -171,7 +179,7 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt }: TimeGridP
               return (
                 <div
                   key={key}
-                  className={cn("relative border-l border-line", isToday && "bg-brand-soft/30")}
+                  className={cn("relative border-l border-line", isToday && "bg-[#FF3B30]/[0.025]")}
                   style={{
                     backgroundImage: `repeating-linear-gradient(to bottom, transparent 0 ${HOUR_PX - 1}px, var(--rg-line) ${HOUR_PX - 1}px ${HOUR_PX}px)`,
                   }}
@@ -184,7 +192,7 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt }: TimeGridP
                   title="Boş bir saate tıklayarak randevu ekleyin"
                 >
                   {placed.map(({ appt, start, end, lane, lanes }) => {
-                    const tone: StatusTone = appt.isBlockedSlot ? "blocked" : getAppointmentStatus(appt.status).tone;
+                    const blocked = !!appt.isBlockedSlot;
                     const top = ((start - startHour * 60) / 60) * HOUR_PX;
                     const h = Math.max(((end - start) / 60) * HOUR_PX - 2, 22);
                     const compact = h < 44;
@@ -194,10 +202,10 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt }: TimeGridP
                         type="button"
                         onClick={() => onSelect(appt)}
                         className={cn(
-                          "absolute overflow-hidden rounded-[7px] border pl-2.5 pr-1.5 text-left text-xs shadow-[0_1px_2px_rgba(13,17,23,0.06)] transition-[filter] hover:brightness-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+                          "cal-event absolute overflow-hidden pl-2.5 pr-1.5 text-left text-xs transition-[filter] hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                           "before:absolute before:inset-y-1 before:left-1 before:w-[3px] before:rounded-full before:bg-(--tone)",
                           compact ? "py-0.5" : "py-1.5",
-                          TONES[tone]
+                          eventTone(appt)
                         )}
                         style={{
                           top: top + 1,
@@ -209,7 +217,7 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt }: TimeGridP
                         <span className={cn("flex items-center gap-1 font-semibold", compact && "truncate")}>
                           {compact && <span className="shrink-0 font-medium tabular-nums opacity-70">{appt.startTime}</span>}
                           <span className="truncate">{appt.isBlockedSlot ? appt.notes || "Kapalı saat" : appt.customerName}</span>
-                          {tone === "blocked" && <Lock className="h-3 w-3 shrink-0" aria-label="Kapalı saat" />}
+                          {blocked && <Lock className="h-3 w-3 shrink-0" aria-label="Kapalı saat" />}
                         </span>
                         {!compact && (
                           <span className="block truncate text-[11px] opacity-80 tabular-nums">
@@ -222,16 +230,29 @@ export function TimeGrid({ days, appointments, onSelect, onCreateAt }: TimeGridP
                     );
                   })}
 
-                  {isToday && nowTop !== null && (
-                    <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top: nowTop }} aria-hidden="true">
-                      <div className="relative h-0.5 bg-danger">
-                        <span className="absolute -left-1 -top-[3px] h-2 w-2 rounded-full bg-danger" />
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
+
+            {/* Now: a faint line across the week, bold over today, with the time in the hour column. */}
+            {nowTop !== null && todayIndex >= 0 && (
+              <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top: nowTop }} aria-hidden="true">
+                <span className="absolute left-0 w-[52px] -translate-y-1/2 text-right text-[11px] font-semibold tabular-nums" style={{ color: NOW_RED }}>
+                  {String(Math.floor(nowMin! / 60)).padStart(2, "0")}:{String(nowMin! % 60).padStart(2, "0")}
+                </span>
+                <span className="absolute left-14 right-0 h-px opacity-35" style={{ backgroundColor: NOW_RED }} />
+                <span
+                  className="absolute -top-px h-0.5"
+                  style={{
+                    backgroundColor: NOW_RED,
+                    left: `calc(56px + (100% - 56px) * ${todayIndex / days.length})`,
+                    width: `calc((100% - 56px) / ${days.length})`,
+                  }}
+                >
+                  <span className="absolute -left-1 -top-[3px] h-2 w-2 rounded-full" style={{ backgroundColor: NOW_RED }} />
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
