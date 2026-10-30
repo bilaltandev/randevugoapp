@@ -32,10 +32,10 @@ export function siteOrigin(req: Request): string {
   return process.env.VERCEL ? "https://www.calendlygo.com" : new URL(req.url).origin;
 }
 
-/** E-mails a reset link when `email` belongs to an eligible account; otherwise does nothing. */
-export async function sendPasswordReset(email: string, origin: string) {
+/** E-mails a reset link when `email` belongs to an eligible account. True when a mail went out. */
+export async function sendPasswordReset(email: string, origin: string): Promise<boolean> {
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true, email: true, role: true, isActive: true } });
-  if (!user || !user.isActive || !SELF_SERVICE_ROLES.includes(user.role)) return;
+  if (!user || !user.isActive || !SELF_SERVICE_ROLES.includes(user.role)) return false;
 
   const token = crypto.randomBytes(32).toString("base64url");
   await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
@@ -58,6 +58,7 @@ export async function sendPasswordReset(email: string, origin: string) {
   <p style="margin:0;font-size:12px;color:#687180">Bağlantı 1 saat geçerlidir ve tek kullanımlıktır. Bu isteği siz yapmadıysanız e-postayı yok sayabilirsiniz; şifreniz değişmez.</p>
 </div>`,
   });
+  return true;
 }
 
 /** Sets the new password. False when the link is unknown, expired or already used. */

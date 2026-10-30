@@ -1,5 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { RATE_LIMITS, getClientIp, hitRateLimit, rateLimitKey } from "@/lib/rateLimit";
+import { MailNotConfiguredError } from "@/lib/mailer";
 import { sendPasswordReset, siteOrigin } from "@/lib/passwordReset";
 
 // Public: POST { email }. Answers the same whether or not the account exists, and does the lookup and the
@@ -27,9 +28,12 @@ export async function POST(req: Request) {
   if (emailLimit.allowed) {
     const origin = siteOrigin(req);
     after(() =>
-      sendPasswordReset(email, origin).catch((error) => {
-        console.error("[password-reset] send failed", { name: (error as Error)?.name });
-      })
+      sendPasswordReset(email, origin)
+        .then((sent) => console.info("[password-reset] finished", { sent }))
+        .catch((error) => {
+          const { code, responseCode } = error as { code?: string; responseCode?: number };
+          console.error("[password-reset] send failed", { mailConfigured: !(error instanceof MailNotConfiguredError), code, responseCode });
+        })
     );
   }
   return NextResponse.json(OK);
