@@ -209,6 +209,11 @@ const dictionary: Record<string, string> = {
   'Açık adres (isteğe bağlı)': 'العنوان الكامل (اختياري)',
   'Mahalle, cadde, no, ilçe': 'الحي، الشارع، الرقم، المنطقة',
   'Hesabı oluştur': 'إنشاء الحساب',
+  'Randevu adresiniz: {0}': 'عنوان الحجز الخاص بك: {0}',
+  'isletmeniz': 'your-business',
+  'Okudum ve anladım:': 'لقد قرأت وفهمت:',
+  'Aydınlatma Metni': 'إشعار الخصوصية',
+  'Devam etmek için aydınlatma metnini okuduğunuzu onaylayın.': 'للمتابعة، يرجى تأكيد قراءتك لإشعار الخصوصية.',
   'Zaten hesabınız var mı?': 'لديك حساب بالفعل؟',
   'Giriş yapın': 'سجّل الدخول',
 

@@ -16,6 +16,8 @@ model User {
   phone      String?
   role       String     @default("BUSINESS_OWNER") // "BUSINESS_OWNER" | "TEAM_MEMBER" | "ADMIN" | "SUPER_ADMIN" | "SUPPORT"
   isActive   Boolean    @default(true) // Support agents can be deactivated by a super admin
+  privacyNoticeAcceptedAt DateTime? // KVKK notice acknowledged at sign-up; null for older accounts
+  privacyNoticeVersion    String?   // Which text they saw (src/lib/privacyNotice.ts)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   businesses Business[]

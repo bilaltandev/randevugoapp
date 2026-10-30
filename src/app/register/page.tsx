@@ -10,6 +10,8 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { choiceClasses } from "@/components/ui/choice";
+import { PrivacyConsent } from "@/components/auth/PrivacyConsent";
+import { businessSlug } from "@/lib/slug";
 
 // 16px on phones so iOS doesn't zoom into focused fields.
 const AUTH_INPUT = "h-10 text-base sm:text-sm";
@@ -23,6 +25,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [noticeAccepted, setNoticeAccepted] = useState(false);
 
   // Business details
   const [businessName, setBusinessName] = useState("");
@@ -40,13 +43,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
 
   // Auto slug generation preview
-  const previewSlug = businessName
-    ? businessName
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "")
-    : "isletmeniz";
+  const previewSlug = businessName ? businessSlug(businessName) : "isletmeniz";
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +57,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/team/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: inviteCode, name, email, password, phone }),
+        body: JSON.stringify({ code: inviteCode, name, email, password, phone, privacyNoticeAccepted: noticeAccepted }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) setError(data.error || "Ekibe katılınamadı.");
@@ -106,6 +103,7 @@ export default function RegisterPage() {
           city,
           address,
           whatsappNumber: whatsappNumber || phone,
+          privacyNoticeAccepted: noticeAccepted,
         }),
       });
 
@@ -235,6 +233,7 @@ export default function RegisterPage() {
               <Field label="Telefon numarası" htmlFor="join-phone">
                 <Input id="join-phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={AUTH_INPUT} />
               </Field>
+              <PrivacyConsent id="join-notice" checked={noticeAccepted} onChange={setNoticeAccepted} />
               <Button type="submit" variant="primary" disabled={loading} className="h-10 w-full">
                 {loading ? (
                   <>
@@ -333,6 +332,8 @@ export default function RegisterPage() {
               className={AUTH_INPUT}
             />
           </Field>
+
+          <PrivacyConsent id="reg-notice" checked={noticeAccepted} onChange={setNoticeAccepted} />
 
           <Button type="submit" variant="primary" className="h-10 w-full">
             Devam et

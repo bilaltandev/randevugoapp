@@ -52,10 +52,11 @@ export type RegisterInput = {
   address?: string;
   whatsappNumber?: string;
   plan?: 'PERSON' | 'TEAM';
+  privacyNoticeAccepted: boolean;
 };
 
 /** "Hazır ekibe katıl": a team member's sign-up with the invite code the owner gave them. */
-export type JoinTeamInput = { code: string; name: string; email: string; password: string; phone?: string };
+export type JoinTeamInput = { code: string; name: string; email: string; password: string; phone?: string; privacyNoticeAccepted: boolean };
 
 export type DeviceInfo = { deviceName?: string | null; platform?: string | null; appVersion?: string | null };
 

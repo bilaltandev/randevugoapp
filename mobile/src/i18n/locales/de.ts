@@ -208,6 +208,11 @@ const dictionary: Record<string, string> = {
   'Açık adres (isteğe bağlı)': 'Vollständige Adresse (optional)',
   'Mahalle, cadde, no, ilçe': 'Straße, Hausnummer, Bezirk',
   'Hesabı oluştur': 'Konto erstellen',
+  'Randevu adresiniz: {0}': 'Ihre Buchungsadresse: {0}',
+  'isletmeniz': 'ihr-betrieb',
+  'Okudum ve anladım:': 'Gelesen und verstanden:',
+  'Aydınlatma Metni': 'Datenschutzhinweis',
+  'Devam etmek için aydınlatma metnini okuduğunuzu onaylayın.': 'Bitte bestätigen Sie, dass Sie den Datenschutzhinweis gelesen haben.',
   'Zaten hesabınız var mı?': 'Bereits ein Konto?',
   'Giriş yapın': 'Anmelden',
 

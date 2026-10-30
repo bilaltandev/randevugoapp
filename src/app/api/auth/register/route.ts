@@ -4,20 +4,8 @@ import { hashPassword, setSessionCookie } from "@/lib/auth";
 import { getDefaultStaffSelection } from "@/lib/utils";
 import { PLAN_PRICES, isPlan, type Plan } from "@/lib/plans";
 import { BUSINESS_NAME_TAKEN, PHONE_TAKEN, isBusinessNameTaken, isPhoneTaken } from "@/lib/uniqueness";
-
-function slugify(text: string): string {
-  const trMap: Record<string, string> = {
-    ç: "c", Ç: "c", ğ: "g", Ğ: "g", ı: "i", İ: "i", ö: "o", Ö: "o", ş: "s", Ş: "s", ü: "u", Ü: "u"
-  };
-  return text
-    .split("")
-    .map((c) => trMap[c] || c)
-    .join("")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+import { businessSlug } from "@/lib/slug";
+import { PRIVACY_NOTICE_REQUIRED, privacyNoticeAccepted, privacyNoticeRecord } from "@/lib/privacyNotice";
 
 const SECTOR_DEFAULTS: Record<string, { services: Array<{ name: string; duration: number; price: number; desc: string }>; theme: string }> = {
   BERBER: {
@@ -79,6 +67,10 @@ export async function POST(req: Request) {
       );
     }
 
+    if (!privacyNoticeAccepted(body)) {
+      return NextResponse.json({ error: PRIVACY_NOTICE_REQUIRED, code: "PRIVACY_NOTICE_REQUIRED" }, { status: 400 });
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
@@ -98,7 +90,7 @@ export async function POST(req: Request) {
     }
 
     // Generate unique slug
-    let baseSlug = slugify(businessName) || "isletme";
+    const baseSlug = businessSlug(String(businessName));
     let slug = baseSlug;
     let counter = 1;
     while (await prisma.business.findUnique({ where: { slug } })) {
@@ -119,6 +111,7 @@ export async function POST(req: Request) {
         password: hashedPassword,
         phone: phone || null,
         role: "BUSINESS_OWNER",
+        ...privacyNoticeRecord(now),
         businesses: {
           create: {
             name: businessName,

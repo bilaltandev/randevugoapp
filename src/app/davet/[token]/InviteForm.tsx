@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { AuthError } from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { PrivacyConsent } from "@/components/auth/PrivacyConsent";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
 
@@ -16,6 +17,7 @@ export function InviteForm({ token, defaultName }: { token: string; defaultName:
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [noticeAccepted, setNoticeAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [joined, setJoined] = useState<{ businessName: string; email: string } | null>(null);
@@ -32,7 +34,7 @@ export function InviteForm({ token, defaultName }: { token: string; defaultName:
       const res = await fetch(`/api/team/invites/${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone, password }),
+        body: JSON.stringify({ name, email, phone, password, privacyNoticeAccepted: noticeAccepted }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -115,6 +117,7 @@ export function InviteForm({ token, defaultName }: { token: string; defaultName:
             className={AUTH_INPUT}
           />
         </Field>
+        <PrivacyConsent id="inv-notice" checked={noticeAccepted} onChange={setNoticeAccepted} />
         <Button type="submit" variant="primary" disabled={loading} className="h-10 w-full">
           {loading ? (
             <>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { RATE_LIMITS, getClientIp, hitRateLimit, rateLimitKey } from "@/lib/rateLimit";
 import { TeamInviteError, acceptInvite, type AcceptInput } from "@/lib/teamInvites";
+import { PRIVACY_NOTICE_REQUIRED, privacyNoticeAccepted } from "@/lib/privacyNotice";
 
 // Shared by the public invite endpoints (/api/team/invites/[token] and /api/team/join). Not a route.
 
@@ -34,6 +35,7 @@ export async function joinTeamResponse(tokenOrCode: string, body: Record<string,
   if (input.password.length < MIN_PASSWORD || input.password.length > 200) return bad(`Şifre en az ${MIN_PASSWORD} karakter olmalıdır.`);
   if ((input.phone ?? "").length > 30) return bad("Telefon numarası çok uzun.");
   if ((input.specialty ?? "").length > 80) return bad("Uzmanlık alanı çok uzun.");
+  if (!privacyNoticeAccepted(body)) return bad(PRIVACY_NOTICE_REQUIRED);
 
   try {
     const result = await acceptInvite(tokenOrCode, input);

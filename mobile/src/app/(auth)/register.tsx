@@ -9,8 +9,10 @@ import { SECTORS } from '@/api/panel';
 import { useAuth } from '@/auth/AuthProvider';
 import { loginErrorMessage } from '@/auth/messages';
 import { Icon, icons } from '@/components/Icon';
+import { PrivacyConsent } from '@/components/PrivacyConsent';
 import { Button, Chip, ChipRow, InlineError, TextField } from '@/components/ui';
 import { isOptionalEmail, isPhone } from '@/lib/forms';
+import { businessSlug } from '@/lib/slug';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
 import { t } from '@/i18n';
 
@@ -38,9 +40,11 @@ export default function RegisterScreen() {
     address: '',
     whatsappNumber: '',
   });
+  const [noticeAccepted, setNoticeAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const set = (key: keyof typeof form) => (value: string) => setForm((f) => ({ ...f, [key]: value }));
+  const noticeError = t('Devam etmek için aydınlatma metnini okuduğunuzu onaylayın.');
 
   const next = () => {
     setError(null);
@@ -48,6 +52,7 @@ export default function RegisterScreen() {
     if (!form.email.trim() || !isOptionalEmail(form.email)) return setError(t('Geçerli bir e-posta adresi girin.'));
     if (form.password.length < MIN_PASSWORD) return setError(t('Şifre en az {0} karakter olmalı.', MIN_PASSWORD));
     if (form.phone.trim() && !isPhone(form.phone)) return setError(t('Telefon numarası geçerli değil.'));
+    if (!noticeAccepted) return setError(noticeError);
     setStep(2);
   };
 
@@ -58,6 +63,7 @@ export default function RegisterScreen() {
     if (!form.email.trim() || !isOptionalEmail(form.email)) return setError(t('Geçerli bir e-posta adresi girin.'));
     if (form.password.length < MIN_PASSWORD) return setError(t('Şifre en az {0} karakter olmalı.', MIN_PASSWORD));
     if (form.phone.trim() && !isPhone(form.phone)) return setError(t('Telefon numarası geçerli değil.'));
+    if (!noticeAccepted) return setError(noticeError);
     setSubmitting(true);
     try {
       // On success the guard switches to the app (member view).
@@ -67,6 +73,7 @@ export default function RegisterScreen() {
         email: form.email.trim().toLowerCase(),
         password: form.password,
         phone: form.phone.trim() || undefined,
+        privacyNoticeAccepted: noticeAccepted,
       });
     } catch (e) {
       setError(e instanceof ApiError && e.status !== 429 && e.status < 500 ? t(e.message) : loginErrorMessage(e));
@@ -93,6 +100,7 @@ export default function RegisterScreen() {
         city: form.city.trim() || undefined,
         address: form.address.trim() || undefined,
         whatsappNumber: form.whatsappNumber.trim() || undefined,
+        privacyNoticeAccepted: noticeAccepted,
       });
     } catch (e) {
       // The sign-up endpoint answers in Turkish (e.g. "Bu e-posta adresi ile zaten bir hesap mevcut.").
@@ -172,6 +180,7 @@ export default function RegisterScreen() {
                 hint={t('En az {0} karakter.', MIN_PASSWORD)}
               />
               <TextField label={t('Telefon (isteğe bağlı)')} value={form.phone} onChangeText={set('phone')} placeholder={t('0532 000 00 00')} keyboardType="phone-pad" />
+              <PrivacyConsent checked={noticeAccepted} onChange={setNoticeAccepted} />
               <InlineError message={error} />
               {joining ? (
                 <Button label={t('Ekibe katıl')} icon="check" onPress={submitJoin} busy={submitting} />
@@ -183,7 +192,13 @@ export default function RegisterScreen() {
             <Animated.View key="s2" entering={FadeInRight.duration(260)} exiting={FadeOutLeft.duration(160)} style={styles.step}>
               <Text style={typography.display}>{t('İşletmenizi tanıtın')}</Text>
               <Text style={typography.body}>{t('Bu bilgiler online randevu sayfanızda görünür; sonradan değiştirebilirsiniz.')}</Text>
-              <TextField label={t('İşletme adı')} value={form.businessName} onChangeText={set('businessName')} placeholder={t('Örn: Ahmet Berber & Stil')} />
+              <TextField
+                label={t('İşletme adı')}
+                value={form.businessName}
+                onChangeText={set('businessName')}
+                placeholder={t('Örn: Ahmet Berber & Stil')}
+                hint={t('Randevu adresiniz: {0}', `calendlygo.com/${form.businessName.trim() ? businessSlug(form.businessName) : t('isletmeniz')}`)}
+              />
               <Text style={typography.label}>{t('Sektör')}</Text>
               <ChipRow>
                 {SECTORS.map((s) => (

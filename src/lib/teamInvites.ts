@@ -5,6 +5,7 @@ import { hashPassword } from "./auth";
 import { revokeAllMobileSessions } from "./mobileAuth";
 import { planOf } from "./plans";
 import { PHONE_TAKEN, isPhoneTaken } from "./uniqueness";
+import { privacyNoticeRecord } from "./privacyNotice";
 
 /**
  * TEAM plan invites, all single use:
@@ -209,7 +210,7 @@ export async function acceptInvite(tokenOrCode: string, input: AcceptInput) {
     }
 
     const user = await tx.user.create({
-      data: { name, email, password: passwordHash, phone: input.phone?.trim() || null, role: TEAM_MEMBER_ROLE },
+      data: { name, email, password: passwordHash, phone: input.phone?.trim() || null, role: TEAM_MEMBER_ROLE, ...privacyNoticeRecord() },
       select: { id: true, name: true, email: true },
     });
 
