@@ -148,7 +148,7 @@ export default function RegisterScreen() {
               <Text style={typography.body}>
                 {joining
                   ? t('İşletme sahibinin size verdiği davet kodunu girin. Size alınan randevuları uygulamada görürsünüz.')
-                  : t('14 gün ücretsiz deneyin. Kredi kartı gerekmez.')}
+                  : t('Ücretsiz başlayın. Kredi kartı gerekmez.')}
               </Text>
               {joining ? (
                 <TextField

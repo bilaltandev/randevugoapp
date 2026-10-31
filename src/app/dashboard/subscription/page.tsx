@@ -38,8 +38,8 @@ export default async function SubscriptionPage({
   return (
     <div className="space-y-6">
       <SubscriptionClient
-        // Right after sign-up: plan cards first, "14 gün ücretsiz deneyin" under them.
-        welcome={params.hosgeldin === "1" && access.active && access.kind === "trial"}
+        // Right after sign-up: plan cards first, "Ücretsiz paketle başla" under them.
+        welcome={params.hosgeldin === "1" && access.active && access.kind === "free"}
         initialSubscription={subscription ? JSON.parse(JSON.stringify(subscription)) : null}
         access={access.active ? { active: true, kind: access.kind, endsAt: access.endsAt?.toISOString() ?? null } : { active: false }}
         daysLeft={access.active ? daysUntil(access.endsAt) : 0}

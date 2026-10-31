@@ -22,7 +22,7 @@ import {
 import { Aurora } from "@/components/Aurora";
 import { HeroDevices } from "@/components/landing/DeviceMockups";
 import { PRIVACY_NOTICE_PATH } from "@/lib/privacyNotice";
-import { FREE_MONTHLY_BOOKINGS, PLAN_PRICES_TRY, TRIAL_DAYS, YEARLY_FREE_MONTHS, formatTRY } from "@/lib/plans";
+import { FREE_MONTHLY_BOOKINGS, PLAN_PRICES_TRY, YEARLY_FREE_MONTHS, formatTRY } from "@/lib/plans";
 
 /* Landing palette: a black hero over slow light with a mint accent, then Apple's light gray for the content. */
 const MINT = "#5BE38F";
@@ -174,7 +174,7 @@ export default function LandingPage() {
               Canlı örneği gör
             </Link>
           </div>
-          <p className="mt-6 text-sm text-white/50">{TRIAL_DAYS} gün ücretsiz · Kredi kartı gerekmez · VastLab tarafından geliştirildi</p>
+          <p className="mt-6 text-sm text-white/50">Ücretsiz paket · Kredi kartı gerekmez · VastLab tarafından geliştirildi</p>
           <div className="mx-auto mt-16 max-w-3xl text-left">
             <HeroDevices />
           </div>
@@ -282,7 +282,7 @@ export default function LandingPage() {
                 Ücretsiz başlayın, işiniz büyüdükçe yükseltin.
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-[19px] leading-relaxed text-[#6E6E73]">
-                İlk {TRIAL_DAYS} gün bütün özellikler sizin. Randevu başına kesinti ve gizli ücret yok.
+                Ücretsiz paketle hemen başlayın. Randevu başına kesinti ve gizli ücret yok.
               </p>
             </div>
 
@@ -322,7 +322,7 @@ export default function LandingPage() {
                         highlight ? "bg-[#5BE38F] text-[#04210F] hover:bg-[#7DEBA7]" : "bg-[#1D1D1F] text-white hover:bg-black"
                       }`}
                     >
-                      {TRIAL_DAYS} gün ücretsiz dene
+                      {plan ? `${name} ile başla` : "Ücretsiz başla"}
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Link>
                   </article>

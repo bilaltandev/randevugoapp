@@ -27,6 +27,10 @@ test("expired subscriptions are free; cancelled and missing ones are locked", ()
   assert.equal(subscriptionAccess(null, now).active, false);
 });
 
+test("a new business starts on the free tier", () => {
+  assert.deepEqual(subscriptionAccess({ status: "free", trialEndDate: now }, now), { active: true, kind: "free", endsAt: null });
+});
+
 test("a pending bank transfer does not give paid access", () => {
   // paymentStatus is not part of the rule: only the admin's confirmation (status "active") opens it.
   const pending = { status: "expired", trialEndDate: hoursFromNow(-1), paymentStatus: "pending" };

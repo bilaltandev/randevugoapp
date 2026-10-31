@@ -57,7 +57,7 @@ export default function LoginPage() {
         <>
           Henüz hesabınız yok mu?{" "}
           <Link href="/register" className="font-medium text-brand hover:text-brand-hover">
-            14 gün ücretsiz deneyin
+            Ücretsiz başlayın
           </Link>
         </>
       }

@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { DEFAULT_MONTHLY_PRICE, getActiveRedemption } from "@/lib/coupons";
 import { getUsdTryRate } from "@/lib/exchangeRate";
-import { BILLING_PERIODS, PLAN_PRICES, PLANS, TRIAL_DAYS, isBillingPeriod, isPlan, periodOf, planOf, type BillingPeriod, type Plan } from "@/lib/plans";
+import { BILLING_PERIODS, PLAN_PRICES, PLANS, isBillingPeriod, isPlan, periodOf, planOf, type BillingPeriod, type Plan } from "@/lib/plans";
 import { subscriptionAccess, subscriptionLock } from "@/lib/subscriptionAccess";
 import { PaymentRequestError, bankDetails, paymentReference, planPrice, planPriceTry, requestPayment } from "@/lib/subscriptionPayments";
 
@@ -23,10 +23,10 @@ export async function GET() {
       subscription = await prisma.subscription.create({
         data: {
           businessId,
-          planType: "TRIAL",
+          planType: "FREE",
           trialStartDate: now,
-          trialEndDate: new Date(now.getTime() + TRIAL_DAYS * DAY_MS),
-          status: "trial",
+          trialEndDate: now,
+          status: "free",
           paymentStatus: "paid",
           monthlyPrice: DEFAULT_MONTHLY_PRICE,
         },

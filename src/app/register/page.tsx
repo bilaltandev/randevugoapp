@@ -123,7 +123,7 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.error || "Kayıt tamamlanamadı.");
       } else {
-        // Next: the intro slides (once), then the plan cards with "14 gün ücretsiz deneyin" under them.
+        // Next: the intro slides (once), then the plan cards with "Ücretsiz paketle başla" under them.
         router.push("/hosgeldin");
         router.refresh();
       }
@@ -140,7 +140,7 @@ export default function RegisterPage() {
         <span>
           Adım {step} / 2 · {step === 1 ? "Hesap bilgileri" : "İşletme bilgileri"}
         </span>
-        <span className="text-brand-ink">14 gün ücretsiz · kredi kartı gerekmez</span>
+        <span className="text-brand-ink">Ücretsiz paket · kredi kartı gerekmez</span>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-1.5" aria-hidden="true">
         <span className="h-1 rounded-full bg-brand" />
@@ -468,7 +468,7 @@ export default function RegisterPage() {
                   Hesap oluşturuluyor...
                 </>
               ) : (
-                "Ücretsiz denemeyi başlat"
+                "Ücretsiz başla"
               )}
             </Button>
           </div>

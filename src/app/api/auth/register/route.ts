@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword, setSessionCookie } from "@/lib/auth";
 import { getDefaultStaffSelection } from "@/lib/utils";
-import { PLAN_PRICES, TRIAL_DAYS, isPlan, type Plan } from "@/lib/plans";
+import { PLAN_PRICES } from "@/lib/plans";
 import { BUSINESS_NAME_TAKEN, PHONE_REQUIRED, PHONE_TAKEN, isBusinessNameTaken, isPhoneTaken } from "@/lib/uniqueness";
 import { isPhoneNumber } from "@/lib/uniquenessKeys";
 import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
@@ -59,8 +59,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { name, email, password, phone, businessName, sector = "BERBER", address, district, city, whatsappNumber } = body;
-    // The trial shows everything: it runs on Team unless the client chose a plan.
-    const plan: Plan = isPlan(body.plan) ? body.plan : "TEAM";
 
     if (!name || !email || !password || !businessName) {
       return NextResponse.json(
@@ -112,8 +110,6 @@ export async function POST(req: Request) {
 
     const hashedPassword = await hashPassword(password);
     const now = new Date();
-    const trialEnd = new Date(now);
-    trialEnd.setDate(now.getDate() + TRIAL_DAYS);
 
     // Transaction for atomic creation
     const user = await prisma.user.create({
@@ -139,20 +135,20 @@ export async function POST(req: Request) {
             whatsappNumber: whatsappNumber || phone || null,
             subscription: {
               create: {
-                planType: "TRIAL",
-                plan,
+                planType: "FREE",
+                plan: "PERSON",
                 trialStartDate: now,
-                trialEndDate: trialEnd,
-                status: "trial",
+                trialEndDate: now,
+                status: "free",
                 paymentStatus: "paid",
-                monthlyPrice: PLAN_PRICES[plan].MONTHLY,
+                monthlyPrice: PLAN_PRICES.PERSON.MONTHLY,
                 billingPeriod: "MONTHLY",
               },
             },
             notifications: {
               create: {
                 title: "CalendlyGo'ya Hoş Geldiniz! 🎉",
-                message: `${TRIAL_DAYS} günlük ücretsiz deneme süreniz başladı. Hemen hizmetlerinizi ve sayfanızı özelleştirin.`,
+                message: "Ücretsiz paketiniz hazır. Hemen hizmetlerinizi ve sayfanızı özelleştirin.",
                 type: "SYSTEM",
                 link: "/dashboard",
               },

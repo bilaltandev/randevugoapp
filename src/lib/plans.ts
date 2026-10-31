@@ -2,8 +2,9 @@
 //
 // PERSON: one person takes the bookings; the business has at most one staff record and no staff choice.
 // TEAM: the owner invites members (TeamInvite); each member signs in and gets the bookings made for them.
-// Free tier: no plan of its own. A business with no trial or paid period left works like PERSON with a monthly
-// booking limit (and ads, once they exist), instead of being locked out.
+// Free tier: no plan of its own. New businesses start here (status "free"), and any business with no trial or paid
+// period left falls back to it: PERSON with a monthly booking limit (and ads, once they exist). There are no new
+// trials; older ones run until their end date.
 
 export type Plan = "PERSON" | "TEAM";
 
@@ -30,9 +31,6 @@ const OLD_LIST_PRICES = [1.49, 2.49, 13.49, 22.49, 1.99, 3.99, 14.99, 24.99];
 
 /** Bookings a month on the free tier. */
 export const FREE_MONTHLY_BOOKINGS = 30;
-
-/** Length of the free trial, in days. */
-export const TRIAL_DAYS = 14;
 
 /** Months a yearly payment gives for free: 399 TL is about eight months of 49 TL. */
 export const YEARLY_FREE_MONTHS = 4;

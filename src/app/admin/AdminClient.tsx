@@ -235,7 +235,7 @@ export default function AdminClient({
     if (statusFilter === "PASSIVE") matchesStatus = b.isActive === false;
     if (statusFilter === "TRIAL") matchesStatus = b.subscription?.status === "trial";
     if (statusFilter === "SUB_ACTIVE") matchesStatus = b.subscription?.status === "active";
-    if (statusFilter === "SUB_EXPIRED") matchesStatus = b.subscription?.status === "expired";
+    if (statusFilter === "SUB_EXPIRED") matchesStatus = b.subscription?.status === "expired" || b.subscription?.status === "free";
 
     // Sector Filter
     const matchesSector = sectorFilter === "ALL" || b.sector === sectorFilter;
@@ -478,7 +478,7 @@ export default function AdminClient({
                             : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                         }`}
                       >
-                        {b.subscription?.status === "active" ? "Aktif Abone" : "Deneme (Trial)"}
+                        {b.subscription?.status === "active" ? "Aktif Abone" : b.subscription?.status === "trial" ? "Deneme (Trial)" : "Ücretsiz"}
                       </span>
                       <span className="text-[10px] text-slate-400 block mt-0.5">
                         {new Date(b.createdAt).toLocaleDateString("tr-TR")}
@@ -630,7 +630,7 @@ export default function AdminClient({
                     : "bg-slate-800/80 text-slate-400 hover:text-white"
                 }`}
               >
-                Süresi Dolan ({businesses.filter((b) => b.subscription?.status === "expired").length})
+                Ücretsiz ({businesses.filter((b) => b.subscription?.status === "expired" || b.subscription?.status === "free").length})
               </button>
             </div>
           </div>
@@ -1426,6 +1426,7 @@ export default function AdminClient({
                       >
                         <option value="trial">Deneme (trial)</option>
                         <option value="active">Aktif (active)</option>
+                        <option value="free">Ücretsiz (free)</option>
                         <option value="expired">Süresi Doldu (expired)</option>
                         <option value="cancelled">İptal Edildi (cancelled)</option>
                       </select>

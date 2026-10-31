@@ -17,7 +17,6 @@ import {
   PERIOD_SUFFIX,
   PLAN_NAMES,
   PLANS,
-  TRIAL_DAYS,
   YEARLY_FREE_MONTHS,
   formatTRY,
   formatUSD,
@@ -246,8 +245,7 @@ export default function SubscriptionClient({
     }
   };
 
-  const startTrial = async () => {
-    if (chosen !== currentPlan && !(await switchPlan(chosen))) return;
+  const startFree = () => {
     router.push("/dashboard");
     router.refresh();
   };
@@ -266,7 +264,7 @@ export default function SubscriptionClient({
         title={welcome ? "Paketinizi seçin" : "Abonelik"}
         description={
           welcome
-            ? `Kaydınız tamamlandı. ${TRIAL_DAYS} gün bütün özellikleri ücretsiz kullanın, sonra size uyan paketle devam edin.`
+            ? "Kaydınız tamamlandı. Ücretsiz başlayın, işiniz büyüdükçe size uyan pakete geçin."
             : "Paketinizi, deneme sürenizi ve ödemelerinizi buradan yönetin."
         }
       />
@@ -474,14 +472,14 @@ export default function SubscriptionClient({
         <div className="flex flex-col items-center gap-1 pt-1 text-center">
           <button
             type="button"
-            onClick={startTrial}
+            onClick={startFree}
             disabled={busy}
             className="text-base font-semibold text-brand hover:text-brand-hover hover:underline disabled:opacity-50"
           >
-            {TRIAL_DAYS} gün ücretsiz deneyin →
+            Ücretsiz paketle başla →
           </button>
           <p className="text-xs text-ink-3">
-            Kart bilgisi gerekmez. Süre bitince ücretsiz pakete geçersiniz.
+            Kart bilgisi gerekmez. İstediğiniz zaman bir pakete geçebilirsiniz.
           </p>
         </div>
       )}

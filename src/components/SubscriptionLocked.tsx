@@ -8,7 +8,7 @@ export function SubscriptionLocked() {
       <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
         <Lock className="h-5 w-5" aria-hidden="true" />
       </span>
-      <h1 className="mt-4 text-lg font-semibold text-ink">Deneme süreniz veya aboneliğiniz sona erdi</h1>
+      <h1 className="mt-4 text-lg font-semibold text-ink">Aboneliğiniz sona erdi</h1>
       <p className="mt-2 text-sm text-ink-3">
         Panel ve online randevu sayfanız bir paket satın alana kadar kapalıdır. Müşterileriniz şu an randevu alamıyor.
       </p>
