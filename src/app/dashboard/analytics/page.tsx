@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { AdBanner } from "@/components/ads/AdBanner";
+import { subscriptionAccess } from "@/lib/subscriptionAccess";
 import AnalyticsClient from "./AnalyticsClient";
 
 export default async function AnalyticsPage() {
@@ -25,6 +27,7 @@ export default async function AnalyticsPage() {
         appointments={appointments}
         customers={customers}
       />
+      {subscriptionAccess(user.business.subscription).kind === "free" && <AdBanner />}
     </div>
   );
 }

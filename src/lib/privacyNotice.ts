@@ -3,7 +3,7 @@
 export const PRIVACY_NOTICE_PATH = "/aydinlatma-metni";
 
 /** Stored with each sign-up. Change it whenever the text changes, so we know which version a user saw. */
-export const PRIVACY_NOTICE_VERSION = "2026-10-30";
+export const PRIVACY_NOTICE_VERSION = "2026-10-31";
 
 export const PRIVACY_NOTICE_REQUIRED = "Devam etmek için aydınlatma metnini okuduğunuzu onaylayın.";
 

@@ -55,13 +55,19 @@ const SECTIONS: { title: string; paragraphs?: string[]; items?: string[] }[] = [
     ],
   },
   {
-    title: "6. Saklama süresi",
+    title: "6. Reklamlar",
+    paragraphs: [
+      "Ücretsiz pakette Google tarafından sunulan reklamlar gösterilebilir. Reklamların sunulması ve ölçülmesi için Google; çerezler, reklam tanımlayıcıları, IP adresi ve cihaz bilgileri gibi verileri kullanabilir. Biz kişiselleştirilmemiş reklam gösterilmesini talep ederiz. Müşterilerin randevu sayfalarında reklam gösterilmez. Ayrıntılar için Google'ın gizlilik politikasına bakabilirsiniz: policies.google.com/privacy",
+    ],
+  },
+  {
+    title: "7. Saklama süresi",
     paragraphs: [
       "Verileriniz, işleme amacının gerektirdiği süre ve ilgili mevzuattaki saklama süreleri boyunca tutulur; bu süreler sona erdiğinde silinir, yok edilir veya anonim hale getirilir.",
     ],
   },
   {
-    title: "7. Haklarınız",
+    title: "8. Haklarınız",
     paragraphs: ["KVKK'nın 11. maddesi uyarınca veri sorumlusuna başvurarak şu haklarınızı kullanabilirsiniz:"],
     items: [
       "Kişisel verilerinizin işlenip işlenmediğini öğrenme ve bilgi talep etme",
@@ -75,7 +81,7 @@ const SECTIONS: { title: string; paragraphs?: string[]; items?: string[] }[] = [
     ],
   },
   {
-    title: "8. Başvuru",
+    title: "9. Başvuru",
     paragraphs: [
       `Taleplerinizi ${CONTROLLER.email} adresine iletebilirsiniz. Başvurunuz, talebin niteliğine göre en geç 30 gün içinde sonuçlandırılır.`,
     ],

@@ -3,6 +3,7 @@ import { getDashboardSummary, trialDaysRemaining } from "@/lib/dashboardSummary"
 import { getCurrentUser } from "@/lib/auth";
 import { subscriptionAccess } from "@/lib/subscriptionAccess";
 import { formatCurrency } from "@/lib/utils";
+import { AdBanner } from "@/components/ads/AdBanner";
 import { SubscriptionAlert } from "@/components/SubscriptionAlert";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatStrip } from "@/components/ui/StatStrip";
@@ -103,6 +104,8 @@ export default async function DashboardPage() {
         showStaff={user.business.enableStaffSelection ?? true}
         isRestaurant={user.business.sector === "RESTORAN" || user.business.sector === "RESTAURANT"}
       />
+
+      {subscriptionAccess(subscription).kind === "free" && <AdBanner />}
     </div>
   );
 }

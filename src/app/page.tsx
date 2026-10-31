@@ -22,6 +22,7 @@ import {
 import { Aurora } from "@/components/Aurora";
 import { HeroDevices } from "@/components/landing/DeviceMockups";
 import { StoreBadges } from "@/components/landing/StoreBadges";
+import { ADSENSE_SCRIPT } from "@/lib/adsense";
 import { PRIVACY_NOTICE_PATH } from "@/lib/privacyNotice";
 import { FREE_MONTHLY_BOOKINGS, PLAN_PRICES_TRY, YEARLY_FREE_MONTHS, formatTRY } from "@/lib/plans";
 
@@ -124,6 +125,8 @@ function Wordmark() {
 export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-clip bg-black font-sans text-white selection:bg-[#5BE38F]/30">
+      {/* Google's site check reads this. Only here, never site-wide: auto ads must stay off the booking pages. */}
+      <script async src={ADSENSE_SCRIPT} crossOrigin="anonymous" />
       <header className="sticky top-0 z-50 border-b border-white/10 bg-black/60 backdrop-blur-xl backdrop-saturate-150">
         <div className={`${shell} flex h-14 items-center gap-4 lg:gap-8`}>
           <Wordmark />

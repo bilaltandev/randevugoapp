@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Geist, Geist_Mono, Manrope, Playfair_Display } from "next/font/google";
+import { ADSENSE_CLIENT } from "@/lib/adsense";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,6 +38,8 @@ export const metadata: Metadata = {
   title: "CalendlyGo | Yeni Nesil Rezervasyon & İşletme Yönetim SaaS Platformu",
   description:
     "Küçük ve orta ölçekli işletmeler için online randevu, müşteri ilişkileri, sayfa tasarlayıcı ve işletme yönetim platformu.",
+  // AdSense site verification.
+  other: { "google-adsense-account": ADSENSE_CLIENT },
 };
 
 export default function RootLayout({
