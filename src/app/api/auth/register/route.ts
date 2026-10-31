@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword, setSessionCookie } from "@/lib/auth";
 import { getDefaultStaffSelection } from "@/lib/utils";
-import { PLAN_PRICES, isPlan, type Plan } from "@/lib/plans";
+import { PLAN_PRICES, TRIAL_DAYS, isPlan, type Plan } from "@/lib/plans";
 import { BUSINESS_NAME_TAKEN, PHONE_REQUIRED, PHONE_TAKEN, isBusinessNameTaken, isPhoneTaken } from "@/lib/uniqueness";
 import { isPhoneNumber } from "@/lib/uniquenessKeys";
 import { WEAK_PASSWORD, isStrongPassword } from "@/lib/passwordPolicy";
@@ -59,8 +59,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { name, email, password, phone, businessName, sector = "BERBER", address, district, city, whatsappNumber } = body;
-    // Chosen at sign-up; the trial runs on the chosen plan. Older clients that send nothing get PERSON.
-    const plan: Plan = isPlan(body.plan) ? body.plan : "PERSON";
+    // The trial shows everything: it runs on Team unless the client chose a plan.
+    const plan: Plan = isPlan(body.plan) ? body.plan : "TEAM";
 
     if (!name || !email || !password || !businessName) {
       return NextResponse.json(
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
     const hashedPassword = await hashPassword(password);
     const now = new Date();
     const trialEnd = new Date(now);
-    trialEnd.setDate(now.getDate() + 3); // 3 days free trial
+    trialEnd.setDate(now.getDate() + TRIAL_DAYS);
 
     // Transaction for atomic creation
     const user = await prisma.user.create({
@@ -152,7 +152,7 @@ export async function POST(req: Request) {
             notifications: {
               create: {
                 title: "CalendlyGo'ya Hoş Geldiniz! 🎉",
-                message: "3 günlük ücretsiz deneme süreniz başladı. Hemen hizmetlerinizi ve sayfanızı özelleştirin.",
+                message: `${TRIAL_DAYS} günlük ücretsiz deneme süreniz başladı. Hemen hizmetlerinizi ve sayfanızı özelleştirin.`,
                 type: "SYSTEM",
                 link: "/dashboard",
               },

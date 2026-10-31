@@ -289,7 +289,7 @@ export type SubscriptionInfo = {
     monthlyPrice: number;
   };
   /** Older servers don't send it; `isExpired` then tells the same. */
-  access?: { active: boolean; kind: 'trial' | 'paid' | 'expired'; endsAt?: string | null };
+  access?: { active: boolean; kind: 'trial' | 'paid' | 'free' | 'expired'; endsAt?: string | null };
   daysRemaining: number;
   isExpired: boolean;
   monthlyPrice: number;
@@ -299,6 +299,8 @@ export type SubscriptionInfo = {
   billingPeriod?: BillingPeriod;
   /** USD price of every plan and billing period for this business. */
   prices?: Record<'PERSON' | 'TEAM', Record<BillingPeriod, number>>;
+  /** The same in TL; null where the admin set a custom USD price. Missing on older servers. */
+  pricesTry?: Record<'PERSON' | 'TEAM', Record<BillingPeriod, number | null>>;
   /** USD→TRY (TCMB selling rate) used for the bank transfer amount; null when unknown. */
   rate?: { rate: number; date: string; source: string } | null;
   /** Open bank transfer request waiting for the admin. Amounts in USD; `amountTry` is what to transfer. */

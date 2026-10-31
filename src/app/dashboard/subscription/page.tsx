@@ -2,7 +2,9 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveRedemption } from "@/lib/coupons";
 import { daysUntil, subscriptionAccess } from "@/lib/subscriptionAccess";
-import { bankDetails, paymentReference, planPrice } from "@/lib/subscriptionPayments";
+import { bankDetails, paymentReference, planPrice, planPriceTry } from "@/lib/subscriptionPayments";
+import { freeBookingsInMonth } from "@/lib/freeTier";
+import { BUSINESS_TIME_ZONE } from "@/lib/appointmentRules";
 import { getUsdTryRate } from "@/lib/exchangeRate";
 import { BILLING_PERIODS, PLANS, type BillingPeriod, type Plan } from "@/lib/plans";
 import SubscriptionClient from "./SubscriptionClient";
@@ -25,18 +27,26 @@ export default async function SubscriptionPage({
   const prices = Object.fromEntries(
     PLANS.map((plan) => [plan, Object.fromEntries(BILLING_PERIODS.map((period) => [period, planPrice(subscription, plan, period)]))])
   ) as Record<Plan, Record<BillingPeriod, number>>;
+  const pricesTry = Object.fromEntries(
+    PLANS.map((plan) => [plan, Object.fromEntries(BILLING_PERIODS.map((period) => [period, planPriceTry(subscription, plan, period)]))])
+  ) as Record<Plan, Record<BillingPeriod, number | null>>;
   const access = subscriptionAccess(subscription);
+  // en-CA gives YYYY-MM-DD; Türkiye's date, not the server's.
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: BUSINESS_TIME_ZONE });
+  const freeUsed = access.active && access.kind === "free" ? await freeBookingsInMonth(businessId, today) : 0;
 
   return (
     <div className="space-y-6">
       <SubscriptionClient
-        // Right after sign-up: plan cards first, "3 gün ücretsiz deneyin" under them.
+        // Right after sign-up: plan cards first, "14 gün ücretsiz deneyin" under them.
         welcome={params.hosgeldin === "1" && access.active && access.kind === "trial"}
         initialSubscription={subscription ? JSON.parse(JSON.stringify(subscription)) : null}
         access={access.active ? { active: true, kind: access.kind, endsAt: access.endsAt?.toISOString() ?? null } : { active: false }}
         daysLeft={access.active ? daysUntil(access.endsAt) : 0}
         bank={bankDetails()}
         prices={prices}
+        pricesTry={pricesTry}
+        freeUsed={freeUsed}
         rate={rate}
         reference={paymentReference(businessId)}
         initialActiveDiscount={

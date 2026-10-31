@@ -1,6 +1,7 @@
 import { BUSINESS_TIME_ZONE } from "@/lib/appointmentRules";
 import { getDashboardSummary, trialDaysRemaining } from "@/lib/dashboardSummary";
 import { getCurrentUser } from "@/lib/auth";
+import { subscriptionAccess } from "@/lib/subscriptionAccess";
 import { formatCurrency } from "@/lib/utils";
 import { SubscriptionAlert } from "@/components/SubscriptionAlert";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -44,7 +45,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <SubscriptionAlert status={subscription?.status || "trial"} daysRemaining={daysRemaining} />
+      <SubscriptionAlert status={subscriptionAccess(subscription).kind} daysRemaining={daysRemaining} />
 
       <PageHeader
         eyebrow={`${todayLabel.charAt(0).toLocaleUpperCase("tr-TR")}${todayLabel.slice(1)}`}

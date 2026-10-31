@@ -13,7 +13,7 @@ import { Screen } from '@/components/Screen';
 import { Button, Card, InlineError, ListGroup, ListRow, Pill, SectionTitle } from '@/components/ui';
 import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
 import { pickImage } from '@/lib/pickImage';
-import { formatUsd, periodSuffix } from '@/lib/plans';
+import { currentPriceLabel, periodSuffix } from '@/lib/plans';
 import { elevation, makeStyles, radius, spacing, useTheme, type ThemePreference } from '@/theme';
 import { getLanguagePreference, LANGUAGES, t, tc } from '@/i18n';
 
@@ -231,7 +231,7 @@ function SubscriptionCard({
       </Card>
     );
   }
-  const { subscription: s, daysRemaining, isExpired, monthlyPrice } = data;
+  const { subscription: s, daysRemaining, isExpired } = data;
   const period = data.billingPeriod ?? 'MONTHLY';
   const status = SUB_STATUS[s.status] ?? { label: s.status, tone: 'muted' as const };
   // Trial bar: 3-day trial on sign-up; active period: a month or a year.
@@ -246,9 +246,9 @@ function SubscriptionCard({
         </View>
         <View style={styles.flex}>
           <Text style={typography.heading}>
-            {s.planType === 'TRIAL' ? t('Deneme paketi') : `CalendlyGo ${data.plan === 'TEAM' ? 'Team' : 'Person'}`}
+            {data.access?.kind === 'free' ? t('Ücretsiz paket') : s.planType === 'TRIAL' ? t('Deneme paketi') : `CalendlyGo ${data.plan === 'TEAM' ? 'Team' : 'Person'}`}
           </Text>
-          <Text style={typography.caption}>{`${formatUsd(monthlyPrice)} ${periodSuffix(period)}`}</Text>
+          <Text style={typography.caption}>{`${currentPriceLabel(data)} ${periodSuffix(period)}`}</Text>
         </View>
         <Pill label={status.label} tone={status.tone} />
       </View>

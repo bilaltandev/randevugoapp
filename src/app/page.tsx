@@ -22,7 +22,7 @@ import {
 import { Aurora } from "@/components/Aurora";
 import { HeroDevices } from "@/components/landing/DeviceMockups";
 import { PRIVACY_NOTICE_PATH } from "@/lib/privacyNotice";
-import { PLAN_PRICES, formatUSD, yearlySavingPercent } from "@/lib/plans";
+import { FREE_MONTHLY_BOOKINGS, PLAN_PRICES_TRY, TRIAL_DAYS, YEARLY_FREE_MONTHS, formatTRY } from "@/lib/plans";
 
 /* Landing palette: a black hero over slow light with a mint accent, then Apple's light gray for the content. */
 const MINT = "#5BE38F";
@@ -85,15 +85,25 @@ const MORE_FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Smartphone, title: "Her cihazda", text: "Panel ve rezervasyon sayfası telefonda da rahat kullanılır." },
 ];
 
-const PLAN_ITEMS = [
-  "Sınırsız online randevu",
-  "Sınırsız hizmet",
-  "Kendi rezervasyon sayfanız",
-  "WhatsApp ile iletişim",
-  "Doğrulanmış müşteri yorumları",
-  "Müşteri kayıtları ve notlar",
-  "Takvim ve saat kapatma",
-  "Gelir ve doluluk istatistikleri",
+const PRICING: { name: string; tagline: string; items: string[]; highlight?: boolean; plan?: "PERSON" | "TEAM" }[] = [
+  {
+    name: "Ücretsiz",
+    tagline: "Yeni başlayanlar için",
+    items: [`Ayda ${FREE_MONTHLY_BOOKINGS} randevu`, "Kendi rezervasyon sayfanız", "Müşteri yönetimi", "Mobil uygulama", "Reklamlı kullanım"],
+  },
+  {
+    name: "Person",
+    tagline: "Tek başına çalışanlar için",
+    plan: "PERSON",
+    items: ["Sınırsız randevu", "Reklamsız kullanım", "Kendi rezervasyon sayfanız", "Sayfa düzenleyici ve galeri", "Müşteri yönetimi ve mobil uygulama"],
+  },
+  {
+    name: "Team",
+    tagline: "Ekipler için",
+    plan: "TEAM",
+    highlight: true,
+    items: ["Person paketindeki her şey", "5 ekip üyesine kadar davet", "Müşteri uzmanını seçer", "Her üye kendi randevularını görür", "Tek ödeme: ücreti yalnızca siz ödersiniz"],
+  },
 ];
 
 function Wordmark() {
@@ -164,7 +174,7 @@ export default function LandingPage() {
               Canlı örneği gör
             </Link>
           </div>
-          <p className="mt-6 text-sm text-white/50">3 gün ücretsiz · Kredi kartı gerekmez · VastLab tarafından geliştirildi</p>
+          <p className="mt-6 text-sm text-white/50">{TRIAL_DAYS} gün ücretsiz · Kredi kartı gerekmez · VastLab tarafından geliştirildi</p>
           <div className="mx-auto mt-16 max-w-3xl text-left">
             <HeroDevices />
           </div>
@@ -265,45 +275,59 @@ export default function LandingPage() {
 
         {/* Pricing */}
         <section id="fiyatlandirma" aria-labelledby="fiyat-baslik" className="scroll-mt-20 bg-white py-28">
-          <div className={`${shell} grid items-center gap-12 lg:grid-cols-2`}>
-            <div>
+          <div className={shell}>
+            <div className="text-center">
               <p className="text-[17px] font-semibold text-[#0A7B5C]">Şeffaf fiyatlandırma</p>
               <h2 id="fiyat-baslik" className={`${display} mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
-                İki paket, gizli ücret ve komisyon yok.
+                Ücretsiz başlayın, işiniz büyüdükçe yükseltin.
               </h2>
-              <p className="mt-4 max-w-md text-base leading-relaxed text-[#555E6C]">
-                3 gün boyunca bütün özellikleri ücretsiz deneyin. Devam etmek isterseniz aylık ya da yıllık sabit ücret ödersiniz; randevu başına kesinti yok.
+              <p className="mx-auto mt-4 max-w-2xl text-[19px] leading-relaxed text-[#6E6E73]">
+                İlk {TRIAL_DAYS} gün bütün özellikler sizin. Randevu başına kesinti ve gizli ücret yok.
               </p>
             </div>
-            <div className="rounded-[2rem] bg-[#F5F5F7] p-8 sm:p-10">
-              <div className="flex items-baseline justify-between gap-4">
-                <h3 className="text-lg font-semibold">Person</h3>
-                <span className="rounded-full bg-[#EAF6F1] px-3 py-1 text-xs font-semibold text-[#075A43]">3 gün ücretsiz</span>
-              </div>
-              <p className="mt-6">
-                <span className={`${display} text-6xl font-semibold tracking-[-0.045em]`}>{formatUSD(PLAN_PRICES.PERSON.MONTHLY)}</span>
-                <span className="ml-1 text-base text-[#687180]">/ ay</span>
-              </p>
-              <p className="mt-2 text-sm text-[#454E5C]">
-                Yıllık {formatUSD(PLAN_PRICES.PERSON.YEARLY)} (%{yearlySavingPercent("PERSON")} indirim) · Ekibinizle çalışıyorsanız{" "}
-                <span className="font-semibold">Team</span>: {formatUSD(PLAN_PRICES.TEAM.MONTHLY)} / ay veya {formatUSD(PLAN_PRICES.TEAM.YEARLY)} / yıl
-              </p>
-              <ul className="mt-8 grid gap-3 text-sm text-[#454E5C] sm:grid-cols-2">
-                {PLAN_ITEMS.map((item) => (
-                  <li key={item} className="flex items-center gap-2.5">
-                    <Check className="h-4 w-4 shrink-0 text-[#0A7B5C]" aria-hidden="true" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/register"
-                className="mt-9 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#1D1D1F] text-[15px] font-semibold text-white transition-colors hover:bg-black"
-              >
-                3 gün ücretsiz başla
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-              <p className="mt-3 text-center text-xs text-[#687180]">Kredi kartı gerekmez, kurulum birkaç dakika sürer.</p>
+
+            <div className="mt-12 grid gap-4 lg:grid-cols-3">
+              {PRICING.map(({ name, tagline, items, highlight, plan }) => {
+                const prices = plan ? PLAN_PRICES_TRY[plan] : null;
+                return (
+                  <article key={name} className={`flex flex-col rounded-[2rem] p-8 ${highlight ? "bg-black text-white" : "bg-[#F5F5F7]"}`}>
+                    <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{name}</h3>
+                    <p className={`text-sm ${highlight ? "text-white/60" : "text-[#6E6E73]"}`}>{tagline}</p>
+                    <p className="mt-6">
+                      <span className={`${display} text-[52px] font-semibold leading-none tracking-[-0.045em]`}>{formatTRY(prices?.MONTHLY ?? 0)}</span>
+                      <span className={`ml-1 text-base ${highlight ? "text-white/60" : "text-[#6E6E73]"}`}>/ ay</span>
+                    </p>
+                    <p className={`mt-2 min-h-11 text-sm leading-[22px] ${highlight ? "text-white/70" : "text-[#6E6E73]"}`}>
+                      {prices ? (
+                        <>
+                          Yıllık ödeyin: <span className="font-semibold">{formatTRY(Math.floor(prices.YEARLY / 12))} / ay</span>
+                          <br />
+                          {formatTRY(prices.YEARLY)} <span className="line-through">{formatTRY(prices.MONTHLY * 12)}</span> · {YEARLY_FREE_MONTHS} ay bedava
+                        </>
+                      ) : (
+                        "Süresiz ücretsiz, kredi kartı gerekmez"
+                      )}
+                    </p>
+                    <ul className="mt-6 flex-1 space-y-3 text-sm">
+                      {items.map((item) => (
+                        <li key={item} className="flex items-start gap-2.5">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: highlight ? MINT : "#0A7B5C" }} aria-hidden="true" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href="/register"
+                      className={`mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold transition-colors ${
+                        highlight ? "bg-[#5BE38F] text-[#04210F] hover:bg-[#7DEBA7]" : "bg-[#1D1D1F] text-white hover:bg-black"
+                      }`}
+                    >
+                      {TRIAL_DAYS} gün ücretsiz dene
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </article>
+                );
+              })}
             </div>
           </div>
         </section>

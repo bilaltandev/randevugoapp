@@ -34,12 +34,12 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <GateFrame title={t('Paketinizi seçin')} subtitle={t('Kaydınız tamamlandı. Hemen satın alabilir ya da önce 3 gün ücretsiz deneyebilirsiniz.')}>
+    <GateFrame title={t('Paketinizi seçin')} subtitle={t('Kaydınız tamamlandı. 14 gün bütün özellikleri ücretsiz kullanın, sonra size uyan paketle devam edin.')}>
       <PlanPurchase info={data} selected={chosen} onSelect={setSelected} onChanged={refresh} />
       <Pressable onPress={startTrial} disabled={start.busy} accessibilityRole="button" style={styles.trial} hitSlop={8}>
-        <Text style={[typography.heading, { color: colors.brand }]}>{t('3 gün ücretsiz deneyin →')}</Text>
+        <Text style={[typography.heading, { color: colors.brand }]}>{t('14 gün ücretsiz deneyin →')}</Text>
         <Text style={[typography.caption, styles.center]}>
-          {t('{0} paketiyle başlar. Kart bilgisi gerekmez; süre bitince panel kapanır.', PLAN_INFO[chosen].name)}
+          {t('Kart bilgisi gerekmez. Süre bitince ücretsiz pakete geçersiniz.')}
         </Text>
       </Pressable>
       <InlineError message={start.error} />

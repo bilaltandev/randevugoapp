@@ -12,28 +12,32 @@ import { Field, Input } from "@/components/ui/Field";
 import { applyPercentOff, formatTL, normalizeCouponCode } from "@/lib/couponOptions";
 import {
   BILLING_PERIODS,
+  FREE_MONTHLY_BOOKINGS,
   PERIOD_NAMES,
   PERIOD_SUFFIX,
   PLAN_NAMES,
-  PLAN_PRICES,
   PLANS,
+  TRIAL_DAYS,
+  YEARLY_FREE_MONTHS,
+  formatTRY,
   formatUSD,
   periodOf,
   planOf,
-  yearlySavingPercent,
   type BillingPeriod,
   type Plan,
 } from "@/lib/plans";
+
+const FREE_FEATURES = [`Ayda ${FREE_MONTHLY_BOOKINGS} randevu`, "Kendi rezervasyon sayfanız", "Müşteri yönetimi", "Mobil uygulama", "Reklamlı kullanım"];
 
 const PLAN_INFO: Record<Plan, { tagline: string; features: string[] }> = {
   PERSON: {
     tagline: "Tek başına çalışanlar için",
     features: [
-      "Sınırsız online randevu",
+      "Sınırsız randevu",
+      "Reklamsız kullanım",
       "Kendi rezervasyon sayfanız",
       "Sayfa düzenleyici ve galeri",
-      "Müşteri yönetimi",
-      "Mobil uygulama",
+      "Müşteri yönetimi ve mobil uygulama",
     ],
   },
   TEAM: {
@@ -83,14 +87,18 @@ interface Rate {
 interface SubscriptionClientProps {
   welcome: boolean;
   initialSubscription: Subscription | null;
-  access: { active: true; kind: "trial" | "paid"; endsAt: string | null } | { active: false };
+  access: { active: true; kind: "trial" | "paid" | "free"; endsAt: string | null } | { active: false };
   daysLeft: number;
   bank: Bank | null;
   reference: string;
   initialActiveDiscount: ActiveDiscount | null;
   /** USD price per plan and period for this business (custom admin prices included). */
   prices: Record<Plan, Record<BillingPeriod, number>>;
-  /** USD→TRY for the transfer amount; null when the rate couldn't be fetched. */
+  /** The same in TL; null where the admin set a custom USD price. */
+  pricesTry: Record<Plan, Record<BillingPeriod, number | null>>;
+  /** Bookings counted against this month's limit on the free tier. */
+  freeUsed: number;
+  /** USD→TRY for a custom price's transfer amount; null when the rate couldn't be fetched. */
   rate: Rate | null;
 }
 
@@ -103,13 +111,16 @@ export default function SubscriptionClient({
   reference,
   initialActiveDiscount,
   prices,
+  pricesTry,
+  freeUsed,
   rate,
 }: SubscriptionClientProps) {
   const router = useRouter();
   const [sub, setSub] = useState(initialSubscription);
   const currentPlan = planOf(sub);
   const [chosen, setChosen] = useState<Plan>(currentPlan);
-  const [period, setPeriod] = useState<BillingPeriod>(periodOf(initialSubscription));
+  // Yearly first: it's the better deal. A paying business sees what it pays now.
+  const [period, setPeriod] = useState<BillingPeriod>(access.active && access.kind === "paid" ? periodOf(initialSubscription) : "YEARLY");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -125,9 +136,12 @@ export default function SubscriptionClient({
   const pending = sub?.paymentStatus === "pending" && sub.paymentRequestedAt ? sub : null;
 
   /** Price for a plan: the admin's custom price while the plan stays the same, otherwise the list price. */
-  const priceOf = (plan: Plan) => prices[plan][period];
+  const priceOf = (plan: Plan) => pricesTry[plan][period] ?? prices[plan][period];
+  const inTry = (plan: Plan) => pricesTry[plan][period] !== null;
+  const money = (plan: Plan, amount: number) => (inTry(plan) ? formatTRY(amount) : formatUSD(amount));
   const discountPercent = initialActiveDiscount?.percentOff ?? couponPercent?.percentOff ?? 0;
   const amountFor = (plan: Plan) => (discountPercent ? applyPercentOff(priceOf(plan), discountPercent) : priceOf(plan));
+  const onFree = access.active && access.kind === "free";
 
   const copy = async (label: string, value: string) => {
     try {
@@ -242,7 +256,9 @@ export default function SubscriptionClient({
     ? { label: "Süresi doldu", cls: "bg-danger-soft text-danger border-danger-line" }
     : access.kind === "paid"
       ? { label: "Aktif", cls: "bg-brand-soft text-brand-ink border-brand-line" }
-      : { label: "Ücretsiz deneme", cls: "bg-pending-soft text-pending border-pending-line" };
+      : access.kind === "free"
+        ? { label: "Ücretsiz paket", cls: "bg-surface-muted text-ink-2 border-line" }
+        : { label: "Ücretsiz deneme", cls: "bg-pending-soft text-pending border-pending-line" };
 
   return (
     <div className="space-y-5">
@@ -250,7 +266,7 @@ export default function SubscriptionClient({
         title={welcome ? "Paketinizi seçin" : "Abonelik"}
         description={
           welcome
-            ? "Kaydınız tamamlandı. Hemen satın alabilir ya da önce 3 gün ücretsiz deneyebilirsiniz."
+            ? `Kaydınız tamamlandı. ${TRIAL_DAYS} gün bütün özellikleri ücretsiz kullanın, sonra size uyan paketle devam edin.`
             : "Paketinizi, deneme sürenizi ve ödemelerinizi buradan yönetin."
         }
       />
@@ -270,7 +286,7 @@ export default function SubscriptionClient({
       {!welcome && (
         <Panel>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-[20px] font-semibold tracking-[-0.02em] text-ink">CalendlyGo {PLAN_NAMES[currentPlan]}</h2>
+            <h2 className="font-display text-[20px] font-semibold tracking-[-0.02em] text-ink">CalendlyGo {onFree ? "Ücretsiz" : PLAN_NAMES[currentPlan]}</h2>
             <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold leading-4", status.cls)}>
               {status.label}
             </span>
@@ -280,7 +296,9 @@ export default function SubscriptionClient({
               ? "Panel ve randevu sayfanız kapalı. Devam etmek için aşağıdan bir paket satın alın."
               : access.kind === "paid"
                 ? `Aboneliğiniz ${access.endsAt ? new Date(access.endsAt).toLocaleDateString("tr-TR") : ""} tarihine kadar aktif (${daysLeft} gün).`
-                : `Ücretsiz denemenizin bitmesine ${daysLeft} gün kaldı. Süre bitince panel ve randevu sayfanız kapanır.`}
+                : onFree
+                  ? `Bu ay ${FREE_MONTHLY_BOOKINGS} randevunun ${freeUsed} tanesini kullandınız. Sınırsız randevu ve reklamsız kullanım için bir pakete geçin.`
+                  : `Ücretsiz denemenizin bitmesine ${daysLeft} gün kaldı. Süre bitince ücretsiz pakete geçersiniz.`}
           </p>
           {initialActiveDiscount && (
             <p className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-3 text-sm text-ink-3">
@@ -302,8 +320,7 @@ export default function SubscriptionClient({
               <h2 className="text-[15px] font-semibold text-ink">Ödemeniz kontrol ediliyor</h2>
               <p className="mt-0.5 text-sm text-ink-3">
                 {PLAN_NAMES[currentPlan]} ({PERIOD_NAMES[periodOf(pending)].toLowerCase()}) paketi için{" "}
-                {formatUSD(pending.pendingAmount ?? pending.monthlyPrice)}
-                {pending.pendingAmountTry ? ` (${formatTL(pending.pendingAmountTry)})` : ""} havale bildiriminiz{" "}
+                {pending.pendingAmountTry ? formatTL(pending.pendingAmountTry) : formatUSD(pending.pendingAmount ?? pending.monthlyPrice)} havale bildiriminiz{" "}
                 {new Date(pending.paymentRequestedAt!).toLocaleDateString("tr-TR")} tarihinde alındı. Ödeme hesabımıza geçip
                 onaylandığında aboneliğiniz otomatik olarak aktif olur.
               </p>
@@ -330,7 +347,7 @@ export default function SubscriptionClient({
               {PERIOD_NAMES[option]}
               {option === "YEARLY" && (
                 <span className="ml-1.5 rounded-full bg-brand-soft px-1.5 py-0.5 text-[11px] font-semibold text-brand-ink">
-                  %{yearlySavingPercent("PERSON")} indirim
+                  {YEARLY_FREE_MONTHS} ay bedava
                 </span>
               )}
             </button>
@@ -338,7 +355,33 @@ export default function SubscriptionClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2" role="radiogroup" aria-label="Paket">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="flex flex-col rounded-[26px] border border-line bg-surface p-6 shadow-panel">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-display text-[22px] font-semibold tracking-[-0.02em] text-ink">Ücretsiz</h3>
+              <p className="text-sm text-ink-3">Yeni başlayanlar için</p>
+            </div>
+            {onFree && (
+              <span className="rounded-full border border-brand-line bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-ink">Mevcut paket</span>
+            )}
+          </div>
+          <p className="mt-5">
+            <span className="font-display text-[44px] font-semibold leading-none tracking-[-0.04em] tabular-nums text-ink">0 TL</span>
+            <span className="text-sm text-ink-3"> / ay</span>
+            <span className="mt-1 block text-[13px] text-ink-3">Kredi kartı gerekmez</span>
+          </p>
+          <ul className="mt-4 flex-1 space-y-2">
+            {FREE_FEATURES.map((feature) => (
+              <li key={feature} className="flex items-start gap-2 text-sm text-ink-2">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="contents" role="radiogroup" aria-label="Paket">
         {PLANS.map((plan) => {
           const selected = chosen === plan;
           const isCurrent = plan === currentPlan;
@@ -365,19 +408,28 @@ export default function SubscriptionClient({
                   <h3 className="font-display text-[22px] font-semibold tracking-[-0.02em] text-ink">{PLAN_NAMES[plan]}</h3>
                   <p className="text-sm text-ink-3">{PLAN_INFO[plan].tagline}</p>
                 </div>
-                {isCurrent && !welcome && (
+                {isCurrent && !welcome && !onFree && (
                   <span className="rounded-full border border-brand-line bg-brand-soft px-2 py-0.5 text-[11px] font-semibold text-brand-ink">
                     Mevcut paket
                   </span>
                 )}
               </div>
               <p className="mt-5">
-                <span className="font-display text-[44px] font-semibold leading-none tracking-[-0.04em] tabular-nums text-ink">{formatUSD(priceOf(plan))}</span>
-                <span className="text-sm text-ink-3"> {PERIOD_SUFFIX[period]}</span>
-                {period === "YEARLY" && (
-                  <span className="mt-0.5 block text-xs text-ink-3">
-                    Ayda {formatUSD(priceOf(plan) / 12)} · aylık ödemeye göre {formatUSD(PLAN_PRICES[plan].MONTHLY * 12 - priceOf(plan))} tasarruf
-                  </span>
+                {period === "YEARLY" && inTry(plan) ? (
+                  <>
+                    <span className="font-display text-[44px] font-semibold leading-none tracking-[-0.04em] tabular-nums text-ink">{formatTRY(Math.floor(priceOf(plan) / 12))}</span>
+                    <span className="text-sm text-ink-3"> / ay</span>
+                    <span className="mt-1 block text-[13px] text-ink-3">
+                      Yıllık {formatTRY(priceOf(plan))}{" "}
+                      <span className="line-through">{formatTRY(pricesTry[plan].MONTHLY! * 12)}</span>{" "}
+                      <span className="font-semibold text-brand-ink">{YEARLY_FREE_MONTHS} ay bedava</span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-display text-[44px] font-semibold leading-none tracking-[-0.04em] tabular-nums text-ink">{money(plan, priceOf(plan))}</span>
+                    <span className="text-sm text-ink-3"> {PERIOD_SUFFIX[period]}</span>
+                  </>
                 )}
               </p>
               <ul className="mt-4 flex-1 space-y-2">
@@ -399,7 +451,7 @@ export default function SubscriptionClient({
               >
                 Satın al
               </Button>
-              {!welcome && access.active && !isCurrent && (
+              {!welcome && access.active && !onFree && !isCurrent && (
                 <button
                   type="button"
                   disabled={busy}
@@ -415,6 +467,7 @@ export default function SubscriptionClient({
             </div>
           );
         })}
+        </div>
       </div>
 
       {welcome && (
@@ -425,10 +478,10 @@ export default function SubscriptionClient({
             disabled={busy}
             className="text-base font-semibold text-brand hover:text-brand-hover hover:underline disabled:opacity-50"
           >
-            3 gün ücretsiz deneyin →
+            {TRIAL_DAYS} gün ücretsiz deneyin →
           </button>
           <p className="text-xs text-ink-3">
-            Seçtiğiniz {PLAN_NAMES[chosen]} paketiyle başlar. Kart bilgisi gerekmez; süre bitince panel kapanır.
+            Kart bilgisi gerekmez. Süre bitince ücretsiz pakete geçersiniz.
           </p>
         </div>
       )}
@@ -445,23 +498,25 @@ export default function SubscriptionClient({
               <span className="text-ink-2">Ödenecek tutar ({period === "YEARLY" ? "1 yıl" : "1 ay"})</span>
               <span className="text-right">
                 {discountPercent > 0 && (
-                  <span className="mr-1.5 text-xs text-ink-3 line-through">{formatUSD(priceOf(checkoutPlan))}</span>
+                  <span className="mr-1.5 text-xs text-ink-3 line-through">{money(checkoutPlan, priceOf(checkoutPlan))}</span>
                 )}
-                <span className="font-display text-lg font-bold tabular-nums text-ink">{formatUSD(amountFor(checkoutPlan))}</span>
+                <span className="font-display text-lg font-bold tabular-nums text-ink">{money(checkoutPlan, amountFor(checkoutPlan))}</span>
               </span>
             </div>
-            <p className="-mt-2 text-xs text-ink-3">
-              {rate ? (
-                <>
-                  Havale tutarı:{" "}
-                  <span className="font-semibold text-ink">{formatTL(usdToTryDisplay(amountFor(checkoutPlan), rate.rate))}</span> (TCMB
-                  döviz satış kuru {rate.rate.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
-                  {rate.date ? `, ${rate.date}` : ""}). Kesin tutar bildirimi gönderdiğiniz andaki kurla sabitlenir.
-                </>
-              ) : (
-                "Güncel kur şu an alınamadı; bildirim gönderilirken o günün kuruyla TL tutarı hesaplanır."
-              )}
-            </p>
+            {!inTry(checkoutPlan) && (
+              <p className="-mt-2 text-xs text-ink-3">
+                {rate ? (
+                  <>
+                    Havale tutarı:{" "}
+                    <span className="font-semibold text-ink">{formatTL(usdToTryDisplay(amountFor(checkoutPlan), rate.rate))}</span> (TCMB
+                    döviz satış kuru {rate.rate.toLocaleString("tr-TR", { maximumFractionDigits: 4 })}
+                    {rate.date ? `, ${rate.date}` : ""}). Kesin tutar bildirimi gönderdiğiniz andaki kurla sabitlenir.
+                  </>
+                ) : (
+                  "Güncel kur şu an alınamadı; bildirim gönderilirken o günün kuruyla TL tutarı hesaplanır."
+                )}
+              </p>
+            )}
 
             {!initialActiveDiscount &&
               (couponPercent ? (
@@ -501,7 +556,7 @@ export default function SubscriptionClient({
               <p className="font-medium text-ink">2. Ödeme bildirimini gönderin</p>
               <p className="mt-0.5 text-ink-3">
                 Açıklamaya <span className="font-semibold text-ink">{reference}</span> kodunu yazmayı unutmayın. Ödemeniz
-                onaylanınca aboneliğiniz 30 gün için aktif olur ve size bildirim gelir.
+                onaylanınca aboneliğiniz {period === "YEARLY" ? "1 yıl" : "1 ay"} için aktif olur ve size bildirim gelir.
               </p>
             </div>
 

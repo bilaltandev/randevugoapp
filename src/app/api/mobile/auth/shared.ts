@@ -1,5 +1,5 @@
 import type { MobileUser } from "@/lib/mobileAuth";
-import { planOf } from "@/lib/plans";
+import { onFreeTier, planOf } from "@/lib/plans";
 import { subscriptionAccess } from "@/lib/subscriptionAccess";
 import type { RateLimitResult } from "@/lib/rateLimit";
 
@@ -63,8 +63,9 @@ export function toMobileProfile(user: MobileUser) {
             plan: planOf(business.subscription),
             trialEndDate: business.subscription.trialEndDate,
             subscriptionEndDate: business.subscription.subscriptionEndDate,
-            // False once the trial or paid period is over: the app then shows only the lock screen.
-            active: subscriptionAccess(business.subscription).active,
+            // False when the app should show only the lock screen: a closed account, or a team member
+            // whose business dropped to the free tier (it has no team).
+            active: subscriptionAccess(business.subscription).active && !(user.member && onFreeTier(business.subscription)),
           }
         : null,
     },

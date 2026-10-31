@@ -1,13 +1,13 @@
 // Bank transfer (havale/EFT) payments. There is no card gateway yet:
 //   1. the owner picks a plan and a billing period → requestPayment() records an open request (paymentStatus
-//      "pending"). Prices are in USD; the TL amount to transfer is fixed with the day's TCMB rate. The page shows
-//      the bank details plus a reference to write in the transfer description;
+//      "pending"). List prices are fixed in TL; a custom USD price the admin set uses the day's TCMB rate. The page
+//      shows the bank details plus a reference to write in the transfer description;
 //   2. the admin sees the transfer arrive and confirms it → confirmPayment() starts or extends the paid period.
 // Nothing here ever activates a subscription on the owner's word alone.
 import prisma from "./prisma";
 import { applyPercentOff, checkCouponForBusiness, getActiveRedemption, normalizeCouponCode } from "./coupons";
 import { getUsdTryRate, usdToTry } from "./exchangeRate";
-import { PERIOD_MONTHS, PLAN_PRICES, periodOf, planOf, type BillingPeriod, type Plan } from "./plans";
+import { PERIOD_MONTHS, PLAN_PRICES, PLAN_PRICES_TRY, isListPrice, periodOf, planOf, type BillingPeriod, type Plan } from "./plans";
 
 export { paymentReference } from "./plans";
 
@@ -38,7 +38,16 @@ export function planPrice(
   period: BillingPeriod
 ) {
   const same = subscription && planOf(subscription) === plan && periodOf(subscription) === period;
-  return same ? subscription.monthlyPrice : PLAN_PRICES[plan][period];
+  return same && !isListPrice(subscription.monthlyPrice) ? subscription.monthlyPrice : PLAN_PRICES[plan][period];
+}
+
+/** The fixed TL price of one period, or null when the admin set a custom USD price for it. */
+export function planPriceTry(
+  subscription: { plan: string; monthlyPrice: number; billingPeriod?: string | null } | null,
+  plan: Plan,
+  period: BillingPeriod
+) {
+  return planPrice(subscription, plan, period) === PLAN_PRICES[plan][period] ? PLAN_PRICES_TRY[plan][period] : null;
 }
 
 export async function requestPayment(businessId: string, plan: Plan, period: BillingPeriod, rawCoupon: unknown) {
@@ -76,8 +85,9 @@ export async function requestPayment(businessId: string, plan: Plan, period: Bil
 
   const price = planPrice(subscription, plan, period);
   const amount = percentOff ? applyPercentOff(price, percentOff) : price;
-  const rate = await getUsdTryRate();
-  const amountTry = rate ? usdToTry(amount, rate.rate) : null;
+  const priceTry = planPriceTry(subscription, plan, period);
+  const rate = priceTry === null ? await getUsdTryRate() : null;
+  const amountTry = priceTry !== null ? (percentOff ? applyPercentOff(priceTry, percentOff) : priceTry) : rate ? usdToTry(amount, rate.rate) : null;
 
   const updated = await prisma.subscription.update({
     where: { businessId },

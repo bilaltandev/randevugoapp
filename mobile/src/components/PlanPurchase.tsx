@@ -7,7 +7,7 @@ import { checkCoupon, requestPayment, type BillingPeriod, type SubscriptionInfo 
 import { Icon, icons } from '@/components/Icon';
 import { Button, Card, Chip, ChipRow, InlineError, TextField } from '@/components/ui';
 import { useApiMutation } from '@/hooks/useApiQuery';
-import { BILLING_PERIODS, formatTry, formatUsd, periodName, periodSuffix, priceFor, usdToTry, yearlySaving } from '@/lib/plans';
+import { BILLING_PERIODS, formatTry, formatUsd, periodName, periodSuffix, priceFor, priceLabel, priceTryFor, usdToTry } from '@/lib/plans';
 import { localeTag, t } from '@/i18n';
 import { makeStyles, radius, spacing, useTheme } from '@/theme';
 
@@ -15,7 +15,7 @@ export const PLAN_INFO: Record<Plan, { name: string; tagline: string; features: 
   PERSON: {
     name: 'Person',
     tagline: t('Tek başına çalışanlar için'),
-    features: [t('Sınırsız online randevu'), t('Kendi rezervasyon sayfanız'), t('Müşteri yönetimi'), t('Mobil uygulama')],
+    features: [t('Sınırsız randevu'), t('Reklamsız kullanım'), t('Kendi rezervasyon sayfanız'), t('Müşteri yönetimi')],
   },
   TEAM: {
     name: 'Team',
@@ -50,9 +50,8 @@ export function PlanPurchase({
   const { colors, typography } = useTheme();
   const styles = useStyles();
   const [checkout, setCheckout] = useState<Plan | null>(null);
-  const [period, setPeriod] = useState<BillingPeriod>(info.billingPeriod ?? 'MONTHLY');
+  const [period, setPeriod] = useState<BillingPeriod>(info.access?.kind === 'paid' ? (info.billingPeriod ?? 'MONTHLY') : 'YEARLY');
   const currentPlan: Plan = info.plan === 'TEAM' ? 'TEAM' : 'PERSON';
-  const priceOf = (plan: Plan) => priceFor(info, plan, period);
 
   return (
     <View style={styles.gap}>
@@ -62,7 +61,7 @@ export function PlanPurchase({
         {BILLING_PERIODS.map((option) => (
           <Chip
             key={option}
-            label={option === 'YEARLY' ? t('{0} · %{1} indirim', periodName(option), yearlySaving(info, 'PERSON')) : periodName(option)}
+            label={option === 'YEARLY' ? t('{0} · 4 ay bedava', periodName(option)) : periodName(option)}
             selected={period === option}
             onPress={() => setPeriod(option)}
           />
@@ -84,10 +83,10 @@ export function PlanPurchase({
                   <Text style={typography.title}>{PLAN_INFO[plan].name}</Text>
                   <Text style={typography.caption}>{PLAN_INFO[plan].tagline}</Text>
                 </View>
-                <Text style={[typography.title, { color: colors.ink }]}>{formatUsd(priceOf(plan))}</Text>
+                <Text style={[typography.title, { color: colors.ink }]}>{priceLabel(info, plan, period)}</Text>
               </View>
               <Text style={[typography.caption, styles.perMonth]}>
-                {period === 'YEARLY' ? t('{0} · ayda {1}', periodSuffix(period), formatUsd(priceOf(plan) / 12)) : periodSuffix(period)}
+                {yearlyPerMonth(info, plan, period) ?? periodSuffix(period)}
               </Text>
               <View style={styles.features}>
                 {PLAN_INFO[plan].features.map((feature) => (
@@ -106,7 +105,6 @@ export function PlanPurchase({
       <CheckoutSheet
         plan={checkout}
         period={period}
-        price={checkout ? priceOf(checkout) : 0}
         info={info}
         onClose={() => setCheckout(null)}
         onSent={() => {
@@ -118,11 +116,17 @@ export function PlanPurchase({
   );
 }
 
+/** Yearly list prices as a monthly figure: "yıllık 399 TL · ayda 33 TL". */
+function yearlyPerMonth(info: SubscriptionInfo, plan: Plan, period: BillingPeriod) {
+  const yearly = period === 'YEARLY' ? priceTryFor(info, plan, period) : null;
+  return yearly === null ? null : t('yıllık · ayda {0} TL', Math.floor(yearly / 12));
+}
+
 function PendingPayment({ info, plan }: { info: SubscriptionInfo; plan: Plan }) {
   const { colors, typography } = useTheme();
   const styles = useStyles();
   const payment = info.payment!;
-  const amount = formatUsd(payment.amount) + (payment.amountTry ? ` (${formatTry(payment.amountTry)})` : '');
+  const amount = payment.amountTry ? formatTry(payment.amountTry) : formatUsd(payment.amount);
   return (
     <Card style={styles.pending}>
       <View style={styles.row}>
@@ -182,14 +186,12 @@ function BankDetails({ info }: { info: SubscriptionInfo }) {
 function CheckoutSheet({
   plan,
   period,
-  price,
   info,
   onClose,
   onSent,
 }: {
   plan: Plan | null;
   period: BillingPeriod;
-  price: number;
   info: SubscriptionInfo;
   onClose: () => void;
   onSent: () => void;
@@ -201,7 +203,8 @@ function CheckoutSheet({
   const [couponInput, setCouponInput] = useState('');
   const [coupon, setCoupon] = useState<{ code: string; percentOff: number } | null>(null);
   const percent = info.activeDiscount?.percentOff ?? coupon?.percentOff ?? 0;
-  const amount = percent ? Math.round(price * (100 - percent)) / 100 : price;
+  const usd = plan ? priceFor(info, plan, period) : 0;
+  const amount = percent ? Math.round(usd * (100 - percent)) / 100 : usd;
 
   const applyCoupon = () =>
     couponCheck.run(async (client) => {
@@ -228,16 +231,18 @@ function CheckoutSheet({
         <ScrollView contentContainerStyle={styles.sheetBody} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           <View style={[styles.row, styles.amount]}>
             <Text style={[typography.body, styles.flex]}>{period === 'YEARLY' ? t('Ödenecek tutar (1 yıl)') : t('Ödenecek tutar (1 ay)')}</Text>
-            <Text style={[typography.title, { color: colors.ink }]}>{formatUsd(amount)}</Text>
+            <Text style={[typography.title, { color: colors.ink }]}>{plan ? priceLabel(info, plan, period, percent) : ''}</Text>
           </View>
-          <Text style={typography.caption}>
-            {info.rate
-              ? t('Havale tutarı: {0} (TCMB döviz satış kuru {1}{2}). Kesin tutar bildirimi gönderdiğiniz andaki kurla sabitlenir.',
-                  formatTry(usdToTry(amount, info.rate.rate)),
-                  info.rate.rate.toLocaleString('tr-TR', { maximumFractionDigits: 4 }),
-                  info.rate.date ? `, ${info.rate.date}` : '')
-              : t('Güncel kur şu an alınamadı; bildirim gönderilirken o günün kuruyla TL tutarı hesaplanır.')}
-          </Text>
+          {plan && priceTryFor(info, plan, period) === null ? (
+            <Text style={typography.caption}>
+              {info.rate
+                ? t('Havale tutarı: {0} (TCMB döviz satış kuru {1}{2}). Kesin tutar bildirimi gönderdiğiniz andaki kurla sabitlenir.',
+                    formatTry(usdToTry(amount, info.rate.rate)),
+                    info.rate.rate.toLocaleString('tr-TR', { maximumFractionDigits: 4 }),
+                    info.rate.date ? `, ${info.rate.date}` : '')
+                : t('Güncel kur şu an alınamadı; bildirim gönderilirken o günün kuruyla TL tutarı hesaplanır.')}
+            </Text>
+          ) : null}
 
           {!info.activeDiscount &&
             (coupon ? (
@@ -265,7 +270,7 @@ function CheckoutSheet({
 
           <Text style={typography.heading}>{t('2. Ödeme bildirimini gönderin')}</Text>
           <Text style={typography.body}>
-            {t('Açıklamaya {0} kodunu yazmayı unutmayın. Ödemeniz onaylanınca aboneliğiniz 30 gün için aktif olur.', info.reference ?? '')}
+            {t('Açıklamaya {0} kodunu yazmayı unutmayın. Ödemeniz onaylanınca aboneliğiniz aktif olur.', info.reference ?? '')}
           </Text>
 
           <InlineError message={send.error} />

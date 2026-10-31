@@ -3,9 +3,9 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { DEFAULT_MONTHLY_PRICE, getActiveRedemption } from "@/lib/coupons";
 import { getUsdTryRate } from "@/lib/exchangeRate";
-import { BILLING_PERIODS, PLAN_PRICES, PLANS, isBillingPeriod, isPlan, periodOf, planOf, type BillingPeriod, type Plan } from "@/lib/plans";
+import { BILLING_PERIODS, PLAN_PRICES, PLANS, TRIAL_DAYS, isBillingPeriod, isPlan, periodOf, planOf, type BillingPeriod, type Plan } from "@/lib/plans";
 import { subscriptionAccess, subscriptionLock } from "@/lib/subscriptionAccess";
-import { PaymentRequestError, bankDetails, paymentReference, planPrice, requestPayment } from "@/lib/subscriptionPayments";
+import { PaymentRequestError, bankDetails, paymentReference, planPrice, planPriceTry, requestPayment } from "@/lib/subscriptionPayments";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -25,7 +25,7 @@ export async function GET() {
           businessId,
           planType: "TRIAL",
           trialStartDate: now,
-          trialEndDate: new Date(now.getTime() + 3 * DAY_MS),
+          trialEndDate: new Date(now.getTime() + TRIAL_DAYS * DAY_MS),
           status: "trial",
           paymentStatus: "paid",
           monthlyPrice: DEFAULT_MONTHLY_PRICE,
@@ -35,7 +35,7 @@ export async function GET() {
 
     const access = subscriptionAccess(subscription);
     // Keep the stored status in step with the dates so lists (admin) show the truth.
-    if (!access.active && (subscription.status === "trial" || subscription.status === "active")) {
+    if ((!access.active || access.kind === "free") && (subscription.status === "trial" || subscription.status === "active")) {
       subscription = await prisma.subscription.update({ where: { id: subscription.id }, data: { status: "expired" } });
     }
     const daysRemaining =
@@ -45,6 +45,10 @@ export async function GET() {
     const prices = Object.fromEntries(
       PLANS.map((p) => [p, Object.fromEntries(BILLING_PERIODS.map((period) => [period, planPrice(subscription, p, period)]))])
     ) as Record<Plan, Record<BillingPeriod, number>>;
+    // The same prices in TL; null where the admin set a custom USD price.
+    const pricesTry = Object.fromEntries(
+      PLANS.map((p) => [p, Object.fromEntries(BILLING_PERIODS.map((period) => [period, planPriceTry(subscription, p, period)]))])
+    ) as Record<Plan, Record<BillingPeriod, number | null>>;
 
     return NextResponse.json({
       subscription,
@@ -55,6 +59,7 @@ export async function GET() {
       billingPeriod: periodOf(subscription),
       currency: "USD",
       prices,
+      pricesTry,
       /** @deprecated monthly prices only; kept for older app builds. Use `prices`. */
       planPrices: { PERSON: prices.PERSON.MONTHLY, TEAM: prices.TEAM.MONTHLY },
       monthlyPrice: subscription.monthlyPrice,

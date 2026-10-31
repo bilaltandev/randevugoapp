@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { notifyNewBooking } from "@/lib/pushNotifications";
 import { getStaffActor } from "@/lib/staffActor";
 import { subscriptionAccess, subscriptionLock } from "@/lib/subscriptionAccess";
+import { FREE_LIMIT_CUSTOMER, FREE_LIMIT_OWNER, freeLimitReached } from "@/lib/freeTier";
 import { getWhatsAppBookingUrl } from "@/lib/utils";
 import { APPOINTMENT_STATUS } from "@/lib/appointmentStatus";
 import {
@@ -170,11 +171,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "İşletme bulunamadı." }, { status: 404 });
     }
 
-    // No trial or paid period left: nobody books, not customers and not the staff themselves.
-    if (!subscriptionAccess(business.subscription).active) {
+    // Closed account: nobody books, not customers and not the staff themselves.
+    const access = subscriptionAccess(business.subscription);
+    if (!access.active) {
       if (isOwner) return subscriptionLock(business.subscription)!;
       return NextResponse.json(
         { error: "Bu işletme şu an online randevu almıyor.", code: "BOOKING_CLOSED" },
+        { status: 403 }
+      );
+    }
+    if (access.kind === "free" && !blocking && (await freeLimitReached(businessId, date))) {
+      return NextResponse.json(
+        isOwner ? { error: FREE_LIMIT_OWNER, code: "FREE_LIMIT_REACHED" } : { error: FREE_LIMIT_CUSTOMER, code: "BOOKING_CLOSED" },
         { status: 403 }
       );
     }

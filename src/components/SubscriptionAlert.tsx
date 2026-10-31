@@ -8,8 +8,8 @@ interface SubscriptionAlertProps {
   trialEndDate?: string;
 }
 
-/** Trial countdown on the overview. Expired businesses never see it: the dashboard shows the lock screen. */
-export function SubscriptionAlert({ status = "trial", daysRemaining = 3 }: SubscriptionAlertProps) {
+/** Trial countdown on the overview. */
+export function SubscriptionAlert({ status = "trial", daysRemaining = 0 }: SubscriptionAlertProps) {
   if (status !== "trial") return null;
 
   return (
@@ -22,7 +22,7 @@ export function SubscriptionAlert({ status = "trial", daysRemaining = 3 }: Subsc
               ? `Ücretsiz denemenizin bitmesine ${daysRemaining} gün kaldı.`
               : "Ücretsiz denemeniz bugün sona eriyor."}
           </span>{" "}
-          <span className="text-ink-2">Süre bitince panel ve randevu sayfanız kapanır.</span>
+          <span className="text-ink-2">Süre bitince ücretsiz pakete geçersiniz.</span>
         </p>
       </div>
       <Button href="/dashboard/subscription" variant="primary" size="sm" className="self-start sm:self-auto">

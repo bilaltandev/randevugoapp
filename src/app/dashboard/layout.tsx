@@ -31,9 +31,10 @@ export default async function DashboardLayout({
     redirect("/register");
   }
 
-  // No trial or paid period left: every page but the subscription and support pages shows the lock screen.
-  const locked = !subscriptionAccess(user.business.subscription).active;
-  const subscriptionStatus = locked ? "expired" : user.business.subscription?.status || "trial";
+  // Closed account: every page but the subscription and support pages shows the lock screen.
+  const access = subscriptionAccess(user.business.subscription);
+  const locked = !access.active;
+  const subscriptionStatus = locked ? "expired" : access.kind === "paid" ? "active" : access.kind;
 
   return (
     <DashboardShell

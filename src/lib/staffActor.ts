@@ -1,4 +1,5 @@
 import { getCurrentUser } from "./auth";
+import { onFreeTier } from "./plans";
 
 /**
  * Who is working on a business's bookings in this request:
@@ -21,7 +22,8 @@ export async function getStaffActor(): Promise<StaffActor | null> {
     return { kind: "owner", userId: user.id, businessId: user.business.id, employeeId: null, subscription: user.business.subscription };
   }
   const member = "member" in user ? user.member : null;
-  if (member) {
+  // The free tier has no team: members are back once the business pays for Team again.
+  if (member && !onFreeTier(member.business.subscription)) {
     return {
       kind: "member",
       userId: user.id,

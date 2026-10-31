@@ -1,9 +1,11 @@
-// Whether a business may use the product right now: during the trial or a paid period, nothing else.
-// When it may not, the owner and team members can only see the subscription page, and customers can't book.
+// Whether a business may use the product right now. A trial or paid period gives everything; once it ends the
+// business drops to the free tier (limited bookings, see freeTier.ts) rather than being locked out. Only a
+// cancelled or missing subscription locks: the owner can then see just the subscription page.
 //
-// Worked out from the dates every time (never only the stored `status`), so an expired trial locks at once
+// Worked out from the dates every time (never only the stored `status`), so an expired trial drops at once
 // even if nobody opened the subscription page to flip the status.
 import { NextResponse } from "next/server";
+import { onFreeTier } from "@/lib/plans";
 
 type SubscriptionDates = {
   status: string;
@@ -12,19 +14,17 @@ type SubscriptionDates = {
 } | null | undefined;
 
 export type SubscriptionAccess =
-  | { active: true; kind: "trial" | "paid"; endsAt: Date | null }
+  | { active: true; kind: "trial" | "paid" | "free"; endsAt: Date | null }
   | { active: false; kind: "expired" };
 
 export function subscriptionAccess(subscription: SubscriptionDates, now = new Date()): SubscriptionAccess {
   if (!subscription) return { active: false, kind: "expired" };
+  if (onFreeTier(subscription, now)) return { active: true, kind: "free", endsAt: null };
   if (subscription.status === "active") {
-    const end = subscription.subscriptionEndDate ? new Date(subscription.subscriptionEndDate) : null;
-    if (!end || end > now) return { active: true, kind: "paid", endsAt: end };
-    return { active: false, kind: "expired" };
+    return { active: true, kind: "paid", endsAt: subscription.subscriptionEndDate ? new Date(subscription.subscriptionEndDate) : null };
   }
   if (subscription.status === "trial" && subscription.trialEndDate) {
-    const end = new Date(subscription.trialEndDate);
-    if (end > now) return { active: true, kind: "trial", endsAt: end };
+    return { active: true, kind: "trial", endsAt: new Date(subscription.trialEndDate) };
   }
   return { active: false, kind: "expired" };
 }
@@ -36,12 +36,12 @@ export function daysUntil(endsAt: Date | null | undefined, now = new Date()): nu
 
 export const SUBSCRIPTION_REQUIRED = "SUBSCRIPTION_REQUIRED";
 
-/** 402 for owner/member actions while the business has no trial or paid period left; null when allowed. */
+/** 402 for owner/member actions while the business is closed; null when allowed. */
 export function subscriptionLock(subscription: SubscriptionDates): NextResponse | null {
   if (subscriptionAccess(subscription).active) return null;
   return NextResponse.json(
     {
-      error: "Deneme süreniz veya aboneliğiniz sona erdi. Devam etmek için bir paket satın alın.",
+      error: "Aboneliğiniz kapalı. Devam etmek için bir paket satın alın.",
       code: SUBSCRIPTION_REQUIRED,
     },
     { status: 402 }

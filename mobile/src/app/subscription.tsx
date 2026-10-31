@@ -9,7 +9,7 @@ import { PLAN_INFO, PlanPurchase } from '@/components/PlanPurchase';
 import { ErrorView, LoadingView } from '@/components/StateViews';
 import { Card, InlineError, Page, Pill, SectionTitle } from '@/components/ui';
 import { useApiMutation, useApiQuery } from '@/hooks/useApiQuery';
-import { formatUsd, periodSuffix } from '@/lib/plans';
+import { currentPriceLabel, periodSuffix } from '@/lib/plans';
 import { makeStyles, spacing, useTheme } from '@/theme';
 
 const formatDate = (iso: string | null | undefined) =>
@@ -56,10 +56,12 @@ export default function SubscriptionScreen() {
             ? t('Panel ve randevu sayfanız kapalı. Devam etmek için aşağıdan bir paket satın alın.')
             : paid
               ? t('Aboneliğiniz {0} tarihine kadar aktif ({1} gün).', formatDate(endDate), data.daysRemaining)
-              : t('Ücretsiz denemenizin bitmesine {0} gün kaldı. Süre bitince panel ve randevu sayfanız kapanır.', data.daysRemaining)}
+              : data.access?.kind === 'free'
+                ? t('Ücretsiz paketi kullanıyorsunuz: ayda 30 randevu. Sınırsız randevu ve reklamsız kullanım için bir pakete geçin.')
+                : t('Ücretsiz denemenizin bitmesine {0} gün kaldı. Süre bitince ücretsiz pakete geçersiniz.', data.daysRemaining)}
         </Text>
         <Text style={typography.caption}>
-          {t('Ücret: {0}', `${formatUsd(data.monthlyPrice)} ${periodSuffix(data.billingPeriod ?? 'MONTHLY')}`)}
+          {t('Ücret: {0}', `${currentPriceLabel(data)} ${periodSuffix(data.billingPeriod ?? 'MONTHLY')}`)}
         </Text>
       </Card>
 

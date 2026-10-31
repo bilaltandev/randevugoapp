@@ -12,6 +12,7 @@ import {
   storedTimeToMinutes,
 } from "@/lib/appointmentRules";
 import { subscriptionAccess } from "@/lib/subscriptionAccess";
+import { FREE_LIMIT_CUSTOMER, freeLimitReached } from "@/lib/freeTier";
 
 /** Slots start every 30 minutes. */
 const STEP_MINUTES = 30;
@@ -44,8 +45,12 @@ export async function GET(req: Request) {
     }
 
     const subscription = await prisma.subscription.findUnique({ where: { businessId } });
-    if (!subscriptionAccess(subscription).active) {
+    const access = subscriptionAccess(subscription);
+    if (!access.active) {
       return NextResponse.json({ slots: [], closed: true, message: "Bu işletme şu an online randevu almıyor." });
+    }
+    if (access.kind === "free" && (await freeLimitReached(businessId, dateStr))) {
+      return NextResponse.json({ slots: [], closed: true, message: FREE_LIMIT_CUSTOMER });
     }
 
     const dayOfWeek = dayOfWeekFromKey(dateStr);
