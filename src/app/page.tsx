@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Aurora } from "@/components/Aurora";
 import { HeroDevices } from "@/components/landing/DeviceMockups";
+import { StoreBadges } from "@/components/landing/StoreBadges";
 import { PRIVACY_NOTICE_PATH } from "@/lib/privacyNotice";
 import { FREE_MONTHLY_BOOKINGS, PLAN_PRICES_TRY, YEARLY_FREE_MONTHS, formatTRY } from "@/lib/plans";
 
@@ -175,6 +176,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="mt-6 text-sm text-white/50">Ücretsiz paket · Kredi kartı gerekmez · VastLab tarafından geliştirildi</p>
+          <StoreBadges className="mt-6" />
           <div className="mx-auto mt-16 max-w-3xl text-left">
             <HeroDevices />
           </div>
@@ -349,6 +351,7 @@ export default function LandingPage() {
                 Ücretsiz başla
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
+              <StoreBadges className="mt-6" />
             </div>
           </div>
         </section>
