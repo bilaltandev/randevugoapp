@@ -66,6 +66,8 @@ export function toMobileProfile(user: MobileUser) {
             // False when the app should show only the lock screen: a closed account, or a team member
             // whose business dropped to the free tier (it has no team).
             active: subscriptionAccess(business.subscription).active && !(user.member && onFreeTier(business.subscription)),
+            // The free plan: the app shows ads.
+            free: onFreeTier(business.subscription),
           }
         : null,
     },

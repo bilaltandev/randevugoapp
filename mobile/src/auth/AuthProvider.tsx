@@ -203,5 +203,7 @@ export function useAccount() {
     plan: profile?.business.subscription?.plan === 'TEAM' ? ('TEAM' as const) : ('PERSON' as const),
     /** Trial or paid period over: only the lock screen (and support) is available. */
     locked: profile?.business.subscription?.active === false,
+    /** On the free plan: the app shows ads. */
+    freePlan: profile?.business.subscription?.free === true,
   };
 }

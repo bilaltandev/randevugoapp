@@ -1,7 +1,7 @@
-import { Stack, ThemeProvider } from 'expo-router';
+import { Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAccount, useAuth } from '@/auth/AuthProvider';
@@ -9,6 +9,7 @@ import { DrawerProvider } from '@/components/Drawer';
 import { UnreachableScreen } from '@/components/UnreachableScreen';
 import { WelcomeToast } from '@/components/WelcomeToast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { maybeShowAd, prepareAds } from '@/lib/ads';
 import { AppThemeProvider, useTheme } from '@/theme';
 import { t } from '@/i18n';
 
@@ -53,10 +54,27 @@ function SplashController() {
  */
 function Welcome() {
   const { status, welcome, intro, profile, client } = useAuth();
-  const { locked, isMember } = useAccount();
+  const { locked, isMember, freePlan } = useAccount();
   const inApp = status === 'signedIn' && !locked && !intro && !welcome;
   usePushNotifications({ client, enabled: status === 'signedIn' && !isMember, canNavigate: inApp });
+  useFreePlanAds(inApp && freePlan && !isMember);
   return <WelcomeToast show={inApp} name={profile?.user.name} business={profile?.business.name} />;
+}
+
+/** Full-screen ads on the free plan, on the way back to Özet: a natural pause, never in the middle of a task. */
+function useFreePlanAds(enabled: boolean) {
+  const pathname = usePathname();
+  const previous = useRef(pathname);
+
+  useEffect(() => {
+    if (enabled) prepareAds();
+  }, [enabled]);
+
+  useEffect(() => {
+    const cameBack = pathname === '/' && previous.current !== '/';
+    previous.current = pathname;
+    if (enabled && cameBack) void maybeShowAd();
+  }, [enabled, pathname]);
 }
 
 function RootNavigator() {

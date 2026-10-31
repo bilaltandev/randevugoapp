@@ -31,6 +31,7 @@ export type Profile = {
       subscriptionEndDate: string | null;
       /** False once the trial or paid period is over (missing on older servers: treat as active). */
       active?: boolean;
+      free?: boolean;
     } | null;
   };
 };
