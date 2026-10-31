@@ -13,11 +13,10 @@ declare global {
 /**
  * One responsive AdSense banner. Only the free plan shows it, and only on calm screens (Özet, İstatistikler): never on
  * a customer's booking page or where work gets done. Non-personalized, so no tracking consent is needed.
- * Renders nothing until NEXT_PUBLIC_ADSENSE_SLOT is set.
+ * The box hides itself while Google has no ad for it (.dash-ad in globals.css).
  */
 export function AdBanner() {
   useEffect(() => {
-    if (!ADSENSE_SLOT) return;
     try {
       const ads = (window.adsbygoogle = window.adsbygoogle || []);
       ads.requestNonPersonalizedAds = 1;
@@ -27,10 +26,8 @@ export function AdBanner() {
     }
   }, []);
 
-  if (!ADSENSE_SLOT) return null;
-
   return (
-    <aside aria-label="Reklam" className="ios-group p-3">
+    <aside aria-label="Reklam" className="dash-ad ios-group p-3">
       <p className="pb-1.5 text-[11px] text-ink-3">Reklam</p>
       <Script src={ADSENSE_SCRIPT} crossOrigin="anonymous" strategy="afterInteractive" />
       <ins className="adsbygoogle block" data-ad-client={ADSENSE_CLIENT} data-ad-slot={ADSENSE_SLOT} data-ad-format="auto" data-full-width-responsive="true" />

@@ -358,6 +358,10 @@
   .dash-bar { animation: none; }
 }
 
+/* No ad to show (before approval, or no bid): no empty box. It can only go once Google has answered,
+   because an ad unit inside display:none has no width and never loads. */
+.dash-ad:has(ins[data-ad-status="unfilled"]) { display: none; }
+
 /* Spotlight-style search. */
 .dash-spotlight {
   border: 1px solid var(--rg-line-strong);
