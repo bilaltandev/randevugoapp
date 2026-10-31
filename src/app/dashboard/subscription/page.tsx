@@ -18,11 +18,10 @@ export default async function SubscriptionPage({
   if (!user || !user.business) return null;
   const businessId = user.business.id;
 
-  const [subscription, activeRedemption, params, rate] = await Promise.all([
+  const [subscription, activeRedemption, params] = await Promise.all([
     prisma.subscription.findUnique({ where: { businessId } }),
     getActiveRedemption(businessId),
     searchParams,
-    getUsdTryRate(),
   ]);
   const prices = Object.fromEntries(
     PLANS.map((plan) => [plan, Object.fromEntries(BILLING_PERIODS.map((period) => [period, planPrice(subscription, plan, period)]))])
@@ -30,6 +29,8 @@ export default async function SubscriptionPage({
   const pricesTry = Object.fromEntries(
     PLANS.map((plan) => [plan, Object.fromEntries(BILLING_PERIODS.map((period) => [period, planPriceTry(subscription, plan, period)]))])
   ) as Record<Plan, Record<BillingPeriod, number | null>>;
+  // Only a custom USD price needs the exchange rate, and fetching it can take seconds.
+  const rate = PLANS.some((plan) => BILLING_PERIODS.some((period) => pricesTry[plan][period] === null)) ? await getUsdTryRate() : null;
   const access = subscriptionAccess(subscription);
   // en-CA gives YYYY-MM-DD; Türkiye's date, not the server's.
   const today = new Date().toLocaleDateString("en-CA", { timeZone: BUSINESS_TIME_ZONE });

@@ -40,7 +40,7 @@ export async function GET() {
     }
     const daysRemaining =
       access.active && access.endsAt ? Math.max(0, Math.ceil((access.endsAt.getTime() - Date.now()) / DAY_MS)) : 0;
-    const [running, rate] = await Promise.all([getActiveRedemption(businessId), getUsdTryRate()]);
+    const running = await getActiveRedemption(businessId);
     // USD price of every plan × period for this business (an admin's custom price shows where it applies).
     const prices = Object.fromEntries(
       PLANS.map((p) => [p, Object.fromEntries(BILLING_PERIODS.map((period) => [period, planPrice(subscription, p, period)]))])
@@ -49,6 +49,8 @@ export async function GET() {
     const pricesTry = Object.fromEntries(
       PLANS.map((p) => [p, Object.fromEntries(BILLING_PERIODS.map((period) => [period, planPriceTry(subscription, p, period)]))])
     ) as Record<Plan, Record<BillingPeriod, number | null>>;
+    // Only a custom USD price needs the exchange rate, and fetching it can take seconds.
+    const rate = PLANS.some((p) => BILLING_PERIODS.some((period) => pricesTry[p][period] === null)) ? await getUsdTryRate() : null;
 
     return NextResponse.json({
       subscription,

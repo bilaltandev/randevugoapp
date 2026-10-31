@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowRight, Check, CalendarCheck2, Globe, KeyRound, Lock, Scissors, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,15 +61,19 @@ const SLIDES: Slide[] = [
 ];
 
 export function IntroSlides({ next }: { next: string }) {
-  const router = useRouter();
+  const [leaving, setLeaving] = useState(false);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const touchX = useRef<number | null>(null);
   const slide = SLIDES[index];
   const last = index === SLIDES.length - 1;
 
-  // Sign-up sends here once; replace() keeps "back" from returning to the slides.
-  const finish = useCallback(() => router.replace(next), [router, next]);
+  // Sign-up sends here once; replace() keeps "back" from returning to the slides. A full page load, not the app
+  // router: the next page can take seconds to render, and the slides must never just sit there meanwhile.
+  const finish = useCallback(() => {
+    setLeaving(true);
+    window.location.replace(next);
+  }, [next]);
 
   const go = useCallback(
     (to: number) => {
@@ -137,9 +140,10 @@ export function IntroSlides({ next }: { next: string }) {
         <button
           type="button"
           onClick={finish}
-          className={cn("min-w-12 text-right text-sm font-semibold text-ink-2 hover:text-ink", last && "invisible")}
+          disabled={leaving}
+          className={cn("min-w-12 text-right text-sm font-semibold text-ink-2 hover:text-ink disabled:opacity-60", last && "invisible")}
         >
-          Atla
+          {leaving ? "Açılıyor..." : "Atla"}
         </button>
       </header>
 
@@ -173,10 +177,11 @@ export function IntroSlides({ next }: { next: string }) {
             <button
               type="button"
               onClick={() => (last ? finish() : go(index + 1))}
+              disabled={leaving}
               className="group inline-flex h-14 items-center gap-6 rounded-full pl-7 pr-1.5 text-base font-bold text-canvas transition-transform active:scale-[0.98]"
               style={{ backgroundColor: slide.accent, boxShadow: `0 18px 40px -16px ${slide.accent}` }}
             >
-              {last ? "Başlayalım" : "Devam et"}
+              {leaving ? "Açılıyor..." : last ? "Başlayalım" : "Devam et"}
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-canvas transition-transform group-hover:translate-x-0.5" style={{ color: slide.accent }}>
                 {last ? <Check className="h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
               </span>

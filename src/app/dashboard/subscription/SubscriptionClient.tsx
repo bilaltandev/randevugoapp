@@ -245,9 +245,10 @@ export default function SubscriptionClient({
     }
   };
 
+  // A full page load, like the intro slides before it: the panel can take seconds to open.
   const startFree = () => {
-    router.push("/dashboard");
-    router.refresh();
+    setBusy(true);
+    window.location.assign("/dashboard");
   };
 
   const status = !access.active
@@ -476,7 +477,7 @@ export default function SubscriptionClient({
             disabled={busy}
             className="text-base font-semibold text-brand hover:text-brand-hover hover:underline disabled:opacity-50"
           >
-            Ücretsiz paketle başla →
+            {busy ? "Açılıyor..." : "Ücretsiz paketle başla →"}
           </button>
           <p className="text-xs text-ink-3">
             Kart bilgisi gerekmez. İstediğiniz zaman bir pakete geçebilirsiniz.
