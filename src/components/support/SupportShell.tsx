@@ -32,7 +32,7 @@ export function SupportShell({ agentName, children }: { agentName: string; child
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
           <Link href="/support" className="flex shrink-0 items-center gap-2.5" aria-label="Destek paneli ana sayfa">
             <span className="relative h-10 w-10 rounded-control">
-              <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="40px" className="object-contain" unoptimized />
+              <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="40px" className="object-contain" />
             </span>
             <span className="hidden text-sm font-semibold text-sidebar-text-strong sm:inline">Destek Paneli</span>
           </Link>

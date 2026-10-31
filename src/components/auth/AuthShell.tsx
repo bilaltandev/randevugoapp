@@ -60,7 +60,7 @@ export function AuthShell({ title, description, eyebrow, children, footer }: Aut
         <Aurora />
         <Link href="/" className="relative inline-flex items-center gap-3 self-start rounded-control" aria-label="CalendlyGo ana sayfa">
           <span className="relative h-12 w-12 rounded-control">
-            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="48px" className="object-contain" unoptimized />
+            <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="48px" className="object-contain" />
           </span>
           <Image
             src="/brand/calendlygo-text-logo.png"

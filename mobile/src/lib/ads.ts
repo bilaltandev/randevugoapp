@@ -8,7 +8,7 @@ import { mayShowAd, type ShownAds } from '@/lib/adPacing';
 // back to Özet, so an ad never lands on someone in the middle of a booking.
 
 /** AdMob ad units. Empty: Google's test ads, as in development builds: real ads must not be requested while testing. */
-const AD_UNITS: { android: string; ios: string } = { android: 'ca-app-pub-6275697857126948/1675273158', ios: '' };
+const AD_UNITS: { android: string; ios: string } = { android: 'ca-app-pub-6275697857126948/1675273158', ios: 'ca-app-pub-6275697857126948/3878764661' };
 
 const STORE_KEY = 'calendlygo.ads.interstitial';
 

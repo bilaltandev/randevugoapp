@@ -60,7 +60,7 @@ export function AdminNav<T extends string>({ items, active, onChange, adminName,
   const brand = (
     <div className="flex items-center gap-2.5">
       <span className="relative h-8 w-8 shrink-0">
-        <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="32px" className="object-contain" unoptimized />
+        <Image src="/brand/calendlygo-mark.png" alt="" fill sizes="32px" className="object-contain" />
       </span>
       <div className="leading-tight">
         <p className="text-sm font-semibold tracking-tight text-white">CalendlyGo</p>

@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { cookies, headers } from "next/headers";
+import { cache } from "react";
 import prisma from "./prisma";
 import { authenticateMobileAccessToken, getBearerToken } from "./mobileAuth";
 
@@ -61,7 +62,8 @@ export function verifyToken(token: string): SessionPayload | null {
   }
 }
 
-export async function getCurrentUser() {
+// Cached per request: a dashboard page and its layout both ask, and each ask is a database round trip.
+export const getCurrentUser = cache(async () => {
   // Mobile app: an `Authorization: Bearer` header switches to mobile access tokens only. The cookie is then
   // ignored entirely (no fallback), so one request can never mix the two credentials. Browsers never send
   // this header on their own, so the web cookie flow below is unchanged.
@@ -113,7 +115,7 @@ export async function getCurrentUser() {
     role: user.role,
     business: activeBusiness,
   };
-}
+});
 
 export async function setSessionCookie(payload: SessionPayload) {
   const user = await prisma.user.findUnique({ where: { id: payload.userId }, select: { password: true } });
