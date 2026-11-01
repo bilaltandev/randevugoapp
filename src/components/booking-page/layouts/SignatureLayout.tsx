@@ -5,12 +5,13 @@ import { Clock, MapPin, MessageSquare, Navigation, Phone, ShieldCheck, Star } fr
 import { useReducedMotion, useScroll, useTransform } from "motion/react";
 import * as m from "motion/react-m";
 import { cn } from "@/lib/utils";
-import type { ThemeSignature } from "@/lib/themes/types";
+import type { PageSectionKey, ThemeSignature } from "@/lib/themes/types";
 import { EASE_OUT, MotionRoot, Reveal } from "@/components/motion/MotionRoot";
+import { BrandMark } from "../BrandMark";
 import { focusRing, headingCls, Stars } from "../ui";
 import { formatDuration, formatPrice } from "../time";
 import type { BookingService } from "../types";
-import { featuredReviews, groupServices, type StorefrontLayoutProps } from "./types";
+import { featuredReviews, groupServices, sectionTitle, type StorefrontLayoutProps } from "./types";
 import { formatRating, InstagramIcon, WeekHours } from "./shared";
 
 /**
@@ -32,9 +33,19 @@ const photoCta = cn(
   "inline-flex h-12 items-center justify-center gap-2 rounded-(--bk-r-btn) border border-white/25 bg-white/10 px-5 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-white/20",
   focusRing
 );
-const sectionTitle = cn(headingCls, "text-[clamp(2.25rem,5cqi,3.75rem)] leading-[1.02] text-ink");
+const titleClass = cn(headingCls, "text-[clamp(2.25rem,5cqi,3.75rem)] leading-[1.02] text-ink");
 
-const bookLabel = (p: Props) => (p.isRestaurant ? "Masa ayırt" : "Randevu al");
+const bookLabel = (p: Props) => p.ctaLabel || (p.isRestaurant ? "Masa ayırt" : "Randevu al");
+
+/** The owner's styled logo above the name; without logo settings the top bar alone carries it. */
+function HeroLogo({ p, className }: { p: Props; className?: string }) {
+  if (!p.logoStyle || !p.showLogo || !p.logo) return null;
+  return (
+    <div className={cn("mb-5", className)}>
+      <BrandMark logo={p.logo} name={p.name} style={p.logoStyle} limit={140} />
+    </div>
+  );
+}
 
 /** Slow drift of a hero photo while the page scrolls; still when the visitor prefers less motion. */
 function useHeroDrift(distance: number) {
@@ -114,6 +125,7 @@ function NoirHero(p: Props) {
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/60 to-black/25" aria-hidden="true" />
 
       <div className={cn(shell, "pb-14 pt-32 @4xl:pb-20")}>
+        <HeroLogo p={p} />
         <m.span
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -151,6 +163,7 @@ function PorcelainHero(p: Props) {
   return (
     <section ref={ref} id="ust" className={cn(shell, "grid items-center gap-12 pb-16 pt-12 @4xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] @4xl:pb-24 @4xl:pt-16")}>
       <div>
+        <HeroLogo p={p} />
         {p.categoryLine.length > 0 && <p className="text-[15px] text-brand-ink">{p.categoryLine.join(" · ")}</p>}
         <m.h1
           id="business-name"
@@ -213,6 +226,7 @@ function ClearHero(p: Props) {
     <section id="ust" className={cn(shell, "pb-14 pt-12 @4xl:pb-20 @4xl:pt-20")}>
       <div className="grid gap-10 @4xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] @4xl:items-end">
         <div>
+          <HeroLogo p={p} />
           <p className="flex flex-wrap items-center gap-2 text-sm text-ink-3">
             {p.verified && (
               <span className="inline-flex items-center gap-1.5 rounded-(--bk-r-pill) bg-brand-soft px-3 py-1 font-medium text-brand-ink">
@@ -276,6 +290,7 @@ function TableHero(p: Props) {
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(75%_70%_at_50%_50%,rgba(0,0,0,0.78),rgba(0,0,0,0.5))]" aria-hidden="true" />
 
       <div className={cn(shell, "flex flex-col items-center py-32")}>
+        <HeroLogo p={p} />
         {p.categoryLine.length > 0 && <p className="text-sm tracking-[0.18em] text-white/75">{p.categoryLine.join(" · ")}</p>}
         <m.h1
           id="business-name"
@@ -318,6 +333,7 @@ function TrackHero(p: Props) {
       )}
       <div className={cn(shell, "flex min-h-[min(82svh,720px)] flex-col justify-center py-16")}>
         <div className={cn("max-w-[640px]", p.heroImage && "@4xl:max-w-[46cqi]")}>
+          <HeroLogo p={p} />
           {p.categoryLine.length > 0 && <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-ink">{p.categoryLine.join(" · ")}</p>}
           <m.h1
             id="business-name"
@@ -369,10 +385,13 @@ const HEROES: Record<ThemeSignature, (p: Props) => React.ReactElement> = {
   track: TrackHero,
 };
 
-/** Decorative ribbon of the business's real service names. */
-function ServiceRibbon({ services }: { services: BookingService[] }) {
-  const names = services.slice(0, 8).map((s) => s.name);
-  if (names.length < 3) return null;
+/** Decorative ribbon: the owner's phrases, or the business's real service names. */
+function ServiceRibbon({ services, phrases }: { services: BookingService[]; phrases: string[] | null }) {
+  if (phrases === null) return null;
+  const words = phrases.length > 0 ? phrases : services.slice(0, 8).map((s) => s.name);
+  if (words.length === 0 || (phrases.length === 0 && words.length < 3)) return null;
+  // Short lists repeat so the ribbon never shows a gap.
+  const names = Array.from({ length: Math.ceil(8 / words.length) }, () => words).flat();
   const row = (hidden?: boolean) => (
     <span className="flex shrink-0 items-center" aria-hidden={hidden}>
       {names.map((n, i) => (
@@ -535,8 +554,8 @@ function Services(p: Props) {
     <section id="hizmetler" aria-labelledby="hizmetler-baslik" className="scroll-mt-20 py-16 @3xl:py-24">
       <div className={shell}>
         <Reveal>
-          <h2 id="hizmetler-baslik" className={sectionTitle}>
-            {p.isRestaurant ? "Menü ve rezervasyon" : "Hizmetler"}
+          <h2 id="hizmetler-baslik" className={titleClass}>
+            {sectionTitle(p, "Services", p.isRestaurant ? "Menü ve rezervasyon" : "Hizmetler")}
           </h2>
           {p.bookingClosed && <p className="mt-4 text-[15px] text-ink-3">Online randevu şu an kapalı. Randevu için bizi arayabilirsiniz.</p>}
         </Reveal>
@@ -573,7 +592,7 @@ function Gallery(p: Props) {
     <section id="galeri" aria-labelledby="galeri-baslik" className="scroll-mt-20 pb-16 @3xl:pb-24">
       <div className={shell}>
         <Reveal>
-          <h2 id="galeri-baslik" className={sectionTitle}>Galeri</h2>
+          <h2 id="galeri-baslik" className={titleClass}>{sectionTitle(p, "Gallery", "Galeri")}</h2>
         </Reveal>
         <div className="mt-10 columns-2 gap-3 @3xl:columns-3">
           {p.photos.slice(0, 9).map((photo, i) => (
@@ -601,7 +620,7 @@ function Team(p: Props) {
     <section id="ekip" aria-labelledby="ekip-baslik" className="scroll-mt-20 pb-16 @3xl:pb-24">
       <div className={shell}>
         <Reveal>
-          <h2 id="ekip-baslik" className={sectionTitle}>{p.signature === "clear" ? "Uzmanlarımız" : "Ekip"}</h2>
+          <h2 id="ekip-baslik" className={titleClass}>{sectionTitle(p, "Staff", p.signature === "clear" ? "Uzmanlarımız" : "Ekip")}</h2>
         </Reveal>
         <ul className="mt-10 grid grid-cols-2 gap-4 @3xl:grid-cols-4">
           {p.employees.map((emp, i) => (
@@ -635,7 +654,7 @@ function Reviews(p: Props) {
     <section id="yorumlar" aria-labelledby="yorumlar-baslik" className="scroll-mt-20 border-y border-line bg-surface py-16 @3xl:py-24">
       <div className={shell}>
         <Reveal className="flex flex-wrap items-end gap-x-6 gap-y-3">
-          <h2 id="yorumlar-baslik" className={sectionTitle}>Yorumlar</h2>
+          <h2 id="yorumlar-baslik" className={titleClass}>{sectionTitle(p, "Reviews", "Yorumlar")}</h2>
           <p className="flex items-center gap-2 pb-1 text-[15px] text-ink-3">
             <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
             {formatRating(p.ratingAverage)} ortalama, {p.reviews.length} değerlendirme
@@ -668,7 +687,7 @@ function Visit(p: Props) {
       <div className={cn(shell, "grid gap-12 @4xl:grid-cols-2")}>
         <Reveal>
           <h2 id="iletisim-baslik" className={cn(headingCls, "max-w-[14ch] text-[clamp(2.5rem,6.5cqi,4.75rem)] leading-[1] text-ink")}>
-            {canBook ? (p.isRestaurant ? "Masanızı ayırtın." : "Yerinizi ayırtın.") : "Bize ulaşın."}
+            {sectionTitle(p, "Location", canBook ? (p.isRestaurant ? "Masanızı ayırtın." : "Yerinizi ayırtın.") : "Bize ulaşın.")}
           </h2>
           <div className="mt-8 flex flex-wrap gap-3">
             <BookCta p={p} />
@@ -717,6 +736,14 @@ function Visit(p: Props) {
   );
 }
 
+const SECTIONS: Record<PageSectionKey, (p: Props) => React.ReactElement | null> = {
+  Services,
+  Gallery,
+  Staff: Team,
+  Reviews,
+  Location: Visit,
+};
+
 export function SignatureLayout(p: Props) {
   const Hero = HEROES[p.signature];
   const overPhoto = p.signature === "noir" || p.signature === "table";
@@ -728,11 +755,15 @@ export function SignatureLayout(p: Props) {
         <header className={cn("sticky top-0 z-40 h-16 backdrop-blur-md", overPhoto ? "bg-black/40 text-white" : "border-b border-line bg-canvas/85 text-ink")}>
           <div className={cn(shell, "flex h-full items-center gap-4")}>
             <a href="#ust" className={cn("flex min-w-0 items-center gap-3", focusRing)}>
-              {p.showLogo && p.logo && (
+              {!p.logoStyle && p.showLogo && p.logo && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.logo} alt="" className="h-8 w-8 shrink-0 rounded-full bg-white object-contain p-0.5" />
               )}
-              <span className={cn(headingCls, "truncate text-lg")}>{p.name}</span>
+              {p.logoStyle ? (
+                <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} limit={44} showName nameClassName={cn(headingCls, "text-lg")} />
+              ) : (
+                <span className={cn(headingCls, "truncate text-lg")}>{p.name}</span>
+              )}
             </a>
             {canBook && (
               <a
@@ -749,13 +780,12 @@ export function SignatureLayout(p: Props) {
         </header>
 
         <Hero {...p} />
-        {(p.signature === "noir" || p.signature === "track") && <ServiceRibbon services={p.services} />}
+        {(p.signature === "noir" || p.signature === "track") && <ServiceRibbon services={p.services} phrases={p.ribbon} />}
         <main>
-          <Services {...p} />
-          <Gallery {...p} />
-          <Team {...p} />
-          <Reviews {...p} />
-          <Visit {...p} />
+          {p.sectionOrder.map((key) => {
+            const Section = SECTIONS[key];
+            return <Section key={key} {...p} />;
+          })}
         </main>
 
         <footer className="border-t border-line py-8 text-center text-xs text-ink-3">

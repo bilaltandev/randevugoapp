@@ -1,6 +1,8 @@
 import React from "react";
 import { MessageSquare, Navigation, Phone, ShieldCheck, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { LogoStyle } from "@/lib/themes/types";
+import { BrandMark } from "./BrandMark";
 import { btn, focusRing, headingCls, Initial } from "./ui";
 import { formatPrice } from "./time";
 import { InstagramIcon, formatRating } from "./layouts/shared";
@@ -32,6 +34,8 @@ interface VitrinHeaderProps {
     mapsUrl?: string | null;
   };
   canBook: boolean;
+  ctaLabel?: string;
+  logoStyle?: LogoStyle;
 }
 
 export function VitrinHeader(p: VitrinHeaderProps) {
@@ -103,7 +107,11 @@ export function VitrinHeader(p: VitrinHeaderProps) {
       {/* Only the logo tile overlaps the cover; the name always sits on the page color so it stays readable. */}
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className={cn("flex min-w-0 flex-col gap-3", showMark && "sm:flex-row sm:items-start sm:gap-5")}>
-          {showMark &&
+          {showMark && p.logoStyle && p.logo ? (
+            <div className="pt-4">
+              <BrandMark logo={p.logo} name={p.name} style={p.logoStyle} limit={140} />
+            </div>
+          ) : showMark &&
             (p.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -138,7 +146,7 @@ export function VitrinHeader(p: VitrinHeaderProps) {
         <div className={cn("flex shrink-0 flex-wrap gap-2", showMark ? "sm:pt-4" : "sm:pt-6")}>
           {p.canBook && (
             <a href="#hizmetler" className={btn("primary", "lg", "px-6")}>
-              Randevu al
+              {p.ctaLabel || "Randevu al"}
             </a>
           )}
           {p.contact.phone && (

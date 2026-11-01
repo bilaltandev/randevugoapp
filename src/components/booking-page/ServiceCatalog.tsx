@@ -8,6 +8,8 @@ import { formatDuration, formatPrice } from "./time";
 import { focusRing, SectionTitle } from "./ui";
 
 interface ServiceCatalogProps {
+  /** Owner's heading for this section. */
+  heading?: string;
   services: BookingService[];
   selectedId?: string | null;
   onSelect: (service: BookingService) => void;
@@ -20,7 +22,7 @@ interface ServiceCatalogProps {
 const OTHER = "Diğer";
 
 /** Compact, comparable service list with optional category filter. */
-export function ServiceCatalog({ services, selectedId, onSelect, isRestaurant, readOnly, phone }: ServiceCatalogProps) {
+export function ServiceCatalog({ services, selectedId, onSelect, isRestaurant, readOnly, phone, heading }: ServiceCatalogProps) {
   const [category, setCategory] = useState<string>("ALL");
 
   const groups = useMemo(() => {
@@ -34,7 +36,7 @@ export function ServiceCatalog({ services, selectedId, onSelect, isRestaurant, r
   const hasCategories = groups.length > 1 || (groups.length === 1 && groups[0].name !== OTHER);
   const visibleGroups = category === "ALL" ? groups : groups.filter((g) => g.name === category);
 
-  const title = isRestaurant ? "Rezervasyon seçenekleri" : "Hizmetler";
+  const title = heading || (isRestaurant ? "Rezervasyon seçenekleri" : "Hizmetler");
 
   if (services.length === 0) {
     return (

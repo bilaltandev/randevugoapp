@@ -1,3 +1,4 @@
+import type { LogoStyle, PageSectionKey } from "@/lib/themes/types";
 import type { BookingEmployee, BookingService, PublicReview } from "../types";
 import type { Photo } from "../PhotoGallery";
 import type { WorkingHour } from "../time";
@@ -39,10 +40,23 @@ export interface StorefrontLayoutProps {
   isRestaurant: boolean;
   /** Online booking closed (expired subscription): show services, hide booking buttons. */
   bookingClosed: boolean;
+  /** Visible sections in the owner's order. */
+  sectionOrder: PageSectionKey[];
+  sectionTitles?: Partial<Record<PageSectionKey, string>>;
+  /** Owner's wording for the booking buttons. */
+  ctaLabel?: string;
+  /** Moving ribbon: the owner's phrases, [] for service names, null when turned off. */
+  ribbon: string[] | null;
+  logoStyle?: LogoStyle;
   /** Pick a service and enter the booking flow. */
   onBook: (service: BookingService) => void;
   onOpenPhoto: (index: number) => void;
   footerYear: number | null;
+}
+
+/** The owner's heading for a section, or the layout's own. */
+export function sectionTitle(p: Pick<StorefrontLayoutProps, "sectionTitles">, key: PageSectionKey, fallback: string) {
+  return p.sectionTitles?.[key]?.trim() || fallback;
 }
 
 /** Services grouped by category, keeping the owner's order. */

@@ -4,33 +4,27 @@ import React, { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Palette,
-  MoveUp,
-  MoveDown,
-  Trash2,
-  Plus,
   Eye,
   Check,
   CheckCircle2,
   ExternalLink,
   Sparkles,
   Layers,
-  Edit3,
   Image as ImageIcon,
   Camera,
   Rocket,
 } from "lucide-react";
-import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/Segmented";
-import { Field, Input, Textarea } from "@/components/ui/Field";
 import { LogoUploader } from "@/components/LogoUploader";
 import { ThemePickerTab } from "@/components/themes/ThemePickerTab";
 import { ThemeLivePreviewModal } from "@/components/themes/ThemeLivePreviewModal";
 import { GallerySettingsPanel } from "@/components/gallery/GallerySettingsPanel";
 import { HeroSettingsPanel } from "@/components/hero/HeroSettingsPanel";
 import { PageBuilderOverviewTab } from "@/components/page-builder/PageBuilderOverviewTab";
+import { LogoStyleEditor, PageTextsPanel, SectionOrderPanel } from "@/components/page-builder/PageContentEditor";
 import { getThemeConfig } from "@/lib/themes/registry";
 import { ThemeOverrides } from "@/lib/themes/types";
 import { HeroActionItem, DEFAULT_HERO_ACTION_ITEMS } from "@/lib/hero/types";
@@ -51,17 +45,6 @@ interface PageBuilderClientProps {
   workingHours?: any[];
   appointments?: any[];
 }
-
-const AVAILABLE_BLOCKS = [
-  { type: "Hero", name: "Kapak / Hero", desc: "Büyük karşılama başlığı ve randevu butonu" },
-  { type: "About", name: "Hakkımızda", desc: "İşletme hikayesi, görsel ve istatistikler" },
-  { type: "Services", name: "Hizmetlerimiz", desc: "Tüm hizmetlerin fiyat ve süre listesi" },
-  { type: "Staff", name: "Uzmanlarımız", desc: "Ekip üyeleri ve uzmanlık alanları" },
-  { type: "Gallery", name: "Fotoğraf Galerisi", desc: "İşletmeden kareler ve çalışmalar" },
-  { type: "Booking", name: "Rezervasyon Motoru", desc: "Müşterinin gün ve saat seçtiği sihirbaz" },
-  { type: "Reviews", name: "Müşteri Yorumları", desc: "Doğrulanmış randevu değerlendirmeleri" },
-  { type: "Location", name: "Konum & İletişim", desc: "Adres, telefon ve WhatsApp bilgisi" },
-];
 
 export default function PageBuilderClient({
   business,
@@ -93,7 +76,7 @@ export default function PageBuilderClient({
   }
   const [businessState, setBusinessState] = useState(business);
   const [logo, setLogo] = useState(business.logo || null);
-  const [blocks, setBlocks] = useState(initialBlocks);
+  const [blocks] = useState(initialBlocks);
   const [themeColor, setThemeColor] = useState(initialTheme);
   const [activeThemeId, setActiveThemeId] = useState(initialThemeId);
   const [themeOverrides, setThemeOverrides] = useState<ThemeOverrides | null>(initialThemeOverrides);
@@ -167,8 +150,6 @@ export default function PageBuilderClient({
   );
   const [galleryItems, setGalleryItems] = useState<any[]>(initialGalleryItems || []);
 
-  const [selectedBlockForEdit, setSelectedBlockForEdit] = useState<any>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -202,6 +183,9 @@ export default function PageBuilderClient({
       console.error(e);
     }
   };
+
+  // Hero actions and contact links live in their own state; every save has to carry them.
+  const mergedOverrides: ThemeOverrides = { ...(themeOverrides || {}), heroActions, instagramUsername, googleMapsUrl };
 
   // Update Theme Overrides (e.g. custom primary color)
   const handleUpdateOverrides = async (newOverrides: ThemeOverrides | null) => {
@@ -255,44 +239,6 @@ export default function PageBuilderClient({
     } catch (e) {
       console.error(e);
     }
-  };
-
-  // Move Block Up
-  const moveBlockUp = (index: number) => {
-    if (index === 0) return;
-    const newArr = [...blocks];
-    const temp = newArr[index];
-    newArr[index] = newArr[index - 1];
-    newArr[index - 1] = temp;
-    setBlocks(newArr);
-  };
-
-  // Move Block Down
-  const moveBlockDown = (index: number) => {
-    if (index === blocks.length - 1) return;
-    const newArr = [...blocks];
-    const temp = newArr[index];
-    newArr[index] = newArr[index + 1];
-    newArr[index + 1] = temp;
-    setBlocks(newArr);
-  };
-
-  // Delete Block
-  const deleteBlock = (id: string) => {
-    setBlocks((prev) => prev.filter((b) => b.id !== id));
-  };
-
-  // Add Block
-  const addBlock = (type: string) => {
-    const newId = `${type.toLowerCase()}-${Date.now()}`;
-    const newBlock = {
-      id: newId,
-      type,
-      title: `${type} Bölümü`,
-      subtitle: "Bölüm açıklaması buraya gelecek.",
-    };
-    setBlocks((prev) => [...prev, newBlock]);
-    setIsAddModalOpen(false);
   };
 
   // Save gallery explicitly
@@ -409,7 +355,7 @@ export default function PageBuilderClient({
           { value: "hero", label: "Hero butonları", icon: ImageIcon, count: heroActions.filter((i) => i.enabled).length },
           { value: "themes", label: "Temalar", icon: Palette },
           { value: "gallery", label: "Galeri", icon: Camera, count: galleryItems.length },
-          { value: "blocks", label: "Bölümler", icon: Layers },
+          { value: "blocks", label: "Logo ve bölümler", icon: Layers },
         ]}
       />
 
@@ -513,172 +459,25 @@ export default function PageBuilderClient({
                 setBusinessState((prev: any) => ({ ...prev, logo: newUrl }));
               }}
             />
+            <LogoStyleEditor
+              logo={logo}
+              businessName={businessState.name}
+              theme={activeThemeConfig}
+              themeOverrides={mergedOverrides}
+              onUpdateOverrides={handleUpdateOverrides}
+            />
           </Panel>
 
-          <Panel
-            title="Sayfa bölümleri"
-            description="Bölüm başlıklarını, metinlerini ve sırasını düzenleyin."
-            action={
-              <Button size="sm" onClick={() => setIsAddModalOpen(true)}>
-                <Plus className="w-3.5 h-3.5" aria-hidden="true" />
-                Bölüm ekle
-              </Button>
-            }
-            flush
-          >
-            <ol className="divide-y divide-line">
-              {blocks.map((block, idx) => (
-                <li key={block.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
-                  <span className="w-5 shrink-0 text-right text-sm tabular-nums text-ink-3">{idx + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate text-sm font-medium text-ink">{block.title || block.type}</span>
-                      <span className="rounded-control bg-surface-muted px-1.5 py-0.5 font-mono text-xs text-ink-3">
-                        {block.type}
-                      </span>
-                    </div>
-                    {block.subtitle && <p className="mt-0.5 truncate text-sm text-ink-3">{block.subtitle}</p>}
-                  </div>
+          <PageTextsPanel themeOverrides={mergedOverrides} sectorLine={[businessState.sector, businessState.city].filter(Boolean).join(", ")} onUpdateOverrides={handleUpdateOverrides} />
 
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="w-8 px-0"
-                      onClick={() => moveBlockUp(idx)}
-                      disabled={idx === 0}
-                      title="Yukarı taşı"
-                      aria-label="Yukarı taşı"
-                    >
-                      <MoveUp className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="w-8 px-0"
-                      onClick={() => moveBlockDown(idx)}
-                      disabled={idx === blocks.length - 1}
-                      title="Aşağı taşı"
-                      aria-label="Aşağı taşı"
-                    >
-                      <MoveDown className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="w-8 px-0"
-                      onClick={() => setSelectedBlockForEdit(block)}
-                      title="Düzenle"
-                      aria-label="Düzenle"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="w-8 px-0 hover:text-danger"
-                      onClick={() => deleteBlock(block.id)}
-                      title="Sil"
-                      aria-label="Sil"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </Panel>
+          <SectionOrderPanel
+            sectionOrder={sectionOrder}
+            hiddenSections={hiddenSections}
+            themeOverrides={mergedOverrides}
+            onUpdateSections={handleUpdateSections}
+            onUpdateOverrides={handleUpdateOverrides}
+          />
         </div>
-      )}
-
-      {/* MODAL: Add New Block */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Bölüm ekle">
-        <ul className="divide-y divide-line rounded-control border border-line">
-          {AVAILABLE_BLOCKS.map((ab) => (
-            <li key={ab.type}>
-              <button
-                type="button"
-                onClick={() => addBlock(ab.type)}
-                className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-surface-muted"
-              >
-                <span>
-                  <span className="block text-sm font-medium text-ink">{ab.name}</span>
-                  <span className="block text-sm text-ink-3">{ab.desc}</span>
-                </span>
-                <Plus className="h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Modal>
-
-      {/* MODAL: Edit Block Details */}
-      {selectedBlockForEdit && (
-        <Modal
-          isOpen={!!selectedBlockForEdit}
-          onClose={() => setSelectedBlockForEdit(null)}
-          title={`${selectedBlockForEdit.type} bölümünü düzenle`}
-        >
-          <div className="space-y-4">
-            <Field label="Başlık" htmlFor="block-title">
-              <Input
-                id="block-title"
-                type="text"
-                value={selectedBlockForEdit.title || ""}
-                onChange={(e) =>
-                  setSelectedBlockForEdit({
-                    ...selectedBlockForEdit,
-                    title: e.target.value,
-                  })
-                }
-              />
-            </Field>
-
-            <Field label="Alt açıklama" htmlFor="block-subtitle">
-              <Textarea
-                id="block-subtitle"
-                rows={3}
-                value={selectedBlockForEdit.subtitle || selectedBlockForEdit.content || ""}
-                onChange={(e) =>
-                  setSelectedBlockForEdit({
-                    ...selectedBlockForEdit,
-                    subtitle: e.target.value,
-                    content: e.target.value,
-                  })
-                }
-              />
-            </Field>
-
-            {selectedBlockForEdit.type === "Hero" && (
-              <Field label="Rozet metni" htmlFor="block-badge" hint="Örn: Beşiktaş'ın Öncü Kuaförü">
-                <Input
-                  id="block-badge"
-                  type="text"
-                  value={selectedBlockForEdit.badge || ""}
-                  onChange={(e) =>
-                    setSelectedBlockForEdit({
-                      ...selectedBlockForEdit,
-                      badge: e.target.value,
-                    })
-                  }
-                />
-              </Field>
-            )}
-
-            <Button
-              variant="primary"
-              className="w-full"
-              onClick={() => {
-                setBlocks((prev) =>
-                  prev.map((b) => (b.id === selectedBlockForEdit.id ? selectedBlockForEdit : b))
-                );
-                setSelectedBlockForEdit(null);
-              }}
-            >
-              Bölümü güncelle
-            </Button>
-          </div>
-        </Modal>
       )}
 
       {/* FULLSCREEN PREVIEW MODAL */}

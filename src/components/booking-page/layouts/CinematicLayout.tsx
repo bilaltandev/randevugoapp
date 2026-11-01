@@ -3,9 +3,11 @@
 import React, { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Navigation, Phone, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { PageSectionKey } from "@/lib/themes/types";
+import { BrandMark } from "../BrandMark";
 import { focusRing, Stars } from "../ui";
 import { formatDuration, formatPrice } from "../time";
-import { featuredReviews, groupServices, type StorefrontLayoutProps } from "./types";
+import { featuredReviews, groupServices, sectionTitle, type StorefrontLayoutProps } from "./types";
 import { formatRating, InstagramIcon, WeekHours } from "./shared";
 
 /**
@@ -50,126 +52,15 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
     if (el) el.scrollBy({ left: dir * el.clientWidth * 0.85, behavior: "smooth" });
   };
 
-  return (
-    <div className="@container">
-      {/* ── Glass bar over the hero ── */}
-      <header className="sticky top-0 z-40 h-16 bg-black/40 text-white backdrop-blur-md">
-        <div className={cn(shell, "flex h-full items-center gap-4")}>
-          <a href="#ust" className={cn("flex min-w-0 items-center gap-3", focusRing)}>
-            {p.showLogo && p.logo && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.logo} alt="" className="h-8 w-8 shrink-0 rounded-full bg-white object-contain p-0.5" />
-            )}
-            <span className={cn(display, "truncate text-lg tracking-[-0.02em]")}>{p.name}</span>
-          </a>
-          {canBook && (
-            <a
-              href="#hizmetler"
-              className={cn(
-                "ml-auto inline-flex h-10 shrink-0 items-center rounded-full bg-brand px-5 text-sm font-semibold text-(color:--bk-on-brand) transition-colors hover:bg-brand-hover",
-                focusRing
-              )}
-            >
-              Randevu al
-            </a>
-          )}
-        </div>
-      </header>
-
-      {/* ── Hero ── */}
-      <section
-        id="ust"
-        className="relative isolate -mt-16 flex min-h-[max(600px,min(100svh,940px))] items-end overflow-hidden bg-black text-white"
-      >
-        {p.heroImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.heroImage} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 -z-10 bg-brand" aria-hidden="true" />
-        )}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/55 to-black/20" aria-hidden="true" />
-
-        <div className={cn(shell, "grid gap-10 pb-12 pt-32 @4xl:grid-cols-[minmax(0,1fr)_auto] @4xl:items-end @4xl:pb-16")}>
-          <div className="min-w-0">
-            {p.categoryLine.length > 0 && <p className="text-sm text-white/70">{p.categoryLine.join(", ")}</p>}
-            <h1
-              id="business-name"
-              className={cn(display, "mt-3 max-w-[14ch] text-[clamp(2.75rem,8.5cqi,7rem)] leading-[0.92] [text-wrap:balance]")}
-            >
-              {p.name}
-            </h1>
-            {p.description && (
-              <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-white/80">{p.description}</p>
-            )}
-            <div className="mt-9 flex flex-wrap gap-3">
-              {canBook && (
-                <a
-                  href="#hizmetler"
-                  className={cn(
-                    "inline-flex h-12 items-center rounded-full bg-brand px-7 text-[15px] font-semibold text-(color:--bk-on-brand) transition-colors hover:bg-brand-hover",
-                    focusRing
-                  )}
-                >
-                  Randevu al
-                </a>
-              )}
-              {p.contact.phone && (
-                <a href={`tel:${p.contact.phone}`} className={glassBtn}>
-                  <Phone className="h-4 w-4" aria-hidden="true" />
-                  Ara
-                </a>
-              )}
-              {p.contact.whatsappUrl && (
-                <a href={p.contact.whatsappUrl} target="_blank" rel="noopener noreferrer" className={glassBtn}>
-                  <MessageSquare className="h-4 w-4" aria-hidden="true" />
-                  WhatsApp
-                </a>
-              )}
-            </div>
-          </div>
-
-          {(p.reviews.length > 0 || p.openStatus || p.address) && (
-            <dl className="w-full space-y-4 rounded-2xl border border-white/15 bg-white/10 p-5 text-sm backdrop-blur-md @4xl:w-72">
-              {p.reviews.length > 0 && (
-                <div>
-                  <dt className="sr-only">Ortalama puan</dt>
-                  <dd className="flex items-center gap-3">
-                    <span className={cn(display, "text-4xl tracking-[-0.02em]")}>{formatRating(p.ratingAverage)}</span>
-                    <span>
-                      <Stars rating={p.ratingAverage} />
-                      <a href="#yorumlar" className={cn("mt-0.5 block text-white/70 hover:text-white", focusRing)}>
-                        {p.reviews.length} değerlendirme
-                      </a>
-                    </span>
-                  </dd>
-                </div>
-              )}
-              {p.openStatus && (
-                <div className="flex items-center gap-2.5">
-                  <dt className="sr-only">Bugün</dt>
-                  <span className={cn("h-2 w-2 shrink-0 rounded-full", p.openStatus.open ? "bg-emerald-400" : "bg-white/40")} aria-hidden="true" />
-                  <dd>{p.openStatus.label}</dd>
-                </div>
-              )}
-              {p.address && (
-                <div className="flex items-start gap-2.5 text-white/80">
-                  <dt className="sr-only">Adres</dt>
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  <dd className="line-clamp-2">{p.address}</dd>
-                </div>
-              )}
-            </dl>
-          )}
-        </div>
-      </section>
-
-      {/* ── Services rail ── */}
+  const sections: Record<PageSectionKey, React.ReactNode> = {
+    Services: (
+      <>
       <section id="hizmetler" aria-labelledby="hizmetler-baslik" className="scroll-mt-16 py-16 @3xl:py-24">
         <div className={shell}>
           <div className="flex flex-col gap-6 @3xl:flex-row @3xl:items-end @3xl:justify-between">
             <div>
               <h2 id="hizmetler-baslik" className={cn(display, "text-4xl leading-none text-ink @3xl:text-6xl")}>
-                {p.isRestaurant ? "Rezervasyon" : "Hizmetler"}
+                {sectionTitle(p, "Services", p.isRestaurant ? "Rezervasyon" : "Hizmetler")}
               </h2>
               {p.bookingClosed && (
                 <p className="mt-4 text-[15px] text-ink-3">Online randevu şu an kapalı. Randevu için bizi arayabilirsiniz.</p>
@@ -269,7 +160,7 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
                         )}
                         aria-label={`${srv.name} için randevu al`}
                       >
-                        Randevu al
+                        {p.ctaLabel || "Randevu al"}
                       </button>
                     )}
                   </div>
@@ -279,13 +170,15 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
           </div>
         )}
       </section>
-
-      {/* ── Gallery bento ── */}
+      </>
+    ),
+    Gallery: (
+      <>
       {p.photos.length > 0 && (
         <section id="galeri" aria-labelledby="galeri-baslik" className="scroll-mt-16 pb-16 @3xl:pb-24">
           <div className={shell}>
             <h2 id="galeri-baslik" className={cn(display, "text-4xl leading-none text-ink @3xl:text-6xl")}>
-              Galeri
+              {sectionTitle(p, "Gallery", "Galeri")}
             </h2>
             <div className="mt-8 grid auto-rows-[150px] grid-cols-2 gap-3 @3xl:auto-rows-[210px] @3xl:grid-cols-4">
               {p.photos.slice(0, 7).map((photo, i) => {
@@ -316,13 +209,15 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
           </div>
         </section>
       )}
-
-      {/* ── Team ── */}
+      </>
+    ),
+    Staff: (
+      <>
       {p.employees.length > 0 && (
         <section id="ekip" aria-labelledby="ekip-baslik" className="scroll-mt-16 pb-16 @3xl:pb-24">
           <div className={shell}>
             <h2 id="ekip-baslik" className={cn(display, "text-4xl leading-none text-ink @3xl:text-6xl")}>
-              Ekip
+              {sectionTitle(p, "Staff", "Ekip")}
             </h2>
             <ul className={cn("mt-8 grid grid-cols-2 gap-3 @3xl:gap-4", p.employees.length === 3 ? "@3xl:grid-cols-3" : "@3xl:grid-cols-4")}>
               {p.employees.map((emp) => (
@@ -345,14 +240,16 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
           </div>
         </section>
       )}
-
-      {/* ── Reviews: inverted band ── */}
+      </>
+    ),
+    Reviews: (
+      <>
       {p.reviews.length > 0 && (
         <section id="yorumlar" aria-labelledby="yorumlar-baslik" className="scroll-mt-16 bg-ink py-16 text-canvas @3xl:py-24">
           <div className={shell}>
             <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
               <h2 id="yorumlar-baslik" className={cn(display, "text-4xl leading-none @3xl:text-6xl")}>
-                Yorumlar
+                {sectionTitle(p, "Reviews", "Yorumlar")}
               </h2>
               <p className="flex items-center gap-2 pb-1 text-[15px] opacity-75">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
@@ -375,13 +272,15 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
           </div>
         </section>
       )}
-
-      {/* ── Closing band ── */}
+      </>
+    ),
+    Location: (
+      <>
       <section id="iletisim" aria-labelledby="iletisim-baslik" className="scroll-mt-16 bg-brand text-(color:--bk-on-brand)">
         <div className={cn(shell, "grid gap-12 py-16 @3xl:py-24 @4xl:grid-cols-2")}>
           <div>
             <h2 id="iletisim-baslik" className={cn(display, "max-w-[12ch] text-[clamp(2.5rem,7cqi,5.5rem)] leading-[0.95]")}>
-              {canBook ? "Yerinizi ayırtın." : "Bize ulaşın."}
+              {sectionTitle(p, "Location", canBook ? "Yerinizi ayırtın." : "Bize ulaşın.")}
             </h2>
             <div className="mt-8 flex flex-wrap gap-3">
               {canBook && (
@@ -392,7 +291,7 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
                     focusRing
                   )}
                 >
-                  Randevu al
+                  {p.ctaLabel || "Randevu al"}
                 </a>
               )}
               {p.contact.mapsUrl && (
@@ -448,6 +347,137 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
           </div>
         </div>
       </section>
+      </>
+    ),
+  };
+
+  return (
+    <div className="@container">
+      {/* ── Glass bar over the hero ── */}
+      <header className="sticky top-0 z-40 h-16 bg-black/40 text-white backdrop-blur-md">
+        <div className={cn(shell, "flex h-full items-center gap-4")}>
+          <a href="#ust" className={cn("flex min-w-0 items-center gap-3", focusRing)}>
+            {p.logoStyle ? (
+              <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} limit={44} showName nameClassName={cn(display, "text-lg tracking-[-0.02em]")} />
+            ) : (
+              <>
+                {p.showLogo && p.logo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.logo} alt="" className="h-8 w-8 shrink-0 rounded-full bg-white object-contain p-0.5" />
+                )}
+                <span className={cn(display, "truncate text-lg tracking-[-0.02em]")}>{p.name}</span>
+              </>
+            )}
+          </a>
+          {canBook && (
+            <a
+              href="#hizmetler"
+              className={cn(
+                "ml-auto inline-flex h-10 shrink-0 items-center rounded-full bg-brand px-5 text-sm font-semibold text-(color:--bk-on-brand) transition-colors hover:bg-brand-hover",
+                focusRing
+              )}
+            >
+              {p.ctaLabel || "Randevu al"}
+            </a>
+          )}
+        </div>
+      </header>
+
+      {/* ── Hero ── */}
+      <section
+        id="ust"
+        className="relative isolate -mt-16 flex min-h-[max(600px,min(100svh,940px))] items-end overflow-hidden bg-black text-white"
+      >
+        {p.heroImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={p.heroImage} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 -z-10 bg-brand" aria-hidden="true" />
+        )}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/55 to-black/20" aria-hidden="true" />
+
+        <div className={cn(shell, "grid gap-10 pb-12 pt-32 @4xl:grid-cols-[minmax(0,1fr)_auto] @4xl:items-end @4xl:pb-16")}>
+          <div className="min-w-0">
+            {p.logoStyle && p.showLogo && p.logo && (
+              <div className="mb-5">
+                <BrandMark logo={p.logo} name={p.name} style={p.logoStyle} limit={140} />
+              </div>
+            )}
+            {p.categoryLine.length > 0 && <p className="text-sm text-white/70">{p.categoryLine.join(", ")}</p>}
+            <h1
+              id="business-name"
+              className={cn(display, "mt-3 max-w-[14ch] text-[clamp(2.75rem,8.5cqi,7rem)] leading-[0.92] [text-wrap:balance]")}
+            >
+              {p.name}
+            </h1>
+            {p.description && (
+              <p className="mt-6 max-w-[52ch] text-lg leading-relaxed text-white/80">{p.description}</p>
+            )}
+            <div className="mt-9 flex flex-wrap gap-3">
+              {canBook && (
+                <a
+                  href="#hizmetler"
+                  className={cn(
+                    "inline-flex h-12 items-center rounded-full bg-brand px-7 text-[15px] font-semibold text-(color:--bk-on-brand) transition-colors hover:bg-brand-hover",
+                    focusRing
+                  )}
+                >
+                  {p.ctaLabel || "Randevu al"}
+                </a>
+              )}
+              {p.contact.phone && (
+                <a href={`tel:${p.contact.phone}`} className={glassBtn}>
+                  <Phone className="h-4 w-4" aria-hidden="true" />
+                  Ara
+                </a>
+              )}
+              {p.contact.whatsappUrl && (
+                <a href={p.contact.whatsappUrl} target="_blank" rel="noopener noreferrer" className={glassBtn}>
+                  <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                  WhatsApp
+                </a>
+              )}
+            </div>
+          </div>
+
+          {(p.reviews.length > 0 || p.openStatus || p.address) && (
+            <dl className="w-full space-y-4 rounded-2xl border border-white/15 bg-white/10 p-5 text-sm backdrop-blur-md @4xl:w-72">
+              {p.reviews.length > 0 && (
+                <div>
+                  <dt className="sr-only">Ortalama puan</dt>
+                  <dd className="flex items-center gap-3">
+                    <span className={cn(display, "text-4xl tracking-[-0.02em]")}>{formatRating(p.ratingAverage)}</span>
+                    <span>
+                      <Stars rating={p.ratingAverage} />
+                      <a href="#yorumlar" className={cn("mt-0.5 block text-white/70 hover:text-white", focusRing)}>
+                        {p.reviews.length} değerlendirme
+                      </a>
+                    </span>
+                  </dd>
+                </div>
+              )}
+              {p.openStatus && (
+                <div className="flex items-center gap-2.5">
+                  <dt className="sr-only">Bugün</dt>
+                  <span className={cn("h-2 w-2 shrink-0 rounded-full", p.openStatus.open ? "bg-emerald-400" : "bg-white/40")} aria-hidden="true" />
+                  <dd>{p.openStatus.label}</dd>
+                </div>
+              )}
+              {p.address && (
+                <div className="flex items-start gap-2.5 text-white/80">
+                  <dt className="sr-only">Adres</dt>
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <dd className="line-clamp-2">{p.address}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+        </div>
+      </section>
+
+      {p.sectionOrder.map((key) => (
+        <React.Fragment key={key}>{sections[key]}</React.Fragment>
+      ))}
 
       <footer className="bg-canvas py-8 text-center text-xs text-ink-3">
         © {p.footerYear ?? ""} {p.name}. Online randevu altyapısı CalendlyGo.

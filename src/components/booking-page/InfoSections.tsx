@@ -7,10 +7,10 @@ import type { BookingEmployee, PublicReview } from "./types";
 import { DAY_NAMES, hoursForDay, WEEK_ORDER, type WorkingHour } from "./time";
 import { btn, Initial, SectionTitle, Stars } from "./ui";
 
-export function TeamSection({ employees }: { employees: BookingEmployee[] }) {
+export function TeamSection({ employees, title = "Ekip" }: { employees: BookingEmployee[]; title?: string }) {
   return (
     <section id="ekip" aria-labelledby="ekip-baslik" className="scroll-mt-28">
-      <SectionTitle id="ekip-baslik">Ekip</SectionTitle>
+      <SectionTitle id="ekip-baslik">{title}</SectionTitle>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {employees.map((emp) => (
           <li key={emp.id} className="flex items-center gap-4 rounded-(--bk-r-card) border border-line bg-surface p-3">
@@ -33,7 +33,7 @@ export function TeamSection({ employees }: { employees: BookingEmployee[] }) {
 
 const INITIAL_REVIEWS = 4;
 
-export function ReviewsSection({ reviews, average }: { reviews: PublicReview[]; average: number }) {
+export function ReviewsSection({ reviews, average, title = "Değerlendirmeler" }: { reviews: PublicReview[]; average: number; title?: string }) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? reviews : reviews.slice(0, INITIAL_REVIEWS);
 
@@ -45,7 +45,7 @@ export function ReviewsSection({ reviews, average }: { reviews: PublicReview[]; 
 
   return (
     <section id="yorumlar" aria-labelledby="yorumlar-baslik" className="scroll-mt-28">
-      <SectionTitle id="yorumlar-baslik">Değerlendirmeler</SectionTitle>
+      <SectionTitle id="yorumlar-baslik">{title}</SectionTitle>
 
       <div className="flex flex-col gap-6 sm:flex-row sm:gap-10">
         <div className="shrink-0 sm:w-48">
@@ -119,12 +119,12 @@ interface AboutProps {
   todayIndex: number | null;
 }
 
-export function AboutSection({ description, address, city, mapsUrl, phone, whatsappUrl, hours, todayIndex }: AboutProps) {
+export function AboutSection({ description, address, city, mapsUrl, phone, whatsappUrl, hours, todayIndex, title = "Hakkında" }: AboutProps & { title?: string }) {
   const week = WEEK_ORDER.map((day) => ({ day, wh: hoursForDay(hours, day) })).filter((d) => d.wh);
 
   return (
     <section id="hakkinda" aria-labelledby="hakkinda-baslik" className="scroll-mt-28">
-      <SectionTitle id="hakkinda-baslik">Hakkında</SectionTitle>
+      <SectionTitle id="hakkinda-baslik">{title}</SectionTitle>
       {description && <p className="mb-6 max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-ink-2">{description}</p>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

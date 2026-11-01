@@ -5,12 +5,7 @@ import {
   Palette,
   CheckCircle2,
   RotateCcw,
-  Eye,
   Sliders,
-  ArrowUp,
-  ArrowDown,
-  Lock,
-  EyeOff,
   AlertCircle,
   Check,
 } from "lucide-react";
@@ -27,6 +22,7 @@ import { ThemeCard } from "./ThemeCard";
 import { ThemeLivePreviewModal } from "./ThemeLivePreviewModal";
 import { LayoutPicker } from "./LayoutPicker";
 import { PageImagesPanel } from "./PageImagesPanel";
+import { SectionOrderPanel } from "@/components/page-builder/PageContentEditor";
 import { getLayoutId, LAYOUTS, type LayoutId } from "@/lib/themes/layouts";
 
 interface ThemePickerTabProps {
@@ -64,16 +60,6 @@ const FILTER_TAGS = [
   { id: "LIGHT", label: "Açık (Light)" },
   { id: "LUXURY", label: "Lüks & Gold" },
   { id: "MINIMAL", label: "Minimal" },
-];
-
-const AVAILABLE_SECTIONS = [
-  { id: "Hero", name: "Kapak / Hero", isCritical: true, desc: "Karşılama ve ana başlık" },
-  { id: "Services", name: "Hizmetler & Menü", isCritical: true, desc: "Fiyat ve hizmet listesi (Zorunlu)" },
-  { id: "Staff", name: "Çalışanlar & Ekip", isCritical: false, desc: "Uzman kadro ve çalışma arkadaşları" },
-  { id: "Gallery", name: "Fotoğraf Galerisi", isCritical: false, desc: "Portföy ve çalışma fotoğrafları" },
-  { id: "Reviews", name: "Müşteri Değerlendirmeleri", isCritical: false, desc: "Puanlar ve gerçek müşteri yorumları" },
-  { id: "Booking", name: "Rezervasyon Motoru", isCritical: true, desc: "Online randevu takvimi ve saat seçimi" },
-  { id: "Location", name: "Konum & İletişim", isCritical: false, desc: "Harita, telefon ve adres bilgileri" },
 ];
 
 export function ThemePickerTab({
@@ -167,29 +153,6 @@ export function ThemePickerTab({
     } finally {
       setIsSavingCustomizer(false);
     }
-  };
-
-  const handleToggleSectionVisibility = async (secId: string) => {
-    const isHidden = hiddenSections.includes(secId);
-    let nextHidden: string[];
-    if (isHidden) {
-      nextHidden = hiddenSections.filter((s) => s !== secId);
-    } else {
-      nextHidden = [...hiddenSections, secId];
-    }
-    await onUpdateSections(sectionOrder, nextHidden);
-  };
-
-  const handleMoveSection = async (index: number, direction: "up" | "down") => {
-    const newOrder = [...sectionOrder];
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newOrder.length) return;
-
-    const temp = newOrder[index];
-    newOrder[index] = newOrder[targetIndex];
-    newOrder[targetIndex] = temp;
-
-    await onUpdateSections(newOrder, hiddenSections);
   };
 
   const sectorLabel = FILTER_TAGS.find((t) => t.id === business.sector)?.label ?? business.sector;
@@ -410,84 +373,13 @@ export function ThemePickerTab({
             </div>
           </Panel>
 
-          <Panel
-            title="Bölümlerin görünürlüğü ve sırası"
-            description="Sırayı değiştirin, istemediğiniz bölümleri gizleyin."
-            flush
-          >
-            <ol className="divide-y divide-line">
-              {sectionOrder.map((secId, idx) => {
-                const sectionDef = AVAILABLE_SECTIONS.find((s) => s.id === secId) || {
-                  id: secId,
-                  name: secId,
-                  isCritical: false,
-                  desc: "Sayfa bölümü",
-                };
-                const isHidden = hiddenSections.includes(secId);
-
-                return (
-                  <li key={secId} className="flex items-center gap-3 px-4 py-3 sm:px-5">
-                    <span className="w-5 shrink-0 text-right text-sm tabular-nums text-ink-3">{idx + 1}</span>
-                    <div className={cn("min-w-0 flex-1", isHidden && "opacity-60")}>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <span className="text-sm font-medium text-ink">{sectionDef.name}</span>
-                        {sectionDef.isCritical && (
-                          <span className="inline-flex items-center gap-1 text-xs text-ink-3">
-                            <Lock className="h-3 w-3" aria-hidden="true" />
-                            Zorunlu
-                          </span>
-                        )}
-                        {isHidden && <span className="text-xs text-ink-3">· Gizli</span>}
-                      </div>
-                      <p className="truncate text-sm text-ink-3">{sectionDef.desc}</p>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-0.5">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-8 px-0"
-                        onClick={() => handleMoveSection(idx, "up")}
-                        disabled={idx === 0}
-                        title="Yukarı taşı"
-                        aria-label={`${sectionDef.name}: yukarı taşı`}
-                      >
-                        <ArrowUp className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-8 px-0"
-                        onClick={() => handleMoveSection(idx, "down")}
-                        disabled={idx === sectionOrder.length - 1}
-                        title="Aşağı taşı"
-                        aria-label={`${sectionDef.name}: aşağı taşı`}
-                      >
-                        <ArrowDown className="w-4 h-4" />
-                      </Button>
-                      {sectionDef.isCritical ? (
-                        <span
-                          className="ml-1 inline-flex w-[4.5rem] items-center justify-center text-xs text-ink-3"
-                          title="Bu bölüm kritik olduğu için gizlenemez."
-                        >
-                          Kilitli
-                        </span>
-                      ) : (
-                        <Button
-                          size="sm"
-                          className="ml-1 w-[4.5rem]"
-                          onClick={() => handleToggleSectionVisibility(secId)}
-                        >
-                          {isHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                          {isHidden ? "Göster" : "Gizle"}
-                        </Button>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </Panel>
+          <SectionOrderPanel
+            sectionOrder={sectionOrder}
+            hiddenSections={hiddenSections}
+            themeOverrides={themeOverrides}
+            onUpdateSections={onUpdateSections}
+            onUpdateOverrides={onUpdateOverrides}
+          />
         </div>
       )}
 

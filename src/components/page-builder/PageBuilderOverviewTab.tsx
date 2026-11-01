@@ -66,7 +66,7 @@ export function PageBuilderOverviewTab({
     themeOverrides?.heroBgType === "color" ? "color" : "image"
   );
   const [coverImage, setCoverImage] = useState(
-    themeOverrides?.coverImage || business.coverImage || SAMPLE_COVERS[0]
+    themeOverrides?.coverImage || business.coverImage || ""
   );
   const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
   const [showLogo, setShowLogo] = useState(themeOverrides?.showLogo !== false);
@@ -92,7 +92,8 @@ export function PageBuilderOverviewTab({
       customTitle: heroTitle,
       customSubtitle: heroDesc,
       heroBgType: bgType,
-      coverImage,
+      // Nothing chosen yet stays empty, so a premium theme can keep its own sample photo.
+      coverImage: coverImage || undefined,
       showLogo,
       showSlogan,
       sloganText,
@@ -311,7 +312,7 @@ export function PageBuilderOverviewTab({
                 ) : (
                   <div className="relative mt-2 h-28 overflow-hidden rounded-control border border-line">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={coverImage} alt="Hero arka planı" className="h-full w-full object-cover" />
+                    <img src={coverImage || SAMPLE_COVERS[0]} alt="Hero arka planı" className="h-full w-full object-cover" />
                     <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 p-2">
                       <button
                         type="button"
@@ -323,7 +324,10 @@ export function PageBuilderOverviewTab({
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleSelectCover(SAMPLE_COVERS[0])}
+                        onClick={() => {
+                          setCoverImage("");
+                          syncOverrides({ coverImage: undefined });
+                        }}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-control bg-black/70 text-white transition-colors hover:bg-black/85"
                         title="Varsayılana döndür"
                         aria-label="Görseli varsayılana döndür"
@@ -523,7 +527,7 @@ export function PageBuilderOverviewTab({
                 style={
                   bgType === "color"
                     ? { backgroundColor: ctaPreviewColor }
-                    : { backgroundImage: `url(${coverImage})` }
+                    : { backgroundImage: `url(${coverImage || SAMPLE_COVERS[0]})` }
                 }
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/55 to-black/35" />

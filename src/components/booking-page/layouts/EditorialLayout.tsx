@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { PageSectionKey } from "@/lib/themes/types";
+import { BrandMark } from "../BrandMark";
 import { focusRing, Stars } from "../ui";
 import { formatDuration, formatPrice } from "../time";
-import { featuredReviews, groupServices, type StorefrontLayoutProps } from "./types";
+import { featuredReviews, groupServices, sectionTitle, type StorefrontLayoutProps } from "./types";
 import { formatRating, InstagramIcon, WeekHours } from "./shared";
 
 /**
@@ -27,13 +29,14 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
   const quote = quotes[quoteIndex];
   const lead = p.heroImage ?? p.photos[0]?.src ?? null;
 
-  const nav = [
-    { id: "hizmetler", label: p.isRestaurant ? "Menü" : "Hizmetler", show: true },
-    { id: "ekip", label: "Ekip", show: p.employees.length > 0 },
-    { id: "galeri", label: "Galeri", show: p.photos.length > 0 },
-    { id: "yorumlar", label: "Yorumlar", show: p.reviews.length > 0 },
-    { id: "iletisim", label: "İletişim", show: true },
-  ].filter((n) => n.show);
+  const navItems: Record<PageSectionKey, { id: string; label: string; show: boolean }> = {
+    Services: { id: "hizmetler", label: sectionTitle(p, "Services", p.isRestaurant ? "Menü" : "Hizmetler"), show: true },
+    Staff: { id: "ekip", label: sectionTitle(p, "Staff", "Ekip"), show: p.employees.length > 0 },
+    Gallery: { id: "galeri", label: sectionTitle(p, "Gallery", "Galeri"), show: p.photos.length > 0 },
+    Reviews: { id: "yorumlar", label: sectionTitle(p, "Reviews", "Yorumlar"), show: p.reviews.length > 0 },
+    Location: { id: "iletisim", label: sectionTitle(p, "Location", "İletişim"), show: true },
+  };
+  const nav = p.sectionOrder.map((key) => navItems[key]).filter((n) => n.show);
 
   const contactLinks = [
     p.contact.phone && { href: `tel:${p.contact.phone}`, label: "Ara" },
@@ -42,138 +45,15 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
     p.contact.instagramUrl && { href: p.contact.instagramUrl, label: "Instagram", external: true },
   ].filter(Boolean) as { href: string; label: string; external?: boolean }[];
 
-  return (
-    <div className="@container">
-      {/* ── Masthead ── */}
-      <header className="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur-md">
-        <div className={cn(shell, "flex h-16 items-center gap-6")}>
-          <a href="#ust" className={cn("flex min-w-0 items-center gap-3", focusRing)}>
-            {p.showLogo && p.logo && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.logo} alt="" className="h-8 w-8 shrink-0 object-contain" />
-            )}
-            <span className={cn(display, "truncate text-2xl leading-none text-ink")}>{p.name}</span>
-          </a>
-          <nav aria-label="Sayfa bölümleri" className="ml-auto hidden items-center gap-7 text-sm text-ink-2 @4xl:flex">
-            {nav.map((n) => (
-              <a key={n.id} href={`#${n.id}`} className={cn("transition-colors hover:text-ink", focusRing)}>
-                {n.label}
-              </a>
-            ))}
-          </nav>
-          {!p.bookingClosed && p.services.length > 0 && (
-            <a
-              href="#hizmetler"
-              className={cn(
-                "ml-auto inline-flex h-10 shrink-0 items-center bg-brand px-5 text-sm font-medium text-(color:--bk-on-brand) transition-colors hover:bg-brand-hover @4xl:ml-0",
-                focusRing
-              )}
-            >
-              Randevu al
-            </a>
-          )}
-        </div>
-      </header>
-
-      {/* ── Opening spread ── */}
-      <section id="ust" className={cn(shell, "grid gap-10 pb-20 pt-8 @4xl:grid-cols-12 @4xl:gap-12 @4xl:pb-28 @4xl:pt-16")}>
-        <div className="@4xl:order-2 @4xl:col-span-5">
-          {p.heroImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.heroImage} alt={p.name} className="aspect-[4/5] w-full object-cover" />
-          ) : lead ? (
-            // No hero photo chosen: lead with the first gallery photo.
-            <button
-              type="button"
-              onClick={() => p.onOpenPhoto(0)}
-              className={cn("block w-full cursor-zoom-in", focusRing)}
-              aria-label="Fotoğrafı büyüt"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={lead} alt={p.name} className="aspect-[4/5] w-full object-cover" />
-            </button>
-          ) : (
-            <div className="flex aspect-[4/5] w-full items-center justify-center bg-surface-muted" aria-hidden="true">
-              <span className={cn(display, "text-[clamp(8rem,30cqi,16rem)] leading-none text-ink-3")}>
-                {p.name.trim().charAt(0).toLocaleUpperCase("tr-TR")}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col justify-end @4xl:col-span-7">
-          {p.categoryLine.length > 0 && <p className="text-sm text-ink-3">{p.categoryLine.join(", ")}</p>}
-          <h1
-            id="business-name"
-            className={cn(display, "mt-4 text-[clamp(3.25rem,10cqi,8rem)] leading-[0.9] tracking-[-0.02em] text-ink [text-wrap:balance]")}
-          >
-            {p.name}
-          </h1>
-          {p.description && (
-            <p className="mt-8 max-w-[44ch] text-lg leading-relaxed text-ink-2">{p.description}</p>
-          )}
-
-          <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
-            {!p.bookingClosed && p.services.length > 0 && (
-              <a
-                href="#hizmetler"
-                className={cn(
-                  "inline-flex h-12 items-center bg-brand px-7 text-[15px] font-medium text-(color:--bk-on-brand) transition-colors hover:bg-brand-hover",
-                  focusRing
-                )}
-              >
-                Randevu al
-              </a>
-            )}
-            {contactLinks.map((l) => (
-              <a
-                key={l.label}
-                href={l.href}
-                {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className={cn("text-[15px] text-ink-2", textLink)}
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
-
-          {(p.reviews.length > 0 || p.openStatus || p.badges.length > 0) && (
-            <dl className="mt-10 grid grid-cols-2 gap-6 border-t border-line pt-6 text-sm @xl:grid-cols-3">
-              {p.reviews.length > 0 && (
-                <div>
-                  <dt className="text-ink-3">Değerlendirme</dt>
-                  <dd className="mt-1 flex items-center gap-1.5 text-ink">
-                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
-                    <a href="#yorumlar" className={cn("hover:underline", focusRing)}>
-                      {formatRating(p.ratingAverage)} ({p.reviews.length})
-                    </a>
-                  </dd>
-                </div>
-              )}
-              {p.openStatus && (
-                <div>
-                  <dt className="text-ink-3">Bugün</dt>
-                  <dd className={cn("mt-1", p.openStatus.open ? "text-ink" : "text-ink-2")}>{p.openStatus.label}</dd>
-                </div>
-              )}
-              {p.badges.length > 0 && (
-                <div>
-                  <dt className="text-ink-3">Öne çıkan</dt>
-                  <dd className="mt-1 text-ink">{p.badges.join(", ")}</dd>
-                </div>
-              )}
-            </dl>
-          )}
-        </div>
-      </section>
-
-      {/* ── Price list ── */}
+  const sections: Record<PageSectionKey, React.ReactNode> = {
+    Services: (
+      <>
       <section id="hizmetler" aria-labelledby="hizmetler-baslik" className="scroll-mt-16 border-t border-line">
         <div className={cn(shell, "grid gap-10 py-20 @4xl:grid-cols-12 @4xl:gap-12 @4xl:py-28")}>
           <div className="@4xl:col-span-4">
             <div className="@4xl:sticky @4xl:top-28">
               <h2 id="hizmetler-baslik" className={cn(display, "text-5xl leading-none text-ink @3xl:text-6xl")}>
-                {p.isRestaurant ? "Menü" : "Hizmetler"}
+                {sectionTitle(p, "Services", p.isRestaurant ? "Menü" : "Hizmetler")}
               </h2>
               <p className="mt-5 max-w-[32ch] text-[15px] leading-relaxed text-ink-3">
                 {p.bookingClosed
@@ -207,7 +87,7 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
                             {srv.description && <span className="mt-1 line-clamp-2 block">{srv.description}</span>}
                           </span>
                           {!p.bookingClosed && (
-                            <span className="shrink-0 text-brand-ink underline-offset-4 group-hover:underline">Randevu al</span>
+                            <span className="shrink-0 text-brand-ink underline-offset-4 group-hover:underline">{p.ctaLabel || "Randevu al"}</span>
                           )}
                         </span>
                       </>
@@ -234,13 +114,15 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
           </div>
         </div>
       </section>
-
-      {/* ── Team portraits ── */}
+      </>
+    ),
+    Staff: (
+      <>
       {p.employees.length > 0 && (
         <section id="ekip" aria-labelledby="ekip-baslik" className="scroll-mt-16 border-t border-line">
           <div className={cn(shell, "py-20 @4xl:py-28")}>
             <h2 id="ekip-baslik" className={cn(display, "text-5xl leading-none text-ink @3xl:text-6xl")}>
-              Ekip
+              {sectionTitle(p, "Staff", "Ekip")}
             </h2>
             <ul className={cn("mt-12 grid grid-cols-2 gap-x-5 gap-y-12 @3xl:grid-cols-3", p.employees.length !== 3 && "@5xl:grid-cols-4")}>
               {p.employees.map((emp) => (
@@ -263,14 +145,16 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
           </div>
         </section>
       )}
-
-      {/* ── Gallery: staggered columns ── */}
+      </>
+    ),
+    Gallery: (
+      <>
       {p.photos.length > 0 && (
         <section id="galeri" aria-labelledby="galeri-baslik" className="scroll-mt-16 border-t border-line">
           <div className={cn(shell, "py-20 @4xl:py-28")}>
             <div className="flex items-end justify-between gap-6">
               <h2 id="galeri-baslik" className={cn(display, "text-5xl leading-none text-ink @3xl:text-6xl")}>
-                Galeri
+                {sectionTitle(p, "Gallery", "Galeri")}
               </h2>
               {p.photos.length > 9 && (
                 <button type="button" onClick={() => p.onOpenPhoto(0)} className={cn("text-sm text-ink-2", textLink)}>
@@ -307,8 +191,10 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
           </div>
         </section>
       )}
-
-      {/* ── One review, set large ── */}
+      </>
+    ),
+    Reviews: (
+      <>
       {p.reviews.length > 0 && (
         <section id="yorumlar" aria-labelledby="yorumlar-baslik" className="scroll-mt-16 border-t border-line bg-surface">
           <div className={cn(shell, "py-20 @4xl:py-28")}>
@@ -356,12 +242,14 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
           </div>
         </section>
       )}
-
-      {/* ── Visit ── */}
+      </>
+    ),
+    Location: (
+      <>
       <section id="iletisim" aria-labelledby="iletisim-baslik" className="scroll-mt-16 border-t border-line">
         <div className={cn(shell, "py-20 @4xl:py-28")}>
           <h2 id="iletisim-baslik" className={cn(display, "text-5xl leading-none text-ink @3xl:text-6xl")}>
-            Ziyaret
+            {sectionTitle(p, "Location", "Ziyaret")}
           </h2>
           <div className="mt-12 grid gap-12 @3xl:grid-cols-3">
             {(p.address || p.city) && (
@@ -415,6 +303,149 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
           </div>
         </div>
       </section>
+      </>
+    ),
+  };
+
+  return (
+    <div className="@container">
+      {/* ── Masthead ── */}
+      <header className="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur-md">
+        <div className={cn(shell, "flex h-16 items-center gap-6")}>
+          <a href="#ust" className={cn("flex min-w-0 items-center gap-3", focusRing)}>
+            {p.logoStyle ? (
+              <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} limit={44} showName nameClassName={cn(display, "text-2xl leading-none text-ink")} />
+            ) : (
+              <>
+                {p.showLogo && p.logo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.logo} alt="" className="h-8 w-8 shrink-0 object-contain" />
+                )}
+                <span className={cn(display, "truncate text-2xl leading-none text-ink")}>{p.name}</span>
+              </>
+            )}
+          </a>
+          <nav aria-label="Sayfa bölümleri" className="ml-auto hidden items-center gap-7 text-sm text-ink-2 @4xl:flex">
+            {nav.map((n) => (
+              <a key={n.id} href={`#${n.id}`} className={cn("transition-colors hover:text-ink", focusRing)}>
+                {n.label}
+              </a>
+            ))}
+          </nav>
+          {!p.bookingClosed && p.services.length > 0 && (
+            <a
+              href="#hizmetler"
+              className={cn(
+                "ml-auto inline-flex h-10 shrink-0 items-center bg-brand px-5 text-sm font-medium text-(color:--bk-on-brand) transition-colors hover:bg-brand-hover @4xl:ml-0",
+                focusRing
+              )}
+            >
+              {p.ctaLabel || "Randevu al"}
+            </a>
+          )}
+        </div>
+      </header>
+
+      {/* ── Opening spread ── */}
+      <section id="ust" className={cn(shell, "grid gap-10 pb-20 pt-8 @4xl:grid-cols-12 @4xl:gap-12 @4xl:pb-28 @4xl:pt-16")}>
+        <div className="@4xl:order-2 @4xl:col-span-5">
+          {p.heroImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.heroImage} alt={p.name} className="aspect-[4/5] w-full object-cover" />
+          ) : lead ? (
+            // No hero photo chosen: lead with the first gallery photo.
+            <button
+              type="button"
+              onClick={() => p.onOpenPhoto(0)}
+              className={cn("block w-full cursor-zoom-in", focusRing)}
+              aria-label="Fotoğrafı büyüt"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={lead} alt={p.name} className="aspect-[4/5] w-full object-cover" />
+            </button>
+          ) : (
+            <div className="flex aspect-[4/5] w-full items-center justify-center bg-surface-muted" aria-hidden="true">
+              <span className={cn(display, "text-[clamp(8rem,30cqi,16rem)] leading-none text-ink-3")}>
+                {p.name.trim().charAt(0).toLocaleUpperCase("tr-TR")}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col justify-end @4xl:col-span-7">
+          {p.logoStyle && p.showLogo && p.logo && (
+            <div className="mb-5">
+              <BrandMark logo={p.logo} name={p.name} style={p.logoStyle} limit={140} />
+            </div>
+          )}
+          {p.categoryLine.length > 0 && <p className="text-sm text-ink-3">{p.categoryLine.join(", ")}</p>}
+          <h1
+            id="business-name"
+            className={cn(display, "mt-4 text-[clamp(3.25rem,10cqi,8rem)] leading-[0.9] tracking-[-0.02em] text-ink [text-wrap:balance]")}
+          >
+            {p.name}
+          </h1>
+          {p.description && (
+            <p className="mt-8 max-w-[44ch] text-lg leading-relaxed text-ink-2">{p.description}</p>
+          )}
+
+          <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
+            {!p.bookingClosed && p.services.length > 0 && (
+              <a
+                href="#hizmetler"
+                className={cn(
+                  "inline-flex h-12 items-center bg-brand px-7 text-[15px] font-medium text-(color:--bk-on-brand) transition-colors hover:bg-brand-hover",
+                  focusRing
+                )}
+              >
+                {p.ctaLabel || "Randevu al"}
+              </a>
+            )}
+            {contactLinks.map((l) => (
+              <a
+                key={l.label}
+                href={l.href}
+                {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className={cn("text-[15px] text-ink-2", textLink)}
+              >
+                {l.label}
+              </a>
+            ))}
+          </div>
+
+          {(p.reviews.length > 0 || p.openStatus || p.badges.length > 0) && (
+            <dl className="mt-10 grid grid-cols-2 gap-6 border-t border-line pt-6 text-sm @xl:grid-cols-3">
+              {p.reviews.length > 0 && (
+                <div>
+                  <dt className="text-ink-3">Değerlendirme</dt>
+                  <dd className="mt-1 flex items-center gap-1.5 text-ink">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+                    <a href="#yorumlar" className={cn("hover:underline", focusRing)}>
+                      {formatRating(p.ratingAverage)} ({p.reviews.length})
+                    </a>
+                  </dd>
+                </div>
+              )}
+              {p.openStatus && (
+                <div>
+                  <dt className="text-ink-3">Bugün</dt>
+                  <dd className={cn("mt-1", p.openStatus.open ? "text-ink" : "text-ink-2")}>{p.openStatus.label}</dd>
+                </div>
+              )}
+              {p.badges.length > 0 && (
+                <div>
+                  <dt className="text-ink-3">Öne çıkan</dt>
+                  <dd className="mt-1 text-ink">{p.badges.join(", ")}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+        </div>
+      </section>
+
+      {p.sectionOrder.map((key) => (
+        <React.Fragment key={key}>{sections[key]}</React.Fragment>
+      ))}
 
       <footer className="border-t border-line">
         <div className={cn(shell, "flex flex-col gap-6 py-12 @3xl:flex-row @3xl:items-end @3xl:justify-between")}>

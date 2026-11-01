@@ -106,6 +106,24 @@ export interface ThemeConfig {
   }>;
 }
 
+/** How the logo shows on the booking page, with optional text beside it. */
+export interface LogoStyle {
+  shape: "none" | "circle" | "square";
+  fit: "contain" | "cover";
+  width: number;
+  hideName?: boolean;
+  text?: string;
+  textColor?: string;
+  textGap?: number;
+  textSize?: number;
+  textFont?: "theme" | "manrope" | "geist" | "playfair" | "cormorant";
+  bold?: boolean;
+  italic?: boolean;
+  uppercase?: boolean;
+}
+
+export type PageSectionKey = "Services" | "Gallery" | "Staff" | "Reviews" | "Location";
+
 export interface ThemeOverrides {
   /** Page architecture (lib/themes/layouts.ts); colors still come from the theme. */
   layoutId?: import("./layouts").LayoutId;
@@ -116,6 +134,13 @@ export interface ThemeOverrides {
   customSubtitle?: string;
   customBadge?: string;
   customCtaText?: string;
+  /** Replaces the sector and city line above the name. */
+  categoryText?: string;
+  /** One phrase per line for the moving ribbon; empty shows service names. */
+  ribbonText?: string;
+  showRibbon?: boolean;
+  sectionTitles?: Partial<Record<PageSectionKey, string>>;
+  logoStyle?: LogoStyle;
   coverImage?: string;
   /** Porselen's round photo beside the cover; without it the first gallery photo is used. */
   sideImage?: string;

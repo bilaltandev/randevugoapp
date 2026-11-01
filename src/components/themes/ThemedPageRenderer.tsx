@@ -16,7 +16,6 @@ export interface ThemedPageRendererProps {
   /** Theme picked in the dashboard; recolors the booking page. */
   themeId?: string | null;
   themeOverrides?: ThemeOverrides | null;
-  /** Kept for the page builder; the booking page uses a fixed section order. */
   sectionOrder?: string[] | null;
   hiddenSections?: string[] | null;
   customBlocks?: any[] | null;
@@ -38,6 +37,7 @@ export function ThemedPageRenderer({
   galleryItems = [],
   themeId = "premium-dark",
   themeOverrides = null,
+  sectionOrder = null,
   hiddenSections = [],
   previewDevice,
 }: ThemedPageRendererProps) {
@@ -52,6 +52,7 @@ export function ThemedPageRenderer({
       galleryItems={galleryItems}
       themeId={themeId}
       themeOverrides={themeOverrides}
+      sectionOrder={sectionOrder}
       hiddenSections={hiddenSections}
       previewDevice={previewDevice}
     />

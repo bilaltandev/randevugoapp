@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, X } from "lucide-react";
 import { cn, SECTORS } from "@/lib/utils";
 import { DEFAULT_HERO_ACTION_ITEMS, type HeroActionItemId } from "@/lib/hero/types";
-import type { ThemeOverrides } from "@/lib/themes/types";
+import type { PageSectionKey, ThemeOverrides } from "@/lib/themes/types";
+import { pageSectionOrder } from "@/lib/themes/sections";
 import { getThemeConfig } from "@/lib/themes/registry";
 import { getCustomAccent } from "@/lib/themes/utils";
 import { bookingPalette } from "./theme";
@@ -23,6 +24,7 @@ import {
 import { getOpenStatus, minuteToDate, toDateKey, useClientMinute, type WorkingHour } from "./time";
 import { btn, focusRing, headingCls, Initial, SectionTitle } from "./ui";
 import { PhotoGridSection, Lightbox, type Photo } from "./PhotoGallery";
+import { BrandMark } from "./BrandMark";
 import { VitrinHeader } from "./VitrinHeader";
 import { EditorialLayout } from "./layouts/EditorialLayout";
 import { CinematicLayout } from "./layouts/CinematicLayout";
@@ -49,6 +51,8 @@ export interface BusinessBookingPageProps {
   /** Theme picked in the dashboard (Sayfa Düzenleyici → Temalar). */
   themeId?: string | null;
   themeOverrides?: ThemeOverrides | null;
+  /** Owner's section order (Sayfa Düzenleyici → Bölümler). */
+  sectionOrder?: string[] | null;
   hiddenSections?: string[] | null;
   /** Set by the dashboard's live preview; the public page leaves it undefined. */
   previewDevice?: "desktop" | "tablet" | "mobile";
@@ -70,6 +74,7 @@ export function BusinessBookingPage({
   galleryItems = [],
   themeId,
   themeOverrides,
+  sectionOrder,
   hiddenSections,
   previewDevice,
 }: BusinessBookingPageProps) {
@@ -148,12 +153,26 @@ export function BusinessBookingPage({
 
   const showPhotoSection = photos.length > 0;
 
+  // Sections in the owner's order; the older default button text never overrides a layout's own wording.
+  const titles = themeOverrides?.sectionTitles;
+  const owned = (key: PageSectionKey) => titles?.[key]?.trim() || undefined;
+  const ctaLabel = themeOverrides?.customCtaText?.trim();
+  const ownerCta = ctaLabel && ctaLabel !== "Hemen Randevu Al" ? ctaLabel : undefined;
+  const logoStyle = themeOverrides?.logoStyle;
+  const orderKey = pageSectionOrder(sectionOrder).join();
+  const pageOrder = useMemo(
+    () => (orderKey.split(",") as PageSectionKey[]).filter((key) => key === "Services" || !hidden.has(key)),
+    [orderKey, hidden]
+  );
+
   const storefrontProps = {
     name: title,
     logo: business.logo,
     showLogo: themeOverrides?.showLogo !== false,
     hasPhotos: photos.length > 0,
-    categoryLine: [sectorName, business.city].filter(Boolean) as string[],
+    categoryLine: themeOverrides?.categoryText?.trim()
+      ? [themeOverrides.categoryText.trim()]
+      : ([sectorName, business.city].filter(Boolean) as string[]),
     verified: business.isVerified,
     description,
     rating: showReviews ? { average: ratingAverage, count: reviews.length } : null,
@@ -168,17 +187,17 @@ export function BusinessBookingPage({
     },
   };
 
-  const navItems = useMemo(
-    () =>
-      [
-        { id: "hizmetler", label: booking.isRestaurant ? "Rezervasyon" : "Hizmetler" },
-        showPhotoSection && { id: "fotograflar", label: "Fotoğraflar" },
-        showStaff && { id: "ekip", label: "Ekip" },
-        showReviews && { id: "yorumlar", label: "Değerlendirmeler" },
-        showAbout && { id: "hakkinda", label: "Hakkında" },
-      ].filter(Boolean) as { id: string; label: string }[],
-    [booking.isRestaurant, showPhotoSection, showStaff, showReviews, showAbout]
-  );
+  const navItems = useMemo(() => {
+    const items: Record<PageSectionKey, { id: string; label: string; show: boolean }> = {
+      Services: { id: "hizmetler", label: owned("Services") || (booking.isRestaurant ? "Rezervasyon" : "Hizmetler"), show: true },
+      Gallery: { id: "fotograflar", label: owned("Gallery") || "Fotoğraflar", show: showPhotoSection },
+      Staff: { id: "ekip", label: owned("Staff") || "Ekip", show: showStaff },
+      Reviews: { id: "yorumlar", label: owned("Reviews") || "Değerlendirmeler", show: showReviews },
+      Location: { id: "hakkinda", label: owned("Location") || "Hakkında", show: showAbout },
+    };
+    return pageOrder.map((key) => items[key]).filter((item) => item.show);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booking.isRestaurant, showPhotoSection, showStaff, showReviews, showAbout, pageOrder, titles]);
 
   // ── Flow navigation (browser back button steps back through the flow) ──
   const useHistory = !isPreview;
@@ -315,6 +334,14 @@ export function BusinessBookingPage({
       },
       onOpenPhoto: setLightboxIndex,
       footerYear: now ? now.getFullYear() : null,
+      sectionOrder: pageOrder,
+      sectionTitles: titles,
+      ctaLabel: ownerCta,
+      ribbon:
+        themeOverrides?.showRibbon === false
+          ? null
+          : (themeOverrides?.ribbonText ?? "").split("\n").map((line) => line.trim()).filter(Boolean),
+      logoStyle,
     };
     const Layout = layoutId === "editorial" ? EditorialLayout : CinematicLayout;
 
@@ -364,17 +391,23 @@ export function BusinessBookingPage({
           ) : (
             <>
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                {business.logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={business.logo} alt="" className="h-8 w-8 shrink-0 rounded-(--bk-r-ctl) border border-line object-contain p-0.5" />
+                {logoStyle ? (
+                  <BrandMark logo={storefrontProps.showLogo ? business.logo : null} name={title} style={logoStyle} limit={44} showName nameClassName="text-sm font-semibold text-ink" />
                 ) : (
-                  <Initial name={business.name} className="h-8 w-8 shrink-0 rounded-(--bk-r-ctl) text-sm" />
+                  <>
+                    {business.logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={business.logo} alt="" className="h-8 w-8 shrink-0 rounded-(--bk-r-ctl) border border-line object-contain p-0.5" />
+                    ) : (
+                      <Initial name={business.name} className="h-8 w-8 shrink-0 rounded-(--bk-r-ctl) text-sm" />
+                    )}
+                    <span className="truncate text-sm font-semibold text-ink">{title}</span>
+                  </>
                 )}
-                <span className="truncate text-sm font-semibold text-ink">{title}</span>
               </div>
               {effectiveStage === "browse" && !booking.isExpired && services.length > 0 && (
                 <a href="#hizmetler" className={btn("primary", "sm")}>
-                  Randevu al
+                  {ownerCta || "Randevu al"}
                 </a>
               )}
             </>
@@ -454,6 +487,8 @@ export function BusinessBookingPage({
             lowestPrice={services.length ? Math.min(...services.map((s) => s.price)) : null}
             contact={storefrontProps.contact}
             canBook={!booking.isExpired && services.length > 0}
+            ctaLabel={ownerCta}
+            logoStyle={logoStyle}
           />
 
           <div className="mt-10">
@@ -477,37 +512,45 @@ export function BusinessBookingPage({
                 </p>
               )}
 
-              <ServiceCatalog
-                services={services}
-                selectedId={selectedService?.id}
-                onSelect={booking.selectService}
-                isRestaurant={booking.isRestaurant}
-                readOnly={booking.isExpired}
-                phone={business.phone}
-              />
+              {pageOrder.map((key) => (
+                <React.Fragment key={key}>
+                  {key === "Services" && (
+                    <ServiceCatalog
+                      heading={owned("Services")}
+                      services={services}
+                      selectedId={selectedService?.id}
+                      onSelect={booking.selectService}
+                      isRestaurant={booking.isRestaurant}
+                      readOnly={booking.isExpired}
+                      phone={business.phone}
+                    />
+                  )}
 
-              {showPhotoSection && (
-                <section id="fotograflar" aria-labelledby="fotograflar-baslik" className="scroll-mt-28">
-                  <SectionTitle id="fotograflar-baslik">Fotoğraflar</SectionTitle>
-                  <PhotoGridSection photos={photos} onOpen={setLightboxIndex} />
-                </section>
-              )}
+                  {key === "Gallery" && showPhotoSection && (
+                    <section id="fotograflar" aria-labelledby="fotograflar-baslik" className="scroll-mt-28">
+                      <SectionTitle id="fotograflar-baslik">{owned("Gallery") || "Fotoğraflar"}</SectionTitle>
+                      <PhotoGridSection photos={photos} onOpen={setLightboxIndex} />
+                    </section>
+                  )}
 
-              {showStaff && <TeamSection employees={employees} />}
-              {showReviews && <ReviewsSection reviews={reviews} average={ratingAverage} />}
-              {showAbout && (
-                <AboutSection
-                  // The header already shows this text; repeat it here only if it was clipped there.
-                  description={description && description.length > 220 ? description : null}
-                  address={business.address}
-                  city={business.city}
-                  mapsUrl={mapsUrl}
-                  phone={business.phone}
-                  whatsappUrl={business.whatsappNumber ? whatsappUrl : null}
-                  hours={hours}
-                  todayIndex={now ? now.getDay() : null}
-                />
-              )}
+                  {key === "Staff" && showStaff && <TeamSection employees={employees} title={owned("Staff")} />}
+                  {key === "Reviews" && showReviews && <ReviewsSection reviews={reviews} average={ratingAverage} title={owned("Reviews")} />}
+                  {key === "Location" && showAbout && (
+                    <AboutSection
+                      title={owned("Location")}
+                      // The header already shows this text; repeat it here only if it was clipped there.
+                      description={description && description.length > 220 ? description : null}
+                      address={business.address}
+                      city={business.city}
+                      mapsUrl={mapsUrl}
+                      phone={business.phone}
+                      whatsappUrl={business.whatsappNumber ? whatsappUrl : null}
+                      hours={hours}
+                      todayIndex={now ? now.getDay() : null}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
             </div>
 
             <div className="hidden lg:block">
