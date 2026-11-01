@@ -19,6 +19,7 @@ test("there are five premium themes, one per sector", () => {
 test("every premium theme falls back to a free theme", () => {
   for (const t of premium) {
     assert.ok(t.signature, t.id);
+    assert.ok(t.sampleImage?.startsWith("https://"), t.id);
     assert.ok(THEME_REGISTRY[t.fallbackThemeId!], t.id);
     assert.equal(THEME_REGISTRY[t.fallbackThemeId!].isPremium, false, t.id);
   }

@@ -235,7 +235,7 @@ export function ThemePickerTab({
             </div>
             {currentTheme.signature && (
               <p className="rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
-                {currentTheme.name} kendi özel sayfa düzeniyle gelir. Buradaki seçim, normal bir temaya geçtiğinizde kullanılır.
+                {currentTheme.name} kendi özel sayfa düzeniyle gelir. Kapaktaki örnek görseli Genel sekmesinden kendi görselinizle değiştirebilirsiniz.
               </p>
             )}
             <LayoutPicker

@@ -89,6 +89,8 @@ export interface ThemeConfig {
   signature?: ThemeSignature;
   /** Free theme shown instead when the business no longer has a paid plan. */
   fallbackThemeId?: string;
+  /** Sample cover shown until the owner picks their own. */
+  sampleImage?: string;
 
   colors: ThemeColors;
   typography: ThemeTypography;

@@ -274,16 +274,16 @@ export function BusinessBookingPage({
 
   const deviceFrame =
     previewDevice === "mobile"
-      ? "mx-auto my-6 min-h-[750px] max-w-[400px] overflow-hidden rounded-[36px] border-8 border-black/80"
+      ? "mx-auto my-6 min-h-[750px] w-full max-w-[400px] overflow-hidden rounded-[36px] border-8 border-black/80"
       : previewDevice === "tablet"
-      ? "mx-auto my-6 min-h-[800px] max-w-[768px] overflow-hidden rounded-3xl border-4 border-black/80"
-      : "";
+      ? "mx-auto my-6 min-h-[800px] w-full max-w-[768px] overflow-hidden rounded-3xl border-4 border-black/80"
+      : "w-full";
 
   const currentStepNumber = inFlow ? stageIndex(effectiveStage) + 1 : 0;
 
   // Editoryal / Sinematik and premium themes replace the storefront; the booking flow below stays shared.
   const layoutId = getLayoutId(themeOverrides?.layoutId);
-  const signature = getThemeConfig(themeId).signature;
+  const { signature, sampleImage } = getThemeConfig(themeId);
   if ((signature || layoutId !== "vitrin") && effectiveStage === "browse") {
     const layoutProps: StorefrontLayoutProps = {
       name: title,
@@ -292,7 +292,8 @@ export function BusinessBookingPage({
       description,
       categoryLine: storefrontProps.categoryLine,
       verified: business.isVerified,
-      heroImage,
+      // Premium themes open with a sample photo until the owner picks a cover or a plain color.
+      heroImage: heroImage ?? (signature && heroBgType !== "color" ? sampleImage ?? null : null),
       photos,
       services,
       employees: showStaff ? employees : [],

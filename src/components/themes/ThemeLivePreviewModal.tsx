@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Monitor, Tablet, Smartphone, X, Check, Lock } from "lucide-react";
 import { ThemeConfig, ThemeOverrides } from "@/lib/themes/types";
@@ -54,14 +55,14 @@ export function ThemeLivePreviewModal({
 
   if (!isOpen || !theme) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-canvas" role="dialog" aria-modal="true" aria-label={`${theme.name} önizlemesi`}>
+  const dialog = (
+    <div className="fixed inset-0 z-[100] flex flex-col bg-canvas" role="dialog" aria-modal="true" aria-label={`${theme.name} önizlemesi`}>
       {/* Top bar */}
       <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-3 py-2.5 sm:px-6">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">{theme.name}</p>
           <p className="hidden truncate text-xs text-ink-3 sm:block">
-            {business.name} verileriyle canlı önizleme
+            {theme.sampleImage ? "Örnek görseli Genel sekmesindeki kapak görselinden değiştirebilirsiniz" : `${business.name} verileriyle canlı önizleme`}
           </p>
         </div>
 
@@ -130,4 +131,8 @@ export function ThemeLivePreviewModal({
       </div>
     </div>
   );
+
+  // Rendered at the shell's root, or the panel's sidebar and top bar would sit on top of it.
+  const shell = typeof document !== "undefined" ? document.querySelector(".dash-shell") : null;
+  return shell ? createPortal(dialog, shell) : dialog;
 }

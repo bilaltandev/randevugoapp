@@ -74,9 +74,17 @@ export function ThemeCard({
           borderColor: theme.colors.border,
         }}
       >
+        {theme.sampleImage && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={theme.sampleImage.replace("w=1600", "w=480")} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+            <span className="absolute inset-0" style={{ backgroundColor: theme.colors.background, opacity: 0.45 }} />
+          </>
+        )}
+
         {/* Mini Navbar */}
         <div
-          className="mb-3 flex items-center justify-between rounded-lg border px-3 py-2"
+          className="relative mb-3 flex items-center justify-between rounded-lg border px-3 py-2"
           style={{
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
@@ -102,7 +110,7 @@ export function ThemeCard({
         </div>
 
         {/* Mini Hero */}
-        <div className="px-1 py-1 text-center">
+        <div className="relative px-1 py-1 text-center">
           <div
             className="mb-1 inline-block rounded-full border px-2 py-0.5 text-[8px] font-bold"
             style={{
@@ -125,7 +133,7 @@ export function ThemeCard({
         </div>
 
         {/* Mini Cards Grid */}
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="relative mt-2 grid grid-cols-2 gap-2">
           {[12, 10].map((w, i) => (
             <div
               key={i}

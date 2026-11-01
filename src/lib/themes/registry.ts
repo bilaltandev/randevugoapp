@@ -896,6 +896,7 @@ export const THEME_REGISTRY: Record<string, ThemeConfig> = {
     orderIndex: 15,
     signature: "noir",
     fallbackThemeId: "obsidyen-bakir",
+    sampleImage: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1600&q=75",
 
     colors: {
       background: "#0A0A0B",
@@ -961,6 +962,7 @@ export const THEME_REGISTRY: Record<string, ThemeConfig> = {
     orderIndex: 16,
     signature: "porcelain",
     fallbackThemeId: "soft-beauty",
+    sampleImage: "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=1600&q=75",
 
     colors: {
       background: "#FAF6F1",
@@ -1026,6 +1028,7 @@ export const THEME_REGISTRY: Record<string, ThemeConfig> = {
     orderIndex: 17,
     signature: "clear",
     fallbackThemeId: "nordik",
+    sampleImage: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1600&q=75",
 
     colors: {
       background: "#F7FAFC",
@@ -1091,6 +1094,7 @@ export const THEME_REGISTRY: Record<string, ThemeConfig> = {
     orderIndex: 18,
     signature: "table",
     fallbackThemeId: "restaurant-dark",
+    sampleImage: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1600&q=75",
 
     colors: {
       background: "#14100C",
@@ -1156,6 +1160,7 @@ export const THEME_REGISTRY: Record<string, ThemeConfig> = {
     orderIndex: 19,
     signature: "track",
     fallbackThemeId: "bold-business",
+    sampleImage: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&w=1600&q=75",
 
     colors: {
       background: "#0E1013",
