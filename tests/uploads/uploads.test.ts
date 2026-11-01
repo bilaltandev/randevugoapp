@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { removeUpload, saveUpload } from "../../src/lib/uploads";
+import { removeUpload, saveUpload, uploadErrorMessage } from "../../src/lib/uploads";
 
 const SUPABASE = "https://example.supabase.co";
 const realFetch = globalThis.fetch;
@@ -69,15 +69,27 @@ test("creates the bucket on the first upload, then retries", async () => {
   assert.equal(JSON.parse(calls[1].init.body as string).public, true);
 });
 
+test("a value pasted with quotes and a line break still works", async () => {
+  process.env.SUPABASE_URL = `"${SUPABASE}/"\n`;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = '"sb_secret_test"\n';
+  const calls = stubFetch(() => new Response("{}"));
+  await saveUpload("gallery", "a.png", Buffer.from("x"));
+  assert.equal(calls[0].url, `${SUPABASE}/storage/v1/object/uploads/gallery/a.png`);
+  assert.equal((calls[0].init.headers as Record<string, string>).apikey, "sb_secret_test");
+});
+
 test("a failed upload throws instead of returning a dead address", async () => {
   useStorage();
   stubFetch(() => new Response('{"error":"Unauthorized"}', { status: 403 }));
-  await assert.rejects(saveUpload("logos", "a.jpg", Buffer.from("x")), /Upload failed \(403\)/);
+  const error = await saveUpload("logos", "a.jpg", Buffer.from("x")).catch((e) => e);
+  assert.equal(uploadErrorMessage(error), "Görsel kaydedilemedi (kod: DEPO-403).");
+  assert.ok(!uploadErrorMessage(error).includes("test-key"));
 });
 
 test("on Vercel without storage settings it fails clearly", async () => {
   process.env.VERCEL = "1";
-  await assert.rejects(saveUpload("logos", "a.jpg", Buffer.from("x")), /not configured/);
+  const error = await saveUpload("logos", "a.jpg", Buffer.from("x")).catch((e) => e);
+  assert.equal(uploadErrorMessage(error), "Görsel kaydedilemedi (kod: AYAR-YOK).");
 });
 
 test("removes only files from its own bucket", async () => {

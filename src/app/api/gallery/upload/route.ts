@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import path from "path";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
-import { saveUpload } from "@/lib/uploads";
+import { saveUpload, uploadErrorMessage } from "@/lib/uploads";
 
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -65,6 +65,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Gallery upload error:", error);
-    return NextResponse.json({ error: "Görsel yüklenirken bir hata oluştu." }, { status: 500 });
+    return NextResponse.json({ error: uploadErrorMessage(error) }, { status: 500 });
   }
 }

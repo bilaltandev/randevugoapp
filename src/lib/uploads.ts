@@ -16,9 +16,24 @@ const CONTENT_TYPES: Record<string, string> = {
   gif: "image/gif",
 };
 
+/** A failed upload, with a short code the owner can quote to support. It never carries the key. */
+export class UploadError extends Error {
+  constructor(readonly code: string, detail: string) {
+    super(detail);
+  }
+}
+
+/** The Turkish message for a failed upload, e.g. "Görsel kaydedilemedi (kod: DEPO-403)." */
+export function uploadErrorMessage(error: unknown): string {
+  const code = error instanceof UploadError ? error.code : "BAGLANTI";
+  return `Görsel kaydedilemedi (kod: ${code}).`;
+}
+
 function storage() {
-  const url = process.env.SUPABASE_URL?.replace(/\/+$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Trimmed: a value pasted into Vercel can carry quotes or a stray line break.
+  const clean = (v?: string) => v?.trim().replace(/^["']|["']$/g, "");
+  const url = clean(process.env.SUPABASE_URL)?.replace(/\/+$/, "");
+  const key = clean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !key) return null;
   // Newer sb_secret_ keys aren't JWTs and travel in apikey alone; legacy service_role keys need both headers.
   const headers: Record<string, string> = key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: `Bearer ${key}` };
@@ -32,9 +47,9 @@ async function createBucket(s: NonNullable<ReturnType<typeof storage>>) {
     body: JSON.stringify({ id: BUCKET, name: BUCKET, public: true }),
   });
   // Two first uploads at once can race; the second one finds the bucket already there.
-  if (!res.ok && res.status !== 409 && !/already exists/i.test(await res.text())) {
-    throw new Error(`Bucket could not be created (${res.status})`);
-  }
+  if (res.ok || res.status === 409) return;
+  const body = await res.text();
+  if (!/already exists/i.test(body)) throw new UploadError(`ALAN-${res.status}`, `Bucket could not be created: ${body}`);
 }
 
 async function putObject(s: NonNullable<ReturnType<typeof storage>>, objectPath: string, data: Buffer, contentType: string) {
@@ -51,7 +66,7 @@ export async function saveUpload(folder: string, filename: string, data: Buffer)
   const s = storage();
 
   if (!s) {
-    if (process.env.VERCEL) throw new Error("Upload storage is not configured");
+    if (process.env.VERCEL) throw new UploadError("AYAR-YOK", "Upload storage is not configured");
     await fs.mkdir(path.join(LOCAL_ROOT, folder), { recursive: true });
     await fs.writeFile(path.join(LOCAL_ROOT, folder, filename), data);
     return `/uploads/${objectPath}`;
@@ -63,7 +78,7 @@ export async function saveUpload(folder: string, filename: string, data: Buffer)
     await createBucket(s);
     res = await putObject(s, objectPath, data, contentType);
   }
-  if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+  if (!res.ok) throw new UploadError(`DEPO-${res.status}`, `Upload failed: ${await res.text()}`);
   return `${s.url}/storage/v1/object/public/${BUCKET}/${objectPath}`;
 }
 

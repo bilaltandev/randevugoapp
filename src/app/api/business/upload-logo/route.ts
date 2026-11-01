@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import path from "path";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
-import { removeUpload, saveUpload } from "@/lib/uploads";
+import { removeUpload, saveUpload, uploadErrorMessage } from "@/lib/uploads";
 
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -86,10 +86,7 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Logo upload error:", error);
-    return NextResponse.json(
-      { error: "Logo yüklenirken bir hata oluştu." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: uploadErrorMessage(error) }, { status: 500 });
   }
 }
 

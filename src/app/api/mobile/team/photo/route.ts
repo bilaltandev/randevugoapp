@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getStaffActor } from "@/lib/staffActor";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
-import { removeUpload, saveUpload } from "@/lib/uploads";
+import { removeUpload, saveUpload, uploadErrorMessage } from "@/lib/uploads";
 
 // Team member (mobile Bearer): POST multipart `file` sets their own staff photo (shown on the booking page).
 // Stored like logos and gallery images (lib/uploads.ts); only JPG, PNG and WebP, at most 5 MB.
@@ -41,6 +41,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, url });
   } catch (error) {
     console.error("[team-member] photo upload failed", { name: (error as Error)?.name });
-    return NextResponse.json({ error: "Fotoğraf yüklenirken bir hata oluştu." }, { status: 500 });
+    return NextResponse.json({ error: uploadErrorMessage(error) }, { status: 500 });
   }
 }
