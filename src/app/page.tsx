@@ -6,43 +6,34 @@ import {
   BarChart3,
   CalendarCheck2,
   Check,
-  Contact2,
-  Globe,
   Images,
   LayoutTemplate,
-  MessageCircle,
-  Play,
   Smartphone,
   Star,
   Users2,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
-import { Aurora } from "@/components/Aurora";
 import { HeroDevices } from "@/components/landing/DeviceMockups";
 import { FeatureStory } from "@/components/landing/FeatureStory";
+import { HeroCalendar } from "@/components/landing/HeroCalendar";
 import { HeroStage, HeroTitle } from "@/components/landing/HeroStage";
 import { StoreBadges } from "@/components/landing/StoreBadges";
 import { ThemeShowcase, type ShowcaseTheme } from "@/components/landing/ThemeShowcase";
-import { MotionRoot, Reveal } from "@/components/motion/MotionRoot";
+import { MotionRoot } from "@/components/motion/MotionRoot";
 import { ADSENSE_SCRIPT } from "@/lib/adsense";
 import { PRIVACY_NOTICE_PATH } from "@/lib/privacyNotice";
 import { FREE_MONTHLY_BOOKINGS, PLAN_PRICES_TRY, YEARLY_FREE_MONTHS, formatTRY } from "@/lib/plans";
 import { getThemeConfig } from "@/lib/themes/registry";
 
-/* Landing palette: a black hero over slow light with a mint accent, then Apple's light gray for the content. */
+/* Landing palette: petrol, the color of an ink-blue appointment book, with the brand's mint for what's booked. */
 const MINT = "#5BE38F";
 const display = "font-[family-name:var(--font-manrope)]";
-const shell = "mx-auto w-full max-w-[1120px] px-5 sm:px-8";
+const shell = "mx-auto w-full max-w-[1200px] px-5 sm:px-8";
+const heading = `${display} text-[clamp(2.25rem,5.2vw,4rem)] font-semibold leading-[1.04] tracking-[-0.04em]`;
+const lead = "mt-4 max-w-xl text-lg leading-relaxed text-[#EAF2EE]/70";
 const mintButton =
-  "inline-flex items-center justify-center gap-2 rounded-full bg-[#5BE38F] font-semibold text-[#04210F] shadow-[0_8px_30px_-8px_rgba(91,227,143,0.55)] transition-colors hover:bg-[#7DEBA7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5BE38F]";
-
-const HERO_STRIP: { icon: LucideIcon; title: string; text: string }[] = [
-  { icon: CalendarCheck2, title: "Online rezervasyon", text: "7/24 açık randevu sayfası" },
-  { icon: MessageCircle, title: "WhatsApp ile iletişim", text: "Müşteriye tek dokunuşla ulaşın" },
-  { icon: Contact2, title: "Müşteri yönetimi", text: "Ziyaret geçmişi ve notlar" },
-  { icon: Globe, title: "Kendi sayfanız", text: "calendlygo.com/isletmeniz" },
-];
+  "inline-flex items-center justify-center gap-2 rounded-full bg-[#5BE38F] font-semibold text-[#04210F] transition-colors hover:bg-[#7DEBA7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5BE38F]";
 
 // Photos are the per-sector presets already used by the gallery (lib/gallery/types.ts). Names and prices are samples.
 const SHOWCASE: { sector: string; text: string; themeId: string; sample: string; photo: string; services: [string, string][] }[] = [
@@ -142,7 +133,7 @@ function Wordmark() {
       </span>
       <span className="flex flex-col items-start gap-0.5">
         <Image src="/brand/calendlygo-text-logo.png" alt="CalendlyGo" width={124} height={20} className="h-5 w-auto object-contain" unoptimized priority />
-        <span className="pl-0.5 text-[9px] font-semibold tracking-[0.22em] text-white/50">by VASTLAB</span>
+        <span className="pl-0.5 text-[10px] font-semibold text-white/50">by VASTLAB</span>
       </span>
     </Link>
   );
@@ -151,234 +142,185 @@ function Wordmark() {
 export default function LandingPage() {
   return (
     <MotionRoot>
-    <div className="min-h-screen overflow-x-clip bg-black font-sans text-white selection:bg-[#5BE38F]/30">
-      {/* Google's site check reads this. Only here, never site-wide: auto ads must stay off the booking pages. */}
-      <script async src={ADSENSE_SCRIPT} crossOrigin="anonymous" />
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-black/60 backdrop-blur-xl backdrop-saturate-150">
-        <div className={`${shell} flex h-14 items-center gap-4 lg:gap-8`}>
-          <Wordmark />
-          <nav aria-label="Ana menü" className="hidden items-center gap-7 text-[13px] text-white/70 lg:flex">
-            <a href="#ozellikler" className="transition-colors hover:text-white">Özellikler</a>
-            <a href="#sektorler" className="transition-colors hover:text-white">Sektörler</a>
-            <a href="#fiyatlandirma" className="transition-colors hover:text-white">Fiyatlandırma</a>
-            <Link href="/ahmetberber" target="_blank" className="transition-colors hover:text-white">Canlı örnek</Link>
-          </nav>
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <Link href="/login" className="whitespace-nowrap rounded-full px-2 py-2 text-[13px] font-medium text-white/80 transition-colors hover:text-white sm:px-3">
-              Giriş yap
-            </Link>
-            <Link href="/register" className={`${mintButton} h-8 whitespace-nowrap px-3.5 text-[13px]`}>
-              <span className="sm:hidden">Başla</span>
-              <span className="hidden sm:inline">Ücretsiz başla</span>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* ═══ HERO ═══ */}
-      <div className="relative isolate overflow-hidden">
-        <div className="admin-shell absolute inset-0 -z-10">
-          <Aurora />
-        </div>
-
-        <section className={`${shell} pb-16 pt-20 text-center sm:pt-28`}>
-          <p className="text-[17px] font-medium" style={{ color: MINT }}>Hepsi bir arada randevu sistemi</p>
-          <HeroTitle className={`${display} mx-auto mt-4 max-w-4xl text-[clamp(2.6rem,8vw,5.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]`} lines={["Akıllı randevu", "altyapınız."]} />
-          <p className="mx-auto mt-6 max-w-2xl text-[clamp(1.05rem,2vw,1.35rem)] leading-relaxed text-white/65">
-            Randevularınızı tek yerden yönetin, zaman kazanın ve müşterilerinize 7/24 açık bir rezervasyon deneyimi sunun.
-          </p>
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
-            <Link href="/register" className={`${mintButton} h-12 px-7 text-[15px]`}>
-              Ücretsiz başla
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-            <Link
-              href="/ahmetberber"
-              target="_blank"
-              className="inline-flex h-12 items-center gap-2.5 rounded-full border border-white/20 px-6 text-[15px] font-medium text-white transition-colors hover:border-white/40 hover:bg-white/5"
-            >
-              <Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
-              Canlı örneği gör
-            </Link>
-          </div>
-          <p className="mt-6 text-sm text-white/50">Ücretsiz paket · Kredi kartı gerekmez · VastLab tarafından geliştirildi</p>
-          <StoreBadges className="mt-6" />
-          <HeroStage className="mx-auto mt-16 max-w-3xl text-left">
-            <HeroDevices />
-          </HeroStage>
-        </section>
-
-        {/* Feature strip */}
-        <div className={`${shell} pb-20`}>
-          <ul className="grid grid-cols-1 gap-8 border-t border-white/10 pt-10 sm:grid-cols-2 lg:grid-cols-4">
-            {HERO_STRIP.map(({ icon: Icon, title, text }, i) => (
-              <li key={title}>
-                <Reveal delay={i * 0.06} distance={16}>
-                  <Icon className="h-5 w-5" style={{ color: MINT }} aria-hidden="true" />
-                  <span className="mt-3 block text-[15px] font-semibold">{title}</span>
-                  <span className="mt-0.5 block text-[13px] text-white/55">{text}</span>
-                </Reveal>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      {/* ═══ LIGHT SHEET ═══ */}
-      <main className="relative bg-[#F5F5F7] text-[#1D1D1F]">
-        {/* Sectors */}
-        <section id="sektorler" aria-labelledby="sektorler-baslik" className={`${shell} scroll-mt-20 pb-24 pt-28`}>
-          <Reveal className="text-center">
-            <p className="text-[17px] font-semibold text-[#0A7B5C]">Her işletme için</p>
-            <h2 id="sektorler-baslik" className={`${display} mt-3 text-[clamp(2.2rem,5vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
-              Sektörünüze özel premium temalar.
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-[19px] leading-relaxed text-[#6E6E73]">
-              Bir sektör seçin, sayfanızın nasıl görüneceğini anında görün. Her temanın kendi düzeni ve hareketleri var.
-            </p>
-          </Reveal>
-          <Reveal className="mt-12">
-            <ThemeShowcase themes={SHOWCASE_THEMES} />
-          </Reveal>
-        </section>
-
-        {/* How it works */}
-        <section id="ozellikler" aria-labelledby="ozellikler-baslik" className={`${shell} scroll-mt-20 pb-24`}>
-          <Reveal className="max-w-2xl">
-            <p className="text-[17px] font-semibold text-[#0A7B5C]">Basit. Güçlü. Verimli.</p>
-            <h2 id="ozellikler-baslik" className={`${display} mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
-              Telefon trafiği azalır, takviminiz kendiliğinden dolar.
-            </h2>
-          </Reveal>
-          <FeatureStory />
-          <Reveal className="mt-10 flex flex-wrap gap-3">
-            <Link href="/register" className={`${mintButton} h-12 px-7 text-[15px] !bg-[#1D1D1F] !text-white shadow-none hover:!bg-black`}>
-              Ücretsiz başla
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-            <a href="#tum-ozellikler" className="inline-flex h-12 items-center rounded-full px-5 text-[15px] font-medium text-[#0A7B5C] transition-colors hover:bg-white">
-              Tüm özellikler
-            </a>
-          </Reveal>
-        </section>
-
-        {/* All features */}
-        <section id="tum-ozellikler" aria-labelledby="tum-ozellikler-baslik" className={`${shell} scroll-mt-20 pb-28`}>
-          <h2 id="tum-ozellikler-baslik" className={`${display} text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold tracking-[-0.04em]`}>
-            Ve daha fazlası
-          </h2>
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {MORE_FEATURES.map(({ icon: Icon, title, text }, i) => (
-              <li key={title}>
-                <Reveal delay={(i % 4) * 0.05} distance={18} className="h-full rounded-[1.5rem] bg-white p-6 transition-shadow duration-300 hover:shadow-[0_18px_40px_-24px_rgba(0,0,0,0.25)]">
-                  <Icon className="h-5 w-5 text-[#0A7B5C]" aria-hidden="true" />
-                  <h3 className="mt-3 text-[15px] font-semibold">{title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[#687180]">{text}</p>
-                </Reveal>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {/* Pricing */}
-        <section id="fiyatlandirma" aria-labelledby="fiyat-baslik" className="scroll-mt-20 bg-white py-28">
-          <div className={shell}>
-            <div className="text-center">
-              <p className="text-[17px] font-semibold text-[#0A7B5C]">Şeffaf fiyatlandırma</p>
-              <h2 id="fiyat-baslik" className={`${display} mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
-                Ücretsiz başlayın, işiniz büyüdükçe yükseltin.
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-[19px] leading-relaxed text-[#6E6E73]">
-                Ücretsiz paketle hemen başlayın. Randevu başına kesinti ve gizli ücret yok.
-              </p>
-            </div>
-
-            <div className="mt-12 grid gap-4 lg:grid-cols-3">
-              {PRICING.map(({ name, tagline, items, highlight, plan }, i) => {
-                const prices = plan ? PLAN_PRICES_TRY[plan] : null;
-                return (
-                  <Reveal key={name} delay={i * 0.07} className="h-full">
-                  <article className={`flex h-full flex-col rounded-[2rem] p-8 ${highlight ? "bg-black text-white" : "bg-[#F5F5F7]"}`}>
-                    <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{name}</h3>
-                    <p className={`text-sm ${highlight ? "text-white/60" : "text-[#6E6E73]"}`}>{tagline}</p>
-                    <p className="mt-6">
-                      <span className={`${display} text-[52px] font-semibold leading-none tracking-[-0.045em]`}>{formatTRY(prices?.MONTHLY ?? 0)}</span>
-                      <span className={`ml-1 text-base ${highlight ? "text-white/60" : "text-[#6E6E73]"}`}>/ ay</span>
-                    </p>
-                    <p className={`mt-2 min-h-11 text-sm leading-[22px] ${highlight ? "text-white/70" : "text-[#6E6E73]"}`}>
-                      {prices ? (
-                        <>
-                          Yıllık ödeyin: <span className="font-semibold">{formatTRY(Math.floor(prices.YEARLY / 12))} / ay</span>
-                          <br />
-                          {formatTRY(prices.YEARLY)} <span className="line-through">{formatTRY(prices.MONTHLY * 12)}</span> · {YEARLY_FREE_MONTHS} ay bedava
-                        </>
-                      ) : (
-                        "Süresiz ücretsiz, kredi kartı gerekmez"
-                      )}
-                    </p>
-                    <ul className="mt-6 flex-1 space-y-3 text-sm">
-                      {items.map((item) => (
-                        <li key={item} className="flex items-start gap-2.5">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: highlight ? MINT : "#0A7B5C" }} aria-hidden="true" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href="/register"
-                      className={`mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold transition-colors ${
-                        highlight ? "bg-[#5BE38F] text-[#04210F] hover:bg-[#7DEBA7]" : "bg-[#1D1D1F] text-white hover:bg-black"
-                      }`}
-                    >
-                      {plan ? `${name} ile başla` : "Ücretsiz başla"}
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </Link>
-                  </article>
-                  </Reveal>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Closing band */}
-        <section className="bg-white pb-28">
-          <div className={shell}>
-            <div
-              className="relative overflow-hidden rounded-[2rem] bg-black px-8 py-20 text-center text-white sm:px-14"
-              style={{ background: "radial-gradient(70% 90% at 50% 120%, rgba(91,227,143,0.22), transparent 70%), #000" }}
-            >
-              <h2 className={`${display} mx-auto max-w-2xl text-[clamp(2rem,4.5vw,3.25rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
-                Randevularınızı bugün dijitale taşıyın.
-              </h2>
-              <p className="mx-auto mt-4 max-w-lg text-base text-white/65">
-                Sayfanızı birkaç dakikada kurun, bağlantınızı paylaşın, ilk online randevunuzu alın.
-              </p>
-              <Link href="/register" className={`${mintButton} mt-8 h-12 px-8 text-[15px]`}>
-                Ücretsiz başla
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      <div className="min-h-screen overflow-x-clip bg-[#062A30] font-sans text-[#EAF2EE] selection:bg-[#5BE38F]/30">
+        {/* Google's site check reads this. Only here, never site-wide: auto ads must stay off the booking pages. */}
+        <script async src={ADSENSE_SCRIPT} crossOrigin="anonymous" />
+        <header className="fixed inset-x-0 top-0 z-50 bg-[#062A30]/55 backdrop-blur-xl">
+          <div className={`${shell} flex h-16 items-center gap-4 lg:gap-8`}>
+            <Wordmark />
+            <nav aria-label="Ana menü" className="hidden items-center gap-7 text-sm text-[#EAF2EE]/75 lg:flex">
+              <a href="#temalar" className="transition-colors hover:text-white">Temalar</a>
+              <a href="#ozellikler" className="transition-colors hover:text-white">Nasıl çalışır</a>
+              <a href="#fiyatlandirma" className="transition-colors hover:text-white">Fiyatlar</a>
+              <Link href="/ahmetberber" target="_blank" className="transition-colors hover:text-white">Örnek sayfa</Link>
+            </nav>
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <Link href="/login" className="whitespace-nowrap rounded-full px-2 py-2 text-sm font-medium text-[#EAF2EE]/85 transition-colors hover:text-white sm:px-3">
+                Giriş yap
               </Link>
-              <StoreBadges className="mt-6" />
+              <Link href="/register" className={`${mintButton} h-10 whitespace-nowrap px-4 text-sm`}>
+                <span className="sm:hidden">Başla</span>
+                <span className="hidden sm:inline">Ücretsiz başla</span>
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* The 3D calendar is the page's one big gesture: bookings arriving on their own. */}
+        <section className="relative isolate flex min-h-[100svh] items-end overflow-hidden">
+          <HeroCalendar className="absolute inset-0 -z-20" />
+          <div
+            className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,#062A30_42%,rgba(6,42,48,0.78)_62%,transparent_82%)] lg:bg-[linear-gradient(to_top,#062A30_4%,rgba(6,42,48,0.55)_34%,transparent_66%),linear-gradient(to_right,#062A30_8%,rgba(6,42,48,0.82)_38%,transparent_68%)]"
+            aria-hidden="true"
+          />
+          <div className={`${shell} pb-12 pt-32 sm:pb-16`}>
+            <HeroTitle
+              className={`${display} max-w-[13ch] text-[clamp(3rem,9.4vw,7.5rem)] font-semibold leading-[0.98] tracking-[-0.05em]`}
+              lines={["Takviminiz", "kendiliğinden", "dolsun."]}
+            />
+            <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="max-w-xl text-[clamp(1.05rem,1.6vw,1.25rem)] leading-relaxed text-[#EAF2EE]/80">
+                  Müşterileriniz size özel sayfanızdan boş saati seçer, randevu takviminize düşer. Telefona bakmanız gerekmez.
+                </p>
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <Link href="/register" className={`${mintButton} h-12 px-7 text-[15px]`}>
+                    Ücretsiz başla
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                  <Link
+                    href="/ahmetberber"
+                    target="_blank"
+                    className="inline-flex h-12 items-center rounded-full border border-[#EAF2EE]/25 px-6 text-[15px] font-medium transition-colors hover:border-[#EAF2EE]/50"
+                  >
+                    Örnek sayfayı gör
+                  </Link>
+                </div>
+              </div>
+              <StoreBadges className="!justify-start lg:!justify-end" />
             </div>
           </div>
         </section>
-      </main>
 
-      {/* ═══ FOOTER ═══ */}
-      <footer className="bg-black">
-        <div className={`${shell} flex flex-col gap-6 py-10 sm:flex-row sm:items-center sm:justify-between`}>
-          <Wordmark />
-          <nav aria-label="Alt menü" className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/60">
-            <Link href="/login" className="hover:text-white">Giriş yap</Link>
-            <Link href="/register" className="hover:text-white">Kayıt ol</Link>
-            <Link href="/ahmetberber" target="_blank" className="hover:text-white">Canlı örnek</Link>
-            <a href="#fiyatlandirma" className="hover:text-white">Fiyatlandırma</a>
-            <Link href={PRIVACY_NOTICE_PATH} className="hover:text-white">Aydınlatma Metni</Link>
-          </nav>
-          <p className="text-xs text-white/40">© {new Date().getFullYear()} CalendlyGo, bir VastLab ürünüdür. Tüm hakları saklıdır.</p>
-        </div>
-      </footer>
-    </div>
+        <main>
+          {/* The product itself, settling flat as it scrolls in */}
+          <section aria-label="Panel ve rezervasyon ekranı" className={`${shell} pb-32 pt-20`}>
+            <div className="grid gap-4 lg:grid-cols-2 lg:items-end">
+              <h2 className={heading}>İşletmeniz tek ekranda.</h2>
+              <p className="text-lg leading-relaxed text-[#EAF2EE]/70 lg:justify-self-end lg:max-w-md">
+                Takvim, müşteriler ve gelir panelde. Müşteriniz telefonundan saniyeler içinde randevu alır.
+              </p>
+            </div>
+            <HeroStage className="mx-auto mt-16 max-w-4xl text-left">
+              <HeroDevices />
+            </HeroStage>
+          </section>
+
+          <section id="temalar" aria-labelledby="temalar-baslik" className={`${shell} scroll-mt-20 pb-32`}>
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 id="temalar-baslik" className={heading}>Sektörünüz, kendi sayfası.</h2>
+              <p className={`${lead} mx-auto`}>Bir sektör seçin ve temasını görün. Yazıları, fotoğrafları ve logoyu kendinize göre değiştirirsiniz.</p>
+            </div>
+            <div className="mt-10">
+              <ThemeShowcase themes={SHOWCASE_THEMES} />
+            </div>
+          </section>
+
+          <section id="ozellikler" aria-labelledby="ozellikler-baslik" className={`${shell} scroll-mt-20 pb-32`}>
+            <h2 id="ozellikler-baslik" className={`${heading} max-w-3xl`}>Telefon trafiği azalır, siz işinize bakarsınız.</h2>
+            <FeatureStory />
+          </section>
+
+          <section aria-labelledby="tum-ozellikler-baslik" className={`${shell} pb-32`}>
+            <h2 id="tum-ozellikler-baslik" className={`${heading} text-[clamp(1.75rem,3.2vw,2.5rem)]`}>Bir işletmenin ihtiyacı olan diğer her şey</h2>
+            <ul className="mt-10 grid gap-x-10 gap-y-9 sm:grid-cols-2 lg:grid-cols-4">
+              {MORE_FEATURES.map(({ icon: Icon, title, text }) => (
+                <li key={title}>
+                  <Icon className="h-5 w-5" style={{ color: MINT }} aria-hidden="true" />
+                  <h3 className="mt-3 text-[17px] font-semibold">{title}</h3>
+                  <p className="mt-1 text-[15px] leading-relaxed text-[#EAF2EE]/65">{text}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section id="fiyatlandirma" aria-labelledby="fiyat-baslik" className="scroll-mt-16 bg-[#041F24] py-28">
+            <div className={shell}>
+              <h2 id="fiyat-baslik" className={heading}>Ücretsiz başlayın, işiniz büyüdükçe yükseltin.</h2>
+              <p className={lead}>Randevu başına kesinti ve gizli ücret yok.</p>
+
+              <div className="mt-12 grid gap-4 lg:grid-cols-3">
+                {PRICING.map(({ name, tagline, items, highlight, plan }) => {
+                  const prices = plan ? PLAN_PRICES_TRY[plan] : null;
+                  return (
+                    <article key={name} className={`flex flex-col rounded-[1.75rem] p-8 ${highlight ? "bg-[#5BE38F] text-[#04210F]" : "bg-[#0A343B]"}`}>
+                      <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{name}</h3>
+                      <p className={`text-sm ${highlight ? "text-[#04210F]/70" : "text-[#EAF2EE]/65"}`}>{tagline}</p>
+                      <p className="mt-6">
+                        <span className={`${display} text-[52px] font-semibold leading-none tracking-[-0.045em]`}>{formatTRY(prices?.MONTHLY ?? 0)}</span>
+                        <span className={`ml-1 text-base ${highlight ? "text-[#04210F]/70" : "text-[#EAF2EE]/65"}`}>/ ay</span>
+                      </p>
+                      <p className={`mt-2 min-h-11 text-sm leading-[22px] ${highlight ? "text-[#04210F]/75" : "text-[#EAF2EE]/70"}`}>
+                        {prices ? (
+                          <>
+                            Yıllık ödeyin: <span className="font-semibold">{formatTRY(Math.floor(prices.YEARLY / 12))} / ay</span>
+                            <br />
+                            {formatTRY(prices.YEARLY)} <span className="line-through">{formatTRY(prices.MONTHLY * 12)}</span>, {YEARLY_FREE_MONTHS} ay bedava
+                          </>
+                        ) : (
+                          "Süresiz ücretsiz, kredi kartı gerekmez"
+                        )}
+                      </p>
+                      <ul className="mt-6 flex-1 space-y-3 text-sm">
+                        {items.map((item) => (
+                          <li key={item} className="flex items-start gap-2.5">
+                            <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: highlight ? "#04210F" : MINT }} aria-hidden="true" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                      <Link
+                        href="/register"
+                        className={`mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-semibold transition-colors ${
+                          highlight ? "bg-[#04210F] text-[#EAF2EE] hover:bg-black" : "bg-[#EAF2EE] text-[#062A30] hover:bg-white"
+                        }`}
+                      >
+                        {plan ? `${name} ile başla` : "Ücretsiz başla"}
+                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      </Link>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          <section className={`${shell} py-28 text-center`}>
+            <h2 className={`${display} mx-auto max-w-3xl text-[clamp(2.5rem,6.5vw,5rem)] font-semibold leading-[1.02] tracking-[-0.045em]`}>
+              İlk online randevunuzu bugün alın.
+            </h2>
+            <p className={`${lead} mx-auto`}>Sayfanızı birkaç dakikada kurun, bağlantınızı paylaşın.</p>
+            <Link href="/register" className={`${mintButton} mt-8 h-12 px-8 text-[15px]`}>
+              Ücretsiz başla
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </section>
+        </main>
+
+        <footer className="border-t border-white/10">
+          <div className={`${shell} flex flex-col gap-6 py-10 sm:flex-row sm:items-center sm:justify-between`}>
+            <Wordmark />
+            <nav aria-label="Alt menü" className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-[#EAF2EE]/65">
+              <Link href="/login" className="hover:text-white">Giriş yap</Link>
+              <Link href="/register" className="hover:text-white">Kayıt ol</Link>
+              <Link href="/ahmetberber" target="_blank" className="hover:text-white">Örnek sayfa</Link>
+              <a href="#fiyatlandirma" className="hover:text-white">Fiyatlar</a>
+              <Link href={PRIVACY_NOTICE_PATH} className="hover:text-white">Aydınlatma Metni</Link>
+            </nav>
+            <p className="text-xs text-[#EAF2EE]/50">© {new Date().getFullYear()} CalendlyGo, bir VastLab ürünüdür.</p>
+          </div>
+        </footer>
+      </div>
     </MotionRoot>
   );
 }

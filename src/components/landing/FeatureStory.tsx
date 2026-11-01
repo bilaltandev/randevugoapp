@@ -96,11 +96,11 @@ function Step({ index, onActive }: { index: number; onActive: (i: number) => voi
 
   return (
     <li ref={ref} className="flex flex-col justify-center py-8 lg:min-h-[62vh] lg:py-0">
-      <Icon className="h-6 w-6 text-[#0A7B5C]" aria-hidden="true" />
+      <Icon className="h-6 w-6 text-[#5BE38F]" aria-hidden="true" />
       <h3 className="mt-4 font-[family-name:var(--font-manrope)] text-[clamp(1.5rem,2.6vw,2.1rem)] font-semibold leading-[1.15] tracking-[-0.03em]">{title}</h3>
-      <p className="mt-3 max-w-md text-[17px] leading-relaxed text-[#555E6C]">{text}</p>
+      <p className="mt-3 max-w-md text-[17px] leading-relaxed text-[#EAF2EE]/70">{text}</p>
       {/* Phones have no sticky panel, so each step carries its own picture. */}
-      <div className="mt-6 flex min-h-48 items-center rounded-[1.5rem] bg-black p-6 lg:hidden" aria-hidden="true">
+      <div className="mt-6 flex min-h-48 items-center rounded-[1.5rem] bg-[#041F24] p-6 lg:hidden" aria-hidden="true">
         <Visual />
       </div>
     </li>
@@ -114,7 +114,7 @@ export function FeatureStory() {
 
   return (
     <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-      <ol className="divide-y divide-black/[0.06] lg:divide-y-0">
+      <ol className="divide-y divide-white/10 lg:divide-y-0">
         {STEPS.map((step, i) => (
           <Step key={step.title} index={i} onActive={setActive} />
         ))}
@@ -122,8 +122,7 @@ export function FeatureStory() {
       <div className="hidden lg:block">
         <div className="sticky top-[calc(50vh-13rem)]">
           <div
-            className="flex h-[26rem] items-center justify-center overflow-hidden rounded-[2rem] bg-black p-10"
-            style={{ background: "radial-gradient(80% 80% at 50% 110%, rgba(91,227,143,0.2), transparent 70%), #000" }}
+            className="flex h-[26rem] items-center justify-center overflow-hidden rounded-[2rem] bg-[#041F24] p-10"
             aria-hidden="true"
           >
             <AnimatePresence mode="wait" initial={false}>
