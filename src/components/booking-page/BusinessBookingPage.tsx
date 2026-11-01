@@ -26,6 +26,7 @@ import { PhotoGridSection, Lightbox, type Photo } from "./PhotoGallery";
 import { VitrinHeader } from "./VitrinHeader";
 import { EditorialLayout } from "./layouts/EditorialLayout";
 import { CinematicLayout } from "./layouts/CinematicLayout";
+import { SignatureLayout } from "./layouts/SignatureLayout";
 import type { StorefrontLayoutProps } from "./layouts/types";
 import { getLayoutId } from "@/lib/themes/layouts";
 import { SectionNav } from "./SectionNav";
@@ -280,9 +281,10 @@ export function BusinessBookingPage({
 
   const currentStepNumber = inFlow ? stageIndex(effectiveStage) + 1 : 0;
 
-  // Editoryal / Sinematik replace the storefront; the booking flow below stays shared.
+  // Editoryal / Sinematik and premium themes replace the storefront; the booking flow below stays shared.
   const layoutId = getLayoutId(themeOverrides?.layoutId);
-  if (layoutId !== "vitrin" && effectiveStage === "browse") {
+  const signature = getThemeConfig(themeId).signature;
+  if ((signature || layoutId !== "vitrin") && effectiveStage === "browse") {
     const layoutProps: StorefrontLayoutProps = {
       name: title,
       logo: business.logo,
@@ -319,7 +321,7 @@ export function BusinessBookingPage({
         {!isPreview && (
           <style>{`html{background:${palette.canvas};color-scheme:${palette.isDark ? "dark" : "light"};scroll-behavior:smooth}`}</style>
         )}
-        <Layout {...layoutProps} />
+        {signature ? <SignatureLayout {...layoutProps} signature={signature} /> : <Layout {...layoutProps} />}
         {lightboxIndex !== null && photos.length > 0 && (
           <Lightbox photos={photos} index={lightboxIndex} onClose={() => setLightboxIndex(null)} />
         )}

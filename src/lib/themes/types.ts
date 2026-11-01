@@ -13,6 +13,11 @@ export type ThemeId =
   | "adacayi"
   | "bordo-kadife"
   | "nordik"
+  | "noir-usta"
+  | "porselen"
+  | "berrak"
+  | "sofra"
+  | "pist"
   | string;
 
 export type SectorType =
@@ -22,6 +27,9 @@ export type SectorType =
   | "KLINIK"
   | "OTO_SERVIS"
   | "DIGER";
+
+/** A premium theme's own storefront (components/booking-page/layouts/SignatureLayout.tsx). */
+export type ThemeSignature = "noir" | "porcelain" | "clear" | "table" | "track";
 
 export type ThemeStyleCategory = "dark" | "light" | "luxury" | "minimal" | "bold" | "restaurant";
 
@@ -77,6 +85,10 @@ export interface ThemeConfig {
   isPremium?: boolean;
   isBeta?: boolean;
   orderIndex: number;
+  /** Premium themes bring their own page; the owner's layout choice doesn't apply. */
+  signature?: ThemeSignature;
+  /** Free theme shown instead when the business no longer has a paid plan. */
+  fallbackThemeId?: string;
 
   colors: ThemeColors;
   typography: ThemeTypography;

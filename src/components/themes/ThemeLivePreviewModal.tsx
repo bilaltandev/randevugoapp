@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Monitor, Tablet, Smartphone, X, Check } from "lucide-react";
+import Link from "next/link";
+import { Monitor, Tablet, Smartphone, X, Check, Lock } from "lucide-react";
 import { ThemeConfig, ThemeOverrides } from "@/lib/themes/types";
 import { Button } from "@/components/ui/Button";
 import { Segmented } from "@/components/ui/Segmented";
@@ -25,6 +26,8 @@ interface ThemeLivePreviewModalProps {
   onApply: (theme: ThemeConfig) => void;
   isActiveTheme: boolean;
   isApplying?: boolean;
+  /** Premium theme on a free plan: can be previewed, not applied. */
+  locked?: boolean;
 }
 
 export function ThemeLivePreviewModal({
@@ -45,6 +48,7 @@ export function ThemeLivePreviewModal({
   onApply,
   isActiveTheme,
   isApplying = false,
+  locked = false,
 }: ThemeLivePreviewModalProps) {
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
 
@@ -73,6 +77,15 @@ export function ThemeLivePreviewModal({
         />
 
         <div className="flex items-center gap-1.5">
+          {locked ? (
+            <Link
+              href="/dashboard/subscription"
+              className="inline-flex h-8 items-center gap-1.5 rounded-control bg-brand px-3 text-sm font-medium text-on-brand hover:bg-brand-hover"
+            >
+              <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+              Paketi yükselt
+            </Link>
+          ) : (
           <Button
             size="sm"
             variant={isActiveTheme ? "secondary" : "primary"}
@@ -90,6 +103,7 @@ export function ThemeLivePreviewModal({
               "Uygula"
             )}
           </Button>
+          )}
           <Button size="sm" variant="ghost" className="w-8 px-0" onClick={onClose} aria-label="Kapat" title="Kapat">
             <X className="w-4 h-4" />
           </Button>

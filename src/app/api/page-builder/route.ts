@@ -5,6 +5,7 @@ import { THEME_REGISTRY, getSectorRecommendations } from "@/lib/themes/registry"
 import { LAYOUTS } from "@/lib/themes/layouts";
 import { DEFAULT_HERO_ACTION_ITEMS, HERO_ITEM_METADATA } from "@/lib/hero/types";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
+import { PREMIUM_THEME_REQUIRED, canUsePremiumThemes, isPremiumTheme } from "@/lib/themes/premium";
 import { BUSINESS_NAME_TAKEN, businessNameChanged, isBusinessNameTaken } from "@/lib/uniqueness";
 
 const DEFAULT_SECTION_ORDER = ["Hero", "Services", "Staff", "Gallery", "Reviews", "Booking", "Location"];
@@ -116,6 +117,7 @@ export async function GET() {
           name: t.name,
           tagline: t.tagline,
           badge: t.badge ?? null,
+          isPremium: t.isPremium ?? false,
           colors: { background: t.colors.background, surface: t.colors.surface, primary: t.colors.primary, text: t.colors.text },
           suggestedAccents: t.suggestedAccents.map((a) => ({ hex: a.hex, label: a.label })),
         })),
@@ -162,6 +164,14 @@ export async function POST(req: Request) {
       businessName,
       businessDescription,
     } = body;
+
+    // Re-saving the theme already on the page is fine; only a new premium pick needs a paid plan.
+    if (themeId && themeId !== user.business.themeId && isPremiumTheme(themeId) && !canUsePremiumThemes(user.business.subscription)) {
+      return NextResponse.json(
+        { error: "Premium temalar Person ve Team paketlerinde kullanılabilir.", code: PREMIUM_THEME_REQUIRED },
+        { status: 403 }
+      );
+    }
 
     if (
       businessName &&

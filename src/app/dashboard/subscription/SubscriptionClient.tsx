@@ -36,6 +36,7 @@ const PLAN_INFO: Record<Plan, { tagline: string; features: string[] }> = {
       "Reklamsız kullanım",
       "Kendi rezervasyon sayfanız",
       "Sayfa düzenleyici ve galeri",
+      "5 premium sektör teması",
       "Müşteri yönetimi ve mobil uygulama",
     ],
   },

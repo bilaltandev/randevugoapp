@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Check, Eye } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, Check, Crown, Eye, Lock } from "lucide-react";
 import { ThemeConfig } from "@/lib/themes/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +15,8 @@ interface ThemeCardProps {
   onPreview: (theme: ThemeConfig) => void;
   onApply: (theme: ThemeConfig) => void;
   isApplying?: boolean;
+  /** Premium theme on a free plan: can be previewed, not applied. */
+  locked?: boolean;
 }
 
 export function ThemeCard({
@@ -24,6 +27,7 @@ export function ThemeCard({
   onPreview,
   onApply,
   isApplying = false,
+  locked = false,
 }: ThemeCardProps) {
   return (
     <div
@@ -40,7 +44,13 @@ export function ThemeCard({
             Önerilen
           </span>
         )}
-        {theme.badge && !isRecommended && (
+        {theme.isPremium && (
+          <span className="inline-flex items-center gap-1 rounded-control bg-slate-900 px-1.5 py-0.5 text-xs font-medium text-white">
+            <Crown className="h-3 w-3" aria-hidden="true" />
+            Premium
+          </span>
+        )}
+        {theme.badge && !isRecommended && !theme.isPremium && (
           <span className="rounded-control bg-white/90 px-1.5 py-0.5 text-xs font-medium text-slate-800">
             {theme.badge}
           </span>
@@ -177,6 +187,15 @@ export function ThemeCard({
             <Eye className="w-3.5 h-3.5" aria-hidden="true" />
             Önizle
           </Button>
+          {locked ? (
+            <Link
+              href="/dashboard/subscription"
+              className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-control bg-brand px-3 text-sm font-medium text-on-brand hover:bg-brand-hover"
+            >
+              <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+              Yükselt
+            </Link>
+          ) : (
           <Button
             size="sm"
             variant={isActive ? "secondary" : "primary"}
@@ -195,6 +214,7 @@ export function ThemeCard({
               "Uygula"
             )}
           </Button>
+          )}
         </div>
       </div>
     </div>

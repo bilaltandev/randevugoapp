@@ -5,6 +5,7 @@ import { ThemedPageRenderer } from "@/components/themes/ThemedPageRenderer";
 import type { Metadata } from "next";
 import { subscriptionAccess } from "@/lib/subscriptionAccess";
 import { BookingClosed } from "@/components/booking-page/BookingClosed";
+import { themeForPlan } from "@/lib/themes/premium";
 
 export async function generateMetadata({
   params,
@@ -135,7 +136,7 @@ export default async function BusinessPublicPage({
   };
 
   // Priority: Business.themeId -> Page.themeId -> "premium-dark"
-  const activeThemeId = business.themeId || business.page?.themeId || "premium-dark";
+  const activeThemeId = themeForPlan(business.themeId || business.page?.themeId || "premium-dark", business.subscription);
 
   return (
     <ThemedPageRenderer

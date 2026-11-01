@@ -5,7 +5,6 @@ import {
   ArrowRight,
   BarChart3,
   CalendarCheck2,
-  CalendarClock,
   Check,
   Contact2,
   Globe,
@@ -21,10 +20,15 @@ import {
 } from "lucide-react";
 import { Aurora } from "@/components/Aurora";
 import { HeroDevices } from "@/components/landing/DeviceMockups";
+import { FeatureStory } from "@/components/landing/FeatureStory";
+import { HeroStage, HeroTitle } from "@/components/landing/HeroStage";
 import { StoreBadges } from "@/components/landing/StoreBadges";
+import { ThemeShowcase, type ShowcaseTheme } from "@/components/landing/ThemeShowcase";
+import { MotionRoot, Reveal } from "@/components/motion/MotionRoot";
 import { ADSENSE_SCRIPT } from "@/lib/adsense";
 import { PRIVACY_NOTICE_PATH } from "@/lib/privacyNotice";
 import { FREE_MONTHLY_BOOKINGS, PLAN_PRICES_TRY, YEARLY_FREE_MONTHS, formatTRY } from "@/lib/plans";
+import { getThemeConfig } from "@/lib/themes/registry";
 
 /* Landing palette: a black hero over slow light with a mint accent, then Apple's light gray for the content. */
 const MINT = "#5BE38F";
@@ -40,46 +44,68 @@ const HERO_STRIP: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Globe, title: "Kendi sayfanız", text: "calendlygo.com/isletmeniz" },
 ];
 
-// Photos are the per-sector presets already used by the gallery (lib/gallery/types.ts).
-const SECTORS = [
+// Photos are the per-sector presets already used by the gallery (lib/gallery/types.ts). Names and prices are samples.
+const SHOWCASE: { sector: string; text: string; themeId: string; sample: string; photo: string; services: [string, string][] }[] = [
   {
-    name: "Berber & kuaför",
-    text: "Erkek kuaförleri, berberler",
-    img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=75",
+    sector: "Berber",
+    text: "Sinematik kapak, defter düzeninde hizmetler.",
+    themeId: "noir-usta",
+    sample: "Usta Berber",
+    photo: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=640&q=70",
+    services: [["Saç kesimi", "₺450"], ["Sakal tıraşı", "₺250"], ["Damat tıraşı", "₺1.500"]],
   },
   {
-    name: "Güzellik & bakım",
-    text: "Salonlar, spa, estetik",
-    img: "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=800&q=75",
+    sector: "Güzellik",
+    text: "Kemer portre, yumuşak katmanlar ve zarif yazı.",
+    themeId: "porselen",
+    sample: "Atelier Gül",
+    photo: "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?auto=format&fit=crop&w=640&q=70",
+    services: [["Cilt bakımı", "₺1.200"], ["Manikür", "₺400"], ["Keratin bakımı", "₺2.000"]],
   },
   {
-    name: "Sağlık & klinik",
-    text: "Klinikler, diyetisyen, terapist",
-    img: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=800&q=75",
+    sector: "Klinik",
+    text: "Bilgiler bir bakışta, güven veren sakin bir sayfa.",
+    themeId: "berrak",
+    sample: "Berrak Klinik",
+    photo: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=640&q=70",
+    services: [["İlk muayene", "₺900"], ["Kontrol", "₺500"], ["Diş temizliği", "₺1.100"]],
   },
   {
-    name: "Restoran & kafe",
-    text: "Masa ve grup rezervasyonu",
-    img: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=75",
+    sector: "Restoran",
+    text: "Tam ekran lezzet, menü düzeninde masa rezervasyonu.",
+    themeId: "sofra",
+    sample: "Köz Sofrası",
+    photo: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=640&q=70",
+    services: [["Akşam yemeği", "₺900"], ["Tadım menüsü", "₺1.600"], ["Grup masası", "₺2.400"]],
   },
   {
-    name: "Oto servis",
-    text: "Bakım, ekspertiz, detaylı temizlik",
-    img: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&w=800&q=75",
+    sector: "Oto servis",
+    text: "Çapraz kapak, güçlü harfler ve hızlı kartlar.",
+    themeId: "pist",
+    sample: "Pist Garaj",
+    photo: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&w=640&q=70",
+    services: [["Periyodik bakım", "₺3.500"], ["Detaylı temizlik", "₺1.800"], ["Ekspertiz", "₺2.200"]],
   },
 ];
 
-const CORE_FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
-  { icon: Globe, title: "Online rezervasyon sayfası", text: "calendlygo.com/isletmeniz adresinde müşterileriniz 7/24 randevu alır." },
-  { icon: MessageCircle, title: "WhatsApp ile hızlı iletişim", text: "Randevu sahibine tek dokunuşla WhatsApp'tan yazın." },
-  { icon: CalendarClock, title: "Esnek çalışma düzeni", text: "Çalışma saatlerinizi, molalarınızı ve kapalı saatlerinizi siz belirleyin." },
-  { icon: Contact2, title: "Müşteri yönetimi", text: "Her müşterinin ziyaretleri, harcaması ve özel notları tek yerde." },
-];
+// Only what the showcase paints with, so the whole theme registry stays out of the browser bundle.
+const SHOWCASE_THEMES: ShowcaseTheme[] = SHOWCASE.map(({ themeId, ...rest }) => {
+  const t = getThemeConfig(themeId);
+  return {
+    ...rest,
+    id: t.id,
+    name: t.name,
+    signature: t.signature ?? "noir",
+    uppercase: t.typography.headingStyle === "uppercase",
+    colors: { background: t.colors.background, surface: t.colors.surface, primary: t.colors.primary, text: t.colors.text, muted: t.colors.mutedText, border: t.colors.border },
+    font: t.typography.headingFont,
+  };
+});
 
 const MORE_FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: CalendarCheck2, title: "Akıllı takvim", text: "Gün, hafta ve ay görünümü; boş saate tıklayıp randevu ekleyin." },
   { icon: Users2, title: "Uzman seçimi", text: "Müşteri istediği uzmanı seçer, çakışmalar önlenir." },
-  { icon: LayoutTemplate, title: "Temalar ve düzenler", text: "Sayfanızın düzenini ve renklerini birkaç tıkla değiştirin." },
+  { icon: LayoutTemplate, title: "Temalar ve düzenler", text: "14 hazır tema ve ücretli paketlerde sektörünüze özel 5 premium tema." },
   { icon: Images, title: "Galeri ve portföy", text: "Çalışmalarınızı fotoğraflarla sergileyin." },
   { icon: Star, title: "Doğrulanmış yorumlar", text: "Sadece randevusu tamamlanan müşteriler yorum yazabilir." },
   { icon: BarChart3, title: "İstatistikler", text: "Gelir, yoğun gün ve saatler, tekrar gelen müşteriler." },
@@ -97,7 +123,7 @@ const PRICING: { name: string; tagline: string; items: string[]; highlight?: boo
     name: "Person",
     tagline: "Tek başına çalışanlar için",
     plan: "PERSON",
-    items: ["Sınırsız randevu", "Reklamsız kullanım", "Kendi rezervasyon sayfanız", "Sayfa düzenleyici ve galeri", "Müşteri yönetimi ve mobil uygulama"],
+    items: ["Sınırsız randevu", "Reklamsız kullanım", "5 premium sektör teması", "Sayfa düzenleyici ve galeri", "Müşteri yönetimi ve mobil uygulama"],
   },
   {
     name: "Team",
@@ -124,6 +150,7 @@ function Wordmark() {
 
 export default function LandingPage() {
   return (
+    <MotionRoot>
     <div className="min-h-screen overflow-x-clip bg-black font-sans text-white selection:bg-[#5BE38F]/30">
       {/* Google's site check reads this. Only here, never site-wide: auto ads must stay off the booking pages. */}
       <script async src={ADSENSE_SCRIPT} crossOrigin="anonymous" />
@@ -156,11 +183,7 @@ export default function LandingPage() {
 
         <section className={`${shell} pb-16 pt-20 text-center sm:pt-28`}>
           <p className="text-[17px] font-medium" style={{ color: MINT }}>Hepsi bir arada randevu sistemi</p>
-          <h1 className={`${display} mx-auto mt-4 max-w-4xl text-[clamp(2.6rem,8vw,5.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]`}>
-            Akıllı randevu
-            <br />
-            altyapınız.
-          </h1>
+          <HeroTitle className={`${display} mx-auto mt-4 max-w-4xl text-[clamp(2.6rem,8vw,5.75rem)] font-semibold leading-[1.02] tracking-[-0.045em]`} lines={["Akıllı randevu", "altyapınız."]} />
           <p className="mx-auto mt-6 max-w-2xl text-[clamp(1.05rem,2vw,1.35rem)] leading-relaxed text-white/65">
             Randevularınızı tek yerden yönetin, zaman kazanın ve müşterilerinize 7/24 açık bir rezervasyon deneyimi sunun.
           </p>
@@ -180,19 +203,21 @@ export default function LandingPage() {
           </div>
           <p className="mt-6 text-sm text-white/50">Ücretsiz paket · Kredi kartı gerekmez · VastLab tarafından geliştirildi</p>
           <StoreBadges className="mt-6" />
-          <div className="mx-auto mt-16 max-w-3xl text-left">
+          <HeroStage className="mx-auto mt-16 max-w-3xl text-left">
             <HeroDevices />
-          </div>
+          </HeroStage>
         </section>
 
         {/* Feature strip */}
         <div className={`${shell} pb-20`}>
           <ul className="grid grid-cols-1 gap-8 border-t border-white/10 pt-10 sm:grid-cols-2 lg:grid-cols-4">
-            {HERO_STRIP.map(({ icon: Icon, title, text }) => (
+            {HERO_STRIP.map(({ icon: Icon, title, text }, i) => (
               <li key={title}>
-                <Icon className="h-5 w-5" style={{ color: MINT }} aria-hidden="true" />
-                <span className="mt-3 block text-[15px] font-semibold">{title}</span>
-                <span className="mt-0.5 block text-[13px] text-white/55">{text}</span>
+                <Reveal delay={i * 0.06} distance={16}>
+                  <Icon className="h-5 w-5" style={{ color: MINT }} aria-hidden="true" />
+                  <span className="mt-3 block text-[15px] font-semibold">{title}</span>
+                  <span className="mt-0.5 block text-[13px] text-white/55">{text}</span>
+                </Reveal>
               </li>
             ))}
           </ul>
@@ -202,64 +227,39 @@ export default function LandingPage() {
       {/* ═══ LIGHT SHEET ═══ */}
       <main className="relative bg-[#F5F5F7] text-[#1D1D1F]">
         {/* Sectors */}
-        <section id="sektorler" aria-labelledby="sektorler-baslik" className={`${shell} scroll-mt-20 pb-24 pt-28 text-center`}>
-          <p className="text-[17px] font-semibold text-[#0A7B5C]">Her işletme için</p>
-          <h2 id="sektorler-baslik" className={`${display} mt-3 text-[clamp(2.2rem,5vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
-            Çalışma şeklinize göre tasarlandı.
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-[19px] leading-relaxed text-[#6E6E73]">
-            CalendlyGo sektörünüze uyum sağlar: restoranda kişi sayısı ve masa, oto serviste plaka, salonda uzman seçimi.
-          </p>
-          <ul className="mt-12 grid grid-cols-2 gap-4 text-left sm:grid-cols-3 lg:grid-cols-5">
-            {SECTORS.map((s) => (
-              <li key={s.name} className="overflow-hidden rounded-[1.5rem] bg-white transition-transform duration-300 hover:scale-[1.02]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={s.img} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
-                <div className="p-4">
-                  <h3 className="text-[15px] font-semibold">{s.name}</h3>
-                  <p className="mt-0.5 text-[13px] text-[#687180]">{s.text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <section id="sektorler" aria-labelledby="sektorler-baslik" className={`${shell} scroll-mt-20 pb-24 pt-28`}>
+          <Reveal className="text-center">
+            <p className="text-[17px] font-semibold text-[#0A7B5C]">Her işletme için</p>
+            <h2 id="sektorler-baslik" className={`${display} mt-3 text-[clamp(2.2rem,5vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
+              Sektörünüze özel premium temalar.
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-[19px] leading-relaxed text-[#6E6E73]">
+              Bir sektör seçin, sayfanızın nasıl görüneceğini anında görün. Her temanın kendi düzeni ve hareketleri var.
+            </p>
+          </Reveal>
+          <Reveal className="mt-12">
+            <ThemeShowcase themes={SHOWCASE_THEMES} />
+          </Reveal>
         </section>
 
-        {/* Everything you need */}
+        {/* How it works */}
         <section id="ozellikler" aria-labelledby="ozellikler-baslik" className={`${shell} scroll-mt-20 pb-24`}>
-          <div className="grid items-center gap-10 rounded-[2rem] bg-white p-7 sm:p-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-            <div>
-              <p className="text-[17px] font-semibold text-[#0A7B5C]">Basit. Güçlü. Verimli.</p>
-              <h2 id="ozellikler-baslik" className={`${display} mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
-                Randevu yönetimi için ihtiyacınız olan her şey.
-              </h2>
-              <p className="mt-4 max-w-md text-base leading-relaxed text-[#555E6C]">
-                Zaman kazanın, telefon trafiğini azaltın ve asıl işinize odaklanın.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/register" className={`${mintButton} h-12 px-7 text-[15px] !bg-[#1D1D1F] !text-white shadow-none hover:!bg-black`}>
-                  Ücretsiz başla
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
-                <a
-                  href="#tum-ozellikler"
-                  className="inline-flex h-12 items-center rounded-full px-5 text-[15px] font-medium text-[#0A7B5C] transition-colors hover:bg-[#F5F5F7]"
-                >
-                  Tüm özellikler
-                </a>
-              </div>
-            </div>
-            <ul className="divide-y divide-black/[0.06]">
-              {CORE_FEATURES.map(({ icon: Icon, title, text }) => (
-                <li key={title} className="flex items-start gap-4 py-5">
-                  <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#0A7B5C]" aria-hidden="true" />
-                  <span>
-                    <span className="block text-[15px] font-semibold">{title}</span>
-                    <span className="mt-0.5 block text-sm leading-relaxed text-[#687180]">{text}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Reveal className="max-w-2xl">
+            <p className="text-[17px] font-semibold text-[#0A7B5C]">Basit. Güçlü. Verimli.</p>
+            <h2 id="ozellikler-baslik" className={`${display} mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.04em]`}>
+              Telefon trafiği azalır, takviminiz kendiliğinden dolar.
+            </h2>
+          </Reveal>
+          <FeatureStory />
+          <Reveal className="mt-10 flex flex-wrap gap-3">
+            <Link href="/register" className={`${mintButton} h-12 px-7 text-[15px] !bg-[#1D1D1F] !text-white shadow-none hover:!bg-black`}>
+              Ücretsiz başla
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <a href="#tum-ozellikler" className="inline-flex h-12 items-center rounded-full px-5 text-[15px] font-medium text-[#0A7B5C] transition-colors hover:bg-white">
+              Tüm özellikler
+            </a>
+          </Reveal>
         </section>
 
         {/* All features */}
@@ -268,11 +268,13 @@ export default function LandingPage() {
             Ve daha fazlası
           </h2>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {MORE_FEATURES.map(({ icon: Icon, title, text }) => (
-              <li key={title} className="rounded-[1.5rem] bg-white p-6">
-                <Icon className="h-5 w-5 text-[#0A7B5C]" aria-hidden="true" />
-                <h3 className="mt-3 text-[15px] font-semibold">{title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#687180]">{text}</p>
+            {MORE_FEATURES.map(({ icon: Icon, title, text }, i) => (
+              <li key={title}>
+                <Reveal delay={(i % 4) * 0.05} distance={18} className="h-full rounded-[1.5rem] bg-white p-6 transition-shadow duration-300 hover:shadow-[0_18px_40px_-24px_rgba(0,0,0,0.25)]">
+                  <Icon className="h-5 w-5 text-[#0A7B5C]" aria-hidden="true" />
+                  <h3 className="mt-3 text-[15px] font-semibold">{title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-[#687180]">{text}</p>
+                </Reveal>
               </li>
             ))}
           </ul>
@@ -292,10 +294,11 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-12 grid gap-4 lg:grid-cols-3">
-              {PRICING.map(({ name, tagline, items, highlight, plan }) => {
+              {PRICING.map(({ name, tagline, items, highlight, plan }, i) => {
                 const prices = plan ? PLAN_PRICES_TRY[plan] : null;
                 return (
-                  <article key={name} className={`flex flex-col rounded-[2rem] p-8 ${highlight ? "bg-black text-white" : "bg-[#F5F5F7]"}`}>
+                  <Reveal key={name} delay={i * 0.07} className="h-full">
+                  <article className={`flex h-full flex-col rounded-[2rem] p-8 ${highlight ? "bg-black text-white" : "bg-[#F5F5F7]"}`}>
                     <h3 className="text-[22px] font-semibold tracking-[-0.02em]">{name}</h3>
                     <p className={`text-sm ${highlight ? "text-white/60" : "text-[#6E6E73]"}`}>{tagline}</p>
                     <p className="mt-6">
@@ -331,6 +334,7 @@ export default function LandingPage() {
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
                     </Link>
                   </article>
+                  </Reveal>
                 );
               })}
             </div>
@@ -375,5 +379,6 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+    </MotionRoot>
   );
 }

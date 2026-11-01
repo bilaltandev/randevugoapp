@@ -41,6 +41,8 @@ interface PageBuilderClientProps {
   initialTheme: string;
   initialFont: string;
   initialThemeId?: string;
+  /** Whether this business's plan includes the premium themes. */
+  premiumUnlocked?: boolean;
   initialThemeOverrides?: ThemeOverrides | null;
   initialSectionOrder?: string[];
   initialHiddenSections?: string[];
@@ -67,6 +69,7 @@ export default function PageBuilderClient({
   initialTheme,
   initialFont,
   initialThemeId = "premium-dark",
+  premiumUnlocked = false,
   initialThemeOverrides = null,
   initialSectionOrder = ["Hero", "Services", "Staff", "Gallery", "Reviews", "Booking", "Location"],
   initialHiddenSections = [],
@@ -174,13 +177,14 @@ export default function PageBuilderClient({
 
   // Apply Theme Handler
   const handleApplyTheme = async (themeId: string) => {
+    const previousThemeId = activeThemeId;
     setActiveThemeId(themeId);
     // A new theme brings its own accent: drop the previous custom button color.
     const nextOverrides: ThemeOverrides = { ...(themeOverrides || {}), ctaColor: "theme" };
     delete nextOverrides.primaryColor;
     setThemeOverrides(nextOverrides);
     try {
-      await fetch("/api/page-builder", {
+      const res = await fetch("/api/page-builder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -188,6 +192,10 @@ export default function PageBuilderClient({
           themeOverrides: { ...nextOverrides, heroActions, instagramUsername, googleMapsUrl },
         }),
       });
+      if (!res.ok) {
+        setActiveThemeId(previousThemeId);
+        return;
+      }
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (e) {
@@ -438,6 +446,7 @@ export default function PageBuilderClient({
           gallery={gallery}
           galleryItems={galleryItems}
           activeThemeId={activeThemeId}
+          premiumUnlocked={premiumUnlocked}
           themeOverrides={{
             ...(themeOverrides || {}),
             heroActions,

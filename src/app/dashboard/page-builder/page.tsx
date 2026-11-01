@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import PageBuilderClient from "./PageBuilderClient";
+import { canUsePremiumThemes, themeForPlan } from "@/lib/themes/premium";
 
 export default async function PageBuilderPage() {
   const user = await getCurrentUser();
@@ -129,7 +130,7 @@ export default async function PageBuilderPage() {
     console.error(e);
   }
 
-  const activeThemeId = business.themeId || business.page?.themeId || "premium-dark";
+  const activeThemeId = themeForPlan(business.themeId || business.page?.themeId || "premium-dark", user.business.subscription);
 
   return (
     <div className="space-y-6">
@@ -139,6 +140,7 @@ export default async function PageBuilderPage() {
         initialTheme={business.page?.themeColor || "indigo"}
         initialFont={business.page?.font || "Inter"}
         initialThemeId={activeThemeId}
+        premiumUnlocked={canUsePremiumThemes(user.business.subscription)}
         initialThemeOverrides={themeOverrides}
         initialSectionOrder={sectionOrder}
         initialHiddenSections={hiddenSections}

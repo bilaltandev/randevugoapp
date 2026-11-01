@@ -1112,5 +1112,19 @@ body {
   color: #059669 !important;
 }
 
-
-
+/* Premium booking pages: the service ribbon and Pist's hazard stripe. */
+.sig-ribbon {
+  animation: sig-ribbon 38s linear infinite;
+}
+.sig-ribbon:hover {
+  animation-play-state: paused;
+}
+@keyframes sig-ribbon {
+  to { transform: translateX(-50%); }
+}
+.sig-hazard {
+  background: repeating-linear-gradient(-45deg, var(--rg-brand) 0 12px, transparent 12px 24px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sig-ribbon { animation: none; }
+}

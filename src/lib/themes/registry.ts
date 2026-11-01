@@ -880,6 +880,331 @@ export const THEME_REGISTRY: Record<string, ThemeConfig> = {
       { name: "Mürdüm", hex: "#7E22CE", label: "Modern Mor" },
     ],
   },
+
+  "noir-usta": {
+    id: "noir-usta",
+    name: "Noir Usta",
+    tagline: "Sinematik siyah, pirinç detaylar",
+    description:
+      "Tam ekran kapak, dev serif başlık ve defter düzeninde hizmet listesi. Ustalığını öne çıkarmak isteyen berberler için sinematik bir sayfa.",
+    badge: "Premium",
+    supportedCategories: ["BERBER"],
+    categoryLabels: ["Berber", "Erkek Kuaförü", "Barbershop"],
+    styleCategory: "dark",
+    isPremium: true,
+    isBeta: false,
+    orderIndex: 15,
+    signature: "noir",
+    fallbackThemeId: "obsidyen-bakir",
+
+    colors: {
+      background: "#0A0A0B",
+      surface: "#141416",
+      surfaceHover: "#1D1D20",
+      primary: "#C9A35B",
+      primaryHover: "#B8924C",
+      secondary: "#E7D2A6",
+      text: "#F6F3EC",
+      mutedText: "#A39E93",
+      border: "#26262A",
+      borderLight: "#3A3A3F",
+      ring: "#C9A35B",
+      accentGlow: "rgba(201, 163, 91, 0.16)",
+      badgeBg: "rgba(201, 163, 91, 0.12)",
+      badgeText: "#E7D2A6",
+    },
+
+    typography: {
+      headingFont: "var(--font-playfair), Georgia, serif",
+      bodyFont: "'Inter', sans-serif",
+      headingStyle: "serif",
+      bodyStyle: "modern",
+    },
+
+    radius: "small",
+
+    hero: {
+      layout: "banner",
+      backgroundType: "darkGlass",
+      showStats: true,
+      align: "left",
+    },
+
+    sections: {
+      services: "darkGlass",
+      reviews: "gridQuotes",
+      employees: "profileCards",
+      booking: "modernDark",
+      location: "cardGlass",
+    },
+
+    suggestedAccents: [
+      { name: "Pirinç", hex: "#C9A35B", label: "Orijinal Pirinç" },
+      { name: "Bakır", hex: "#D9864F", label: "Sıcak Bakır" },
+      { name: "Kemik", hex: "#E7DCCB", label: "Açık Krem" },
+      { name: "Çelik", hex: "#B7C0CC", label: "Soğuk Gümüş" },
+    ],
+  },
+
+  porselen: {
+    id: "porselen",
+    name: "Porselen",
+    tagline: "Fildişi zemin, gül tonları",
+    description:
+      "Kemer formlu portre, yumuşak katmanlar ve zarif serif başlıklar. Güzellik salonları ve estetik stüdyoları için sakin ve bakımlı bir görünüm.",
+    badge: "Premium",
+    supportedCategories: ["GUZELLIK"],
+    categoryLabels: ["Güzellik Salonu", "Kadın Kuaförü", "Nail Studio", "Estetik"],
+    styleCategory: "light",
+    isPremium: true,
+    isBeta: false,
+    orderIndex: 16,
+    signature: "porcelain",
+    fallbackThemeId: "soft-beauty",
+
+    colors: {
+      background: "#FAF6F1",
+      surface: "#FFFFFF",
+      surfaceHover: "#F3EBE3",
+      primary: "#9C4F5A",
+      primaryHover: "#86424C",
+      secondary: "#D9A9A3",
+      text: "#2A1F1F",
+      mutedText: "#756664",
+      border: "#EDE3DA",
+      borderLight: "#DFD1C5",
+      ring: "#9C4F5A",
+      accentGlow: "rgba(156, 79, 90, 0.16)",
+      badgeBg: "rgba(156, 79, 90, 0.12)",
+      badgeText: "#86424C",
+    },
+
+    typography: {
+      headingFont: "var(--font-cormorant), Georgia, serif",
+      bodyFont: "'Inter', sans-serif",
+      headingStyle: "serif",
+      bodyStyle: "airy",
+    },
+
+    radius: "full",
+
+    hero: {
+      layout: "split",
+      backgroundType: "warm",
+      showStats: true,
+      align: "left",
+    },
+
+    sections: {
+      services: "whiteClean",
+      reviews: "cleanPills",
+      employees: "circularAvatar",
+      booking: "cleanLight",
+      location: "cleanBox",
+    },
+
+    suggestedAccents: [
+      { name: "Gül", hex: "#9C4F5A", label: "Orijinal Gül" },
+      { name: "Mürdüm", hex: "#6B4A7A", label: "Asil Mor" },
+      { name: "Toprak", hex: "#8A5A3C", label: "Sıcak Kahve" },
+      { name: "Okaliptüs", hex: "#3F6E6A", label: "Serin Yeşil" },
+    ],
+  },
+
+  berrak: {
+    id: "berrak",
+    name: "Berrak",
+    tagline: "Beyaz, buz mavisi ve güven",
+    description:
+      "Sade düzen, bir bakışta görülen bilgi kartları ve sakin geçişler. Klinikler ve sağlık uzmanları için güven veren, hareketi az bir sayfa.",
+    badge: "Premium",
+    supportedCategories: ["KLINIK"],
+    categoryLabels: ["Klinik", "Diş Hekimi", "Diyetisyen", "Psikolog"],
+    styleCategory: "light",
+    isPremium: true,
+    isBeta: false,
+    orderIndex: 17,
+    signature: "clear",
+    fallbackThemeId: "nordik",
+
+    colors: {
+      background: "#F7FAFC",
+      surface: "#FFFFFF",
+      surfaceHover: "#EEF4F8",
+      primary: "#0B6E99",
+      primaryHover: "#095C80",
+      secondary: "#7CC4E3",
+      text: "#0C1B24",
+      mutedText: "#526673",
+      border: "#E2EBF0",
+      borderLight: "#CEDBE3",
+      ring: "#0B6E99",
+      accentGlow: "rgba(11, 110, 153, 0.16)",
+      badgeBg: "rgba(11, 110, 153, 0.12)",
+      badgeText: "#095C80",
+    },
+
+    typography: {
+      headingFont: "var(--font-manrope), system-ui, sans-serif",
+      bodyFont: "'Inter', sans-serif",
+      headingStyle: "bold",
+      bodyStyle: "airy",
+    },
+
+    radius: "large",
+
+    hero: {
+      layout: "minimal",
+      backgroundType: "clean",
+      showStats: true,
+      align: "left",
+    },
+
+    sections: {
+      services: "borderedMinimal",
+      reviews: "minimalBorder",
+      employees: "circularAvatar",
+      booking: "minimal",
+      location: "cleanBox",
+    },
+
+    suggestedAccents: [
+      { name: "Buz Mavisi", hex: "#0B6E99", label: "Orijinal Mavi" },
+      { name: "Petrol", hex: "#0F766E", label: "Sağlık Yeşili" },
+      { name: "İndigo", hex: "#4F46E5", label: "Modern" },
+      { name: "Grafit", hex: "#1F2937", label: "Kurumsal" },
+    ],
+  },
+
+  sofra: {
+    id: "sofra",
+    name: "Sofra",
+    tagline: "Köz ateşi, tam ekran lezzet",
+    description:
+      "Yavaşça yaklaşan tam ekran fotoğraf, menü düzeninde fiyat listesi ve masa ayırtmaya çağıran bir kapanış. Restoran ve kafeler için iştah açan bir sayfa.",
+    badge: "Premium",
+    supportedCategories: ["RESTORAN"],
+    categoryLabels: ["Restoran", "Kafe", "Ocakbaşı", "Bistro"],
+    styleCategory: "restaurant",
+    isPremium: true,
+    isBeta: false,
+    orderIndex: 18,
+    signature: "table",
+    fallbackThemeId: "restaurant-dark",
+
+    colors: {
+      background: "#14100C",
+      surface: "#1F1912",
+      surfaceHover: "#2A2219",
+      primary: "#E07B39",
+      primaryHover: "#CE6B2B",
+      secondary: "#F4C28E",
+      text: "#FBF3E8",
+      mutedText: "#B3A592",
+      border: "#33291F",
+      borderLight: "#4A3C2D",
+      ring: "#E07B39",
+      accentGlow: "rgba(224, 123, 57, 0.16)",
+      badgeBg: "rgba(224, 123, 57, 0.12)",
+      badgeText: "#F4C28E",
+    },
+
+    typography: {
+      headingFont: "var(--font-cormorant), Georgia, serif",
+      bodyFont: "'Inter', sans-serif",
+      headingStyle: "serif",
+      bodyStyle: "modern",
+    },
+
+    radius: "medium",
+
+    hero: {
+      layout: "centered",
+      backgroundType: "warm",
+      showStats: true,
+      align: "center",
+    },
+
+    sections: {
+      services: "foodCards",
+      reviews: "goldCards",
+      employees: "chefCards",
+      booking: "restaurantBooking",
+      location: "cardGlass",
+    },
+
+    suggestedAccents: [
+      { name: "Köz", hex: "#E07B39", label: "Orijinal Köz" },
+      { name: "Şarap", hex: "#C2415D", label: "Zengin Bordo" },
+      { name: "Zeytin", hex: "#9AA63A", label: "Akdeniz" },
+      { name: "Karamel", hex: "#D19A4A", label: "Kafe" },
+    ],
+  },
+
+  pist: {
+    id: "pist",
+    name: "Pist",
+    tagline: "Grafit zemin, sinyal sarısı",
+    description:
+      "Çapraz kesilmiş kapak, güçlü büyük harfler ve hızlı kart geçişleri. Oto servis, detaylı temizlik ve ekspertiz için enerjik bir sayfa.",
+    badge: "Premium",
+    supportedCategories: ["OTO_SERVIS"],
+    categoryLabels: ["Oto Servis", "Detaylı Temizlik", "Ekspertiz", "Lastikçi"],
+    styleCategory: "bold",
+    isPremium: true,
+    isBeta: false,
+    orderIndex: 19,
+    signature: "track",
+    fallbackThemeId: "bold-business",
+
+    colors: {
+      background: "#0E1013",
+      surface: "#171A1F",
+      surfaceHover: "#20242B",
+      primary: "#FFC400",
+      primaryHover: "#E6B000",
+      secondary: "#FFE27A",
+      text: "#F5F6F7",
+      mutedText: "#9BA3AE",
+      border: "#272C34",
+      borderLight: "#3A414C",
+      ring: "#FFC400",
+      accentGlow: "rgba(255, 196, 0, 0.16)",
+      badgeBg: "rgba(255, 196, 0, 0.12)",
+      badgeText: "#FFE27A",
+    },
+
+    typography: {
+      headingFont: "var(--font-manrope), system-ui, sans-serif",
+      bodyFont: "'Inter', sans-serif",
+      headingStyle: "uppercase",
+      bodyStyle: "compact",
+    },
+
+    radius: "none",
+
+    hero: {
+      layout: "banner",
+      backgroundType: "mesh",
+      showStats: true,
+      align: "left",
+    },
+
+    sections: {
+      services: "gridCards",
+      reviews: "gridQuotes",
+      employees: "badgeCards",
+      booking: "modernDark",
+      location: "cardGlass",
+    },
+
+    suggestedAccents: [
+      { name: "Sinyal Sarısı", hex: "#FFC400", label: "Orijinal Sarı" },
+      { name: "Yarış Kırmızısı", hex: "#F0483E", label: "Canlı Kırmızı" },
+      { name: "Turbo Turuncu", hex: "#FF7A1A", label: "Enerjik" },
+      { name: "Buz Beyazı", hex: "#E6EDF3", label: "Temiz" },
+    ],
+  },
 };
 
 /**
@@ -897,15 +1222,15 @@ export function getSectorRecommendations(sector?: string | null): string[] {
   const norm = (sector || "").toUpperCase();
   switch (norm) {
     case "BERBER":
-      return ["premium-dark", "obsidyen-bakir", "gece-safiri", "bold-business"];
+      return ["noir-usta", "premium-dark", "obsidyen-bakir", "gece-safiri"];
     case "RESTORAN":
-      return ["restaurant-classic", "bordo-kadife", "restaurant-dark", "sampanya"];
+      return ["sofra", "restaurant-classic", "bordo-kadife", "restaurant-dark"];
     case "GUZELLIK":
-      return ["soft-beauty", "sampanya", "adacayi", "elegant-gold"];
+      return ["porselen", "soft-beauty", "sampanya", "adacayi"];
     case "KLINIK":
-      return ["nordik", "adacayi", "modern-light", "minimal"];
+      return ["berrak", "nordik", "adacayi", "modern-light"];
     case "OTO_SERVIS":
-      return ["bold-business", "obsidyen-bakir", "premium-dark"];
+      return ["pist", "bold-business", "obsidyen-bakir", "premium-dark"];
     default:
       return ["premium-dark", "gece-safiri", "nordik", "modern-light"];
   }

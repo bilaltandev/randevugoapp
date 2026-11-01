@@ -38,6 +38,8 @@ interface ThemePickerTabProps {
   gallery?: any;
   galleryItems?: any[];
   activeThemeId: string;
+  /** Whether the plan includes premium themes. */
+  premiumUnlocked?: boolean;
   themeOverrides: ThemeOverrides | null;
   sectionOrder: string[];
   hiddenSections: string[];
@@ -49,6 +51,7 @@ interface ThemePickerTabProps {
 
 const FILTER_TAGS = [
   { id: "ALL", label: "Tümü" },
+  { id: "PREMIUM", label: "Premium" },
   { id: "BERBER", label: "Berber" },
   { id: "GUZELLIK", label: "Güzellik" },
   { id: "RESTORAN", label: "Restoran" },
@@ -80,6 +83,7 @@ export function ThemePickerTab({
   gallery,
   galleryItems,
   activeThemeId,
+  premiumUnlocked = false,
   themeOverrides,
   sectionOrder,
   hiddenSections,
@@ -118,6 +122,7 @@ export function ThemePickerTab({
   const allThemes = Object.values(THEME_REGISTRY);
   const filteredThemes = allThemes.filter((t) => {
     if (activeFilter === "ALL") return true;
+    if (activeFilter === "PREMIUM") return t.isPremium;
     if (activeFilter === "DARK") return t.styleCategory === "dark";
     if (activeFilter === "LIGHT") return t.styleCategory === "light";
     if (activeFilter === "LUXURY") return t.styleCategory === "luxury";
@@ -228,6 +233,11 @@ export function ThemePickerTab({
                 Sayfanızın yapısı. Renk paletinden bağımsızdır; düzeni değiştirince renkleriniz korunur.
               </p>
             </div>
+            {currentTheme.signature && (
+              <p className="rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
+                {currentTheme.name} kendi özel sayfa düzeniyle gelir. Buradaki seçim, normal bir temaya geçtiğinizde kullanılır.
+              </p>
+            )}
             <LayoutPicker
               activeLayout={activeLayout}
               accent={customPrimaryColor || currentTheme.colors.primary}
@@ -250,6 +260,7 @@ export function ThemePickerTab({
                     onPreview={setPreviewTheme}
                     onApply={handleApply}
                     isApplying={isApplyingId === theme.id}
+                    locked={theme.isPremium && !premiumUnlocked}
                   />
                 ))}
               </div>
@@ -285,6 +296,7 @@ export function ThemePickerTab({
                   onPreview={setPreviewTheme}
                   onApply={handleApply}
                   isApplying={isApplyingId === theme.id}
+                  locked={theme.isPremium && !premiumUnlocked}
                 />
               ))}
             </div>
@@ -483,6 +495,7 @@ export function ThemePickerTab({
         onApply={handleApply}
         isActiveTheme={previewTheme ? activeThemeId === previewTheme.id : false}
         isApplying={previewTheme ? isApplyingId === previewTheme.id : false}
+        locked={!!previewTheme?.isPremium && !premiumUnlocked}
       />
     </div>
   );
