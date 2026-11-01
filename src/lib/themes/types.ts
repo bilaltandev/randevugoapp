@@ -111,7 +111,6 @@ export interface LogoStyle {
   shape: "none" | "circle" | "square";
   fit: "contain" | "cover";
   width: number;
-  hideName?: boolean;
   text?: string;
   textColor?: string;
   textGap?: number;

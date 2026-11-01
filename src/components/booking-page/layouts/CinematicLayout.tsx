@@ -356,16 +356,16 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
       {/* ── Glass bar over the hero ── */}
       <header className="sticky top-0 z-40 h-16 bg-black/40 text-white backdrop-blur-md">
         <div className={cn(shell, "flex h-full items-center gap-4")}>
-          <a href="#ust" className={cn("flex min-w-0 items-center gap-3", focusRing)}>
+          <a href="#ust" aria-label={p.name} className={cn("flex min-w-0 items-center gap-3", focusRing)}>
             {p.logoStyle ? (
-              <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} limit={44} showName nameClassName={cn(display, "text-lg tracking-[-0.02em]")} />
+              <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} nameClassName={cn(display, "text-lg tracking-[-0.02em]")} />
             ) : (
               <>
                 {p.showLogo && p.logo && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.logo} alt="" className="h-8 w-8 shrink-0 rounded-full bg-white object-contain p-0.5" />
                 )}
-                <span className={cn(display, "truncate text-lg tracking-[-0.02em]")}>{p.name}</span>
+                {!(p.showLogo && p.logo) && <span className={cn(display, "truncate text-lg tracking-[-0.02em]")}>{p.name}</span>}
               </>
             )}
           </a>
@@ -398,11 +398,6 @@ export function CinematicLayout(p: StorefrontLayoutProps) {
 
         <div className={cn(shell, "grid gap-10 pb-12 pt-32 @4xl:grid-cols-[minmax(0,1fr)_auto] @4xl:items-end @4xl:pb-16")}>
           <div className="min-w-0">
-            {p.logoStyle && p.showLogo && p.logo && (
-              <div className="mb-5">
-                <BrandMark logo={p.logo} name={p.name} style={p.logoStyle} limit={140} />
-              </div>
-            )}
             {p.categoryLine.length > 0 && <p className="text-sm text-white/70">{p.categoryLine.join(", ")}</p>}
             <h1
               id="business-name"

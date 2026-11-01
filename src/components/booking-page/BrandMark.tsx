@@ -13,32 +13,30 @@ const FONTS: Record<NonNullable<LogoStyle["textFont"]>, string> = {
 };
 
 /**
- * The owner's logo with the look they chose: bare, or in a circle or square, at their width, with optional
- * text beside it. `limit` caps the height so a wide setting can't break a top bar.
+ * The top bar's logo with the look the owner chose: bare, or in a circle or square, at their width, with
+ * optional text beside it. Empty text means the logo stands alone; the name shows only when there is no logo.
  */
+/** Tallest the mark may be inside a top bar. */
+export const BRAND_MARK_LIMIT = 52;
+
 export function BrandMark({
   logo,
   name,
   style: s,
-  limit,
-  showName,
   nameClassName,
 }: {
   logo?: string | null;
   name: string;
   style: LogoStyle;
-  limit: number;
-  /** Top bars fall back to the business name when there is no custom text. */
-  showName?: boolean;
   nameClassName?: string;
 }) {
   const custom = s.text?.trim();
   const framed = s.shape !== "none";
-  const width = framed ? Math.min(s.width, limit) : Math.min(s.width, limit * 3.5);
-  const fontSize = Math.min(s.textSize ?? 24, limit * 0.6);
+  const width = framed ? Math.min(s.width, BRAND_MARK_LIMIT) : Math.min(s.width, BRAND_MARK_LIMIT * 3.5);
+  const fontSize = Math.min(s.textSize ?? 24, BRAND_MARK_LIMIT * 0.6);
 
   return (
-    <span className={cn("inline-flex min-w-0 max-w-full items-center", !showName && "flex-wrap")} style={{ gap: s.textGap ?? 12 }}>
+    <span className="inline-flex min-w-0 max-w-full items-center" style={{ gap: s.textGap ?? 12 }}>
       {logo && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -53,16 +51,16 @@ export function BrandMark({
           )}
           style={{
             width,
-            // In a top bar the logo leaves room for the text beside it.
-            maxWidth: showName ? "60%" : "100%",
-            ...(framed ? { height: width } : { height: "auto", maxHeight: limit }),
+            // The logo leaves room for the text beside it.
+            maxWidth: custom ? "60%" : "100%",
+            ...(framed ? { height: width } : { height: "auto", maxHeight: BRAND_MARK_LIMIT }),
             objectFit: s.fit,
           }}
         />
       )}
       {custom ? (
         <span
-          className={cn("leading-tight", showName && "truncate")}
+          className="truncate leading-tight"
           style={{
             color: s.textColor || undefined,
             fontFamily: FONTS[s.textFont ?? "theme"],
@@ -75,7 +73,7 @@ export function BrandMark({
           {custom}
         </span>
       ) : (
-        showName && !s.hideName && <span className={cn("truncate", nameClassName)}>{name}</span>
+        !logo && <span className={cn("truncate", nameClassName)}>{name}</span>
       )}
     </span>
   );

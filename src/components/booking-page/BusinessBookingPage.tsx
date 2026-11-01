@@ -392,16 +392,18 @@ export function BusinessBookingPage({
             <>
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 {logoStyle ? (
-                  <BrandMark logo={storefrontProps.showLogo ? business.logo : null} name={title} style={logoStyle} limit={44} showName nameClassName="text-sm font-semibold text-ink" />
+                  <BrandMark logo={storefrontProps.showLogo ? business.logo : null} name={title} style={logoStyle} nameClassName="text-sm font-semibold text-ink" />
                 ) : (
                   <>
-                    {business.logo ? (
+                    {storefrontProps.showLogo && business.logo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={business.logo} alt="" className="h-8 w-8 shrink-0 rounded-(--bk-r-ctl) border border-line object-contain p-0.5" />
+                      <img src={business.logo} alt={title} className="h-8 w-8 shrink-0 rounded-(--bk-r-ctl) border border-line object-contain p-0.5" />
                     ) : (
-                      <Initial name={business.name} className="h-8 w-8 shrink-0 rounded-(--bk-r-ctl) text-sm" />
+                      <>
+                        <Initial name={business.name} className="h-8 w-8 shrink-0 rounded-(--bk-r-ctl) text-sm" />
+                        <span className="truncate text-sm font-semibold text-ink">{title}</span>
+                      </>
                     )}
-                    <span className="truncate text-sm font-semibold text-ink">{title}</span>
                   </>
                 )}
               </div>
@@ -488,7 +490,6 @@ export function BusinessBookingPage({
             contact={storefrontProps.contact}
             canBook={!booking.isExpired && services.length > 0}
             ctaLabel={ownerCta}
-            logoStyle={logoStyle}
           />
 
           <div className="mt-10">

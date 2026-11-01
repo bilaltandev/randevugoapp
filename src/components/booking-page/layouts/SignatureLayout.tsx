@@ -37,15 +37,6 @@ const titleClass = cn(headingCls, "text-[clamp(2.25rem,5cqi,3.75rem)] leading-[1
 
 const bookLabel = (p: Props) => p.ctaLabel || (p.isRestaurant ? "Masa ayırt" : "Randevu al");
 
-/** The owner's styled logo above the name; without logo settings the top bar alone carries it. */
-function HeroLogo({ p, className }: { p: Props; className?: string }) {
-  if (!p.logoStyle || !p.showLogo || !p.logo) return null;
-  return (
-    <div className={cn("mb-5", className)}>
-      <BrandMark logo={p.logo} name={p.name} style={p.logoStyle} limit={140} />
-    </div>
-  );
-}
 
 /** Slow drift of a hero photo while the page scrolls; still when the visitor prefers less motion. */
 function useHeroDrift(distance: number) {
@@ -125,7 +116,6 @@ function NoirHero(p: Props) {
       <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/60 to-black/25" aria-hidden="true" />
 
       <div className={cn(shell, "pb-14 pt-32 @4xl:pb-20")}>
-        <HeroLogo p={p} />
         <m.span
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -163,7 +153,6 @@ function PorcelainHero(p: Props) {
   return (
     <section ref={ref} id="ust" className={cn(shell, "grid items-center gap-12 pb-16 pt-12 @4xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] @4xl:pb-24 @4xl:pt-16")}>
       <div>
-        <HeroLogo p={p} />
         {p.categoryLine.length > 0 && <p className="text-[15px] text-brand-ink">{p.categoryLine.join(" · ")}</p>}
         <m.h1
           id="business-name"
@@ -226,7 +215,6 @@ function ClearHero(p: Props) {
     <section id="ust" className={cn(shell, "pb-14 pt-12 @4xl:pb-20 @4xl:pt-20")}>
       <div className="grid gap-10 @4xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] @4xl:items-end">
         <div>
-          <HeroLogo p={p} />
           <p className="flex flex-wrap items-center gap-2 text-sm text-ink-3">
             {p.verified && (
               <span className="inline-flex items-center gap-1.5 rounded-(--bk-r-pill) bg-brand-soft px-3 py-1 font-medium text-brand-ink">
@@ -290,7 +278,6 @@ function TableHero(p: Props) {
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(75%_70%_at_50%_50%,rgba(0,0,0,0.78),rgba(0,0,0,0.5))]" aria-hidden="true" />
 
       <div className={cn(shell, "flex flex-col items-center py-32")}>
-        <HeroLogo p={p} />
         {p.categoryLine.length > 0 && <p className="text-sm tracking-[0.18em] text-white/75">{p.categoryLine.join(" · ")}</p>}
         <m.h1
           id="business-name"
@@ -333,7 +320,6 @@ function TrackHero(p: Props) {
       )}
       <div className={cn(shell, "flex min-h-[min(82svh,720px)] flex-col justify-center py-16")}>
         <div className={cn("max-w-[640px]", p.heroImage && "@4xl:max-w-[46cqi]")}>
-          <HeroLogo p={p} />
           {p.categoryLine.length > 0 && <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand-ink">{p.categoryLine.join(" · ")}</p>}
           <m.h1
             id="business-name"
@@ -754,15 +740,15 @@ export function SignatureLayout(p: Props) {
       <div className="@container overflow-x-clip">
         <header className={cn("sticky top-0 z-40 h-16 backdrop-blur-md", overPhoto ? "bg-black/40 text-white" : "border-b border-line bg-canvas/85 text-ink")}>
           <div className={cn(shell, "flex h-full items-center gap-4")}>
-            <a href="#ust" className={cn("flex min-w-0 items-center gap-3", focusRing)}>
+            <a href="#ust" aria-label={p.name} className={cn("flex min-w-0 items-center gap-3", focusRing)}>
               {!p.logoStyle && p.showLogo && p.logo && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.logo} alt="" className="h-8 w-8 shrink-0 rounded-full bg-white object-contain p-0.5" />
               )}
               {p.logoStyle ? (
-                <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} limit={44} showName nameClassName={cn(headingCls, "text-lg")} />
+                <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} nameClassName={cn(headingCls, "text-lg")} />
               ) : (
-                <span className={cn(headingCls, "truncate text-lg")}>{p.name}</span>
+                !(p.showLogo && p.logo) && <span className={cn(headingCls, "truncate text-lg")}>{p.name}</span>
               )}
             </a>
             {canBook && (

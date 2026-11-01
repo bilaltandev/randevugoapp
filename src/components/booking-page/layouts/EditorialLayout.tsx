@@ -312,16 +312,16 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
       {/* ── Masthead ── */}
       <header className="sticky top-0 z-40 border-b border-line bg-canvas/90 backdrop-blur-md">
         <div className={cn(shell, "flex h-16 items-center gap-6")}>
-          <a href="#ust" className={cn("flex min-w-0 items-center gap-3", focusRing)}>
+          <a href="#ust" aria-label={p.name} className={cn("flex min-w-0 items-center gap-3", focusRing)}>
             {p.logoStyle ? (
-              <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} limit={44} showName nameClassName={cn(display, "text-2xl leading-none text-ink")} />
+              <BrandMark logo={p.showLogo ? p.logo : null} name={p.name} style={p.logoStyle} nameClassName={cn(display, "text-2xl leading-none text-ink")} />
             ) : (
               <>
                 {p.showLogo && p.logo && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.logo} alt="" className="h-8 w-8 shrink-0 object-contain" />
                 )}
-                <span className={cn(display, "truncate text-2xl leading-none text-ink")}>{p.name}</span>
+                {!(p.showLogo && p.logo) && <span className={cn(display, "truncate text-2xl leading-none text-ink")}>{p.name}</span>}
               </>
             )}
           </a>
@@ -373,11 +373,6 @@ export function EditorialLayout(p: StorefrontLayoutProps) {
         </div>
 
         <div className="flex flex-col justify-end @4xl:col-span-7">
-          {p.logoStyle && p.showLogo && p.logo && (
-            <div className="mb-5">
-              <BrandMark logo={p.logo} name={p.name} style={p.logoStyle} limit={140} />
-            </div>
-          )}
           {p.categoryLine.length > 0 && <p className="text-sm text-ink-3">{p.categoryLine.join(", ")}</p>}
           <h1
             id="business-name"

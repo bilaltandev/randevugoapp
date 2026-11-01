@@ -109,15 +109,11 @@ export function LogoStyleEditor({
             ]}
           />
         </Field>
-        <Range label="Logo genişliği" value={draft.width} min={32} max={320} onChange={(width) => set({ width })} />
+        <Range label="Logo genişliği" value={Math.min(draft.width, 180)} min={32} max={180} onChange={(width) => set({ width })} />
 
-        <Field label="Logonun yanındaki yazı" htmlFor="logo-text" hint="İsteğe bağlı. Boş bırakılırsa üst çubukta işletme adı görünür.">
+        <Field label="Logonun yanındaki yazı" htmlFor="logo-text" hint="İsteğe bağlı. Boş bırakırsanız yalnızca logo görünür.">
           <Input id="logo-text" value={draft.text ?? ""} maxLength={40} onChange={(e) => set({ text: e.target.value })} />
         </Field>
-        <div className="flex items-center justify-between gap-3">
-          <span id="logo-hide-name" className="text-sm font-medium text-ink-2">Üst çubukta işletme adını gizle</span>
-          <Switch checked={!!draft.hideName} aria-labelledby="logo-hide-name" onChange={(hideName) => set({ hideName })} />
-        </div>
 
         {draft.text?.trim() && (
           <div className="space-y-4 rounded-control border border-line p-3">
@@ -146,7 +142,7 @@ export function LogoStyleEditor({
               </Field>
             </div>
             <Range label="Logoya uzaklık" value={draft.textGap ?? 12} min={0} max={48} onChange={(textGap) => set({ textGap })} />
-            <Range label="Yazı boyutu" value={draft.textSize ?? 24} min={14} max={64} onChange={(textSize) => set({ textSize })} />
+            <Range label="Yazı boyutu" value={Math.min(draft.textSize ?? 24, 30)} min={14} max={30} onChange={(textSize) => set({ textSize })} />
             <div className="flex flex-wrap gap-4">
               {([["bold", "Kalın"], ["italic", "İtalik"], ["uppercase", "BÜYÜK HARF"]] as const).map(([key, label]) => (
                 <label key={key} className="inline-flex min-h-11 items-center gap-2 text-sm text-ink-2">
@@ -166,9 +162,9 @@ export function LogoStyleEditor({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-ink-2">Önizleme ({theme.name})</p>
-        <div className="flex min-h-48 items-center justify-center overflow-hidden rounded-control border border-line p-5" style={{ background: theme.colors.background, color: theme.colors.text }}>
-          <BrandMark logo={logo} name={businessName} style={draft} limit={160} />
+        <p className="mb-2 text-sm font-medium text-ink-2">Üst çubuk önizlemesi ({theme.name})</p>
+        <div className="flex min-h-24 items-center overflow-hidden rounded-control border border-line p-5" style={{ background: theme.colors.background, color: theme.colors.text }}>
+          <BrandMark logo={logo} name={businessName} style={draft} />
         </div>
         {!logo && <p className="mt-2 text-sm text-ink-3">Önizlemede görmek için yukarıdan logonuzu yükleyin.</p>}
       </div>

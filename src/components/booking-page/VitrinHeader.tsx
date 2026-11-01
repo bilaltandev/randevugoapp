@@ -1,8 +1,6 @@
 import React from "react";
 import { MessageSquare, Navigation, Phone, ShieldCheck, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LogoStyle } from "@/lib/themes/types";
-import { BrandMark } from "./BrandMark";
 import { btn, focusRing, headingCls, Initial } from "./ui";
 import { formatPrice } from "./time";
 import { InstagramIcon, formatRating } from "./layouts/shared";
@@ -35,7 +33,6 @@ interface VitrinHeaderProps {
   };
   canBook: boolean;
   ctaLabel?: string;
-  logoStyle?: LogoStyle;
 }
 
 export function VitrinHeader(p: VitrinHeaderProps) {
@@ -82,7 +79,8 @@ export function VitrinHeader(p: VitrinHeaderProps) {
     },
   ].filter(Boolean) as { label: string; value: React.ReactNode }[];
 
-  const showMark = p.showLogo;
+  // The logo lives in the top bar; the tile here only stands in when there is none.
+  const showMark = p.showLogo && !p.logo;
 
   return (
     <section aria-labelledby="business-name" className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
@@ -107,24 +105,12 @@ export function VitrinHeader(p: VitrinHeaderProps) {
       {/* Only the logo tile overlaps the cover; the name always sits on the page color so it stays readable. */}
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className={cn("flex min-w-0 flex-col gap-3", showMark && "sm:flex-row sm:items-start sm:gap-5")}>
-          {showMark && p.logoStyle && p.logo ? (
-            <div className="pt-4">
-              <BrandMark logo={p.logo} name={p.name} style={p.logoStyle} limit={140} />
-            </div>
-          ) : showMark &&
-            (p.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={p.logo}
-                alt=""
-                className="relative -mt-10 h-20 w-20 shrink-0 rounded-(--bk-r-card) border-4 border-canvas bg-surface object-contain p-1.5 shadow-sm sm:-mt-12 sm:h-24 sm:w-24"
-              />
-            ) : (
-              <Initial
-                name={p.name}
-                className="relative -mt-10 h-20 w-20 shrink-0 rounded-(--bk-r-card) border-4 border-canvas text-3xl text-ink sm:-mt-12 sm:h-24 sm:w-24"
-              />
-            ))}
+          {showMark && (
+            <Initial
+              name={p.name}
+              className="relative -mt-10 h-20 w-20 shrink-0 rounded-(--bk-r-card) border-4 border-canvas text-3xl text-ink sm:-mt-12 sm:h-24 sm:w-24"
+            />
+          )}
           <div className={cn("min-w-0", showMark ? "sm:pt-4" : "pt-6")}>
             <h1 id="business-name" className={cn(headingCls, "text-[clamp(1.875rem,4.2vw,3rem)] leading-[1.05] text-ink [text-wrap:balance]")}>
               {p.name}
