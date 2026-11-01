@@ -9,7 +9,7 @@ import appIcon from '../../assets/images/icon.png';
  */
 export function AppMark({ size = 48, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
   return (
-    <View style={[{ width: size, height: size, borderRadius: size * 0.26, overflow: 'hidden', backgroundColor: '#0B0E13' }, style]}>
+    <View style={[{ width: size, height: size, borderRadius: size * 0.26, overflow: 'hidden', backgroundColor: '#062A30' }, style]}>
       {/* icon.png keeps the store icon's safe margin; zoom past it so the mark fills the tile. */}
       <Image source={appIcon} style={{ width: size, height: size, transform: [{ scale: 1.32 }] }} contentFit="cover" alt="" />
     </View>
