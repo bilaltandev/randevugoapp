@@ -21,12 +21,13 @@ type Source = "upload" | "gallery" | "samples";
 interface CoverImagePickerProps {
   isOpen: boolean;
   onClose: () => void;
+  title?: string;
   current: string;
   galleryItems: { id: string; imageUrl: string; title?: string | null }[];
   onSelect: (url: string) => void;
 }
 
-export function CoverImagePicker({ isOpen, onClose, current, galleryItems, onSelect }: CoverImagePickerProps) {
+export function CoverImagePicker({ isOpen, onClose, title = "Arka plan görseli seç", current, galleryItems, onSelect }: CoverImagePickerProps) {
   const [source, setSource] = useState<Source>("upload");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -90,7 +91,7 @@ export function CoverImagePicker({ isOpen, onClose, current, galleryItems, onSel
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Arka plan görseli seç" maxWidth="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="2xl">
       <div className="space-y-4">
         <Segmented<Source>
           fill

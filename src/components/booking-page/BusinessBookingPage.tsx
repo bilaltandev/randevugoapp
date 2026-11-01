@@ -294,6 +294,7 @@ export function BusinessBookingPage({
       verified: business.isVerified,
       // Premium themes open with a sample photo until the owner picks a cover or a plain color.
       heroImage: heroImage ?? (signature && heroBgType !== "color" ? sampleImage ?? null : null),
+      sideImage: themeOverrides?.sideImage,
       photos,
       services,
       employees: showStaff ? employees : [],

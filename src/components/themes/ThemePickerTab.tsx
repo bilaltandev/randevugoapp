@@ -26,6 +26,7 @@ import { checkContrastSafety, getCustomAccent } from "@/lib/themes/utils";
 import { ThemeCard } from "./ThemeCard";
 import { ThemeLivePreviewModal } from "./ThemeLivePreviewModal";
 import { LayoutPicker } from "./LayoutPicker";
+import { PageImagesPanel } from "./PageImagesPanel";
 import { getLayoutId, LAYOUTS, type LayoutId } from "@/lib/themes/layouts";
 
 interface ThemePickerTabProps {
@@ -47,6 +48,8 @@ interface ThemePickerTabProps {
   onUpdateOverrides: (newOverrides: ThemeOverrides | null) => Promise<void>;
   onUpdateSections: (newOrder: string[], newHidden: string[]) => Promise<void>;
   onResetToDefault: () => Promise<void>;
+  onBusinessChange: (update: (prev: any) => any) => void;
+  onOpenGallery: () => void;
 }
 
 const FILTER_TAGS = [
@@ -91,6 +94,8 @@ export function ThemePickerTab({
   onUpdateOverrides,
   onUpdateSections,
   onResetToDefault,
+  onBusinessChange,
+  onOpenGallery,
 }: ThemePickerTabProps) {
   const [subTab, setSubTab] = useState<"catalog" | "customize">("catalog");
   const [activeFilter, setActiveFilter] = useState("ALL");
@@ -226,6 +231,16 @@ export function ThemePickerTab({
       {/* ────────────────── CATALOG VIEW ────────────────── */}
       {subTab === "catalog" && (
         <div className="space-y-8">
+          <PageImagesPanel
+            business={business}
+            theme={currentTheme}
+            themeOverrides={themeOverrides}
+            galleryItems={galleryItems || []}
+            onUpdateOverrides={onUpdateOverrides}
+            onBusinessChange={onBusinessChange}
+            onOpenGallery={onOpenGallery}
+          />
+
           <section className="space-y-3">
             <div>
               <h3 className="text-sm font-semibold text-ink">Sayfa düzeni</h3>
@@ -235,7 +250,7 @@ export function ThemePickerTab({
             </div>
             {currentTheme.signature && (
               <p className="rounded-control border border-brand-line bg-brand-soft px-3 py-2 text-sm text-brand-ink">
-                {currentTheme.name} kendi özel sayfa düzeniyle gelir. Kapaktaki örnek görseli Genel sekmesinden kendi görselinizle değiştirebilirsiniz.
+                {currentTheme.name} kendi özel sayfa düzeniyle gelir. Fotoğrafları yukarıdaki Sayfa görselleri bölümünden değiştirebilirsiniz.
               </p>
             )}
             <LayoutPicker

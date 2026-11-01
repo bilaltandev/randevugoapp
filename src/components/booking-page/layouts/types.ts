@@ -15,6 +15,8 @@ export interface StorefrontLayoutProps {
   verified?: boolean;
   /** Owner's hero background photo; null when they chose the theme color. */
   heroImage: string | null;
+  /** Owner's chosen photo for Porselen's round frame. */
+  sideImage?: string | null;
   /** Gallery photos (the hero image is not one of them). */
   photos: Photo[];
   services: BookingService[];

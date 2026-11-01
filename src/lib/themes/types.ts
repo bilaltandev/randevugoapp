@@ -117,6 +117,8 @@ export interface ThemeOverrides {
   customBadge?: string;
   customCtaText?: string;
   coverImage?: string;
+  /** Porselen's round photo beside the cover; without it the first gallery photo is used. */
+  sideImage?: string;
   showReviews?: boolean;
   showStaff?: boolean;
   showServices?: boolean;

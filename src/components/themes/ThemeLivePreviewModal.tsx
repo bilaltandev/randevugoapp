@@ -62,7 +62,7 @@ export function ThemeLivePreviewModal({
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-ink">{theme.name}</p>
           <p className="hidden truncate text-xs text-ink-3 sm:block">
-            {theme.sampleImage ? "Örnek görseli Genel sekmesindeki kapak görselinden değiştirebilirsiniz" : `${business.name} verileriyle canlı önizleme`}
+            {theme.sampleImage ? "Fotoğrafları Temalar sekmesindeki Sayfa görselleri bölümünden değiştirebilirsiniz" : `${business.name} verileriyle canlı önizleme`}
           </p>
         </div>
 

@@ -459,6 +459,8 @@ export default function PageBuilderClient({
           onUpdateOverrides={handleUpdateOverrides}
           onUpdateSections={handleUpdateSections}
           onResetToDefault={handleResetToDefault}
+          onBusinessChange={setBusinessState}
+          onOpenGallery={() => setActiveMainTab("gallery")}
         />
       )}
 

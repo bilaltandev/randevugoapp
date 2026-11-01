@@ -147,7 +147,7 @@ function NoirHero(p: Props) {
 
 function PorcelainHero(p: Props) {
   const { ref, y } = useHeroDrift(-70);
-  const side = p.photos[0]?.src;
+  const side = p.sideImage || p.photos[0]?.src;
   return (
     <section ref={ref} id="ust" className={cn(shell, "grid items-center gap-12 pb-16 pt-12 @4xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] @4xl:pb-24 @4xl:pt-16")}>
       <div>
@@ -414,6 +414,12 @@ function RowBook({ p, srv, className }: { p: Props; srv: BookingService; classNa
   );
 }
 
+const Thumb = ({ srv, className }: { srv: BookingService; className?: string }) =>
+  srv.image ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={srv.image} alt="" loading="lazy" className={cn("shrink-0 rounded-(--bk-r-ctl) object-cover", className)} />
+  ) : null;
+
 const Duration = ({ srv }: { srv: BookingService }) => (
   <span className="inline-flex items-center gap-1 text-ink-3">
     <Clock className="h-3.5 w-3.5" aria-hidden="true" />
@@ -428,10 +434,13 @@ function LedgerServices({ p, items, startAt }: { p: Props; items: BookingService
         <li key={srv.id}>
           <Reveal distance={14} className="group grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-3 border-b border-line py-6 transition-colors hover:bg-surface @3xl:grid-cols-[3.5rem_minmax(0,1fr)_auto_auto] @3xl:items-center @3xl:px-3">
             <span className="text-sm tabular-nums text-brand-ink">{String(startAt + i + 1).padStart(2, "0")}</span>
-            <div className="min-w-0">
-              <h3 className={cn(headingCls, "text-2xl leading-tight text-ink")}>{srv.name}</h3>
-              {srv.description && <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-3">{srv.description}</p>}
-              <p className="mt-1.5 text-sm"><Duration srv={srv} /></p>
+            <div className="flex min-w-0 items-start gap-4">
+              <Thumb srv={srv} className="h-16 w-16" />
+              <div className="min-w-0">
+                <h3 className={cn(headingCls, "text-2xl leading-tight text-ink")}>{srv.name}</h3>
+                {srv.description && <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-3">{srv.description}</p>}
+                <p className="mt-1.5 text-sm"><Duration srv={srv} /></p>
+              </div>
             </div>
             <span className="col-start-2 text-xl font-semibold tabular-nums text-ink @3xl:col-start-auto">{formatPrice(srv.price)}</span>
             <RowBook p={p} srv={srv} className="col-start-2 w-full @3xl:col-start-auto @3xl:w-auto" />
@@ -481,9 +490,12 @@ function ListServices({ p, items }: { p: Props; items: BookingService[] }) {
     <ul className="divide-y divide-line overflow-hidden rounded-(--bk-r-card) border border-line bg-surface">
       {items.map((srv) => (
         <li key={srv.id} className="flex flex-col gap-3 p-5 @2xl:flex-row @2xl:items-center @2xl:gap-6">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-[17px] font-semibold text-ink">{srv.name}</h3>
-            {srv.description && <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-3">{srv.description}</p>}
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <Thumb srv={srv} className="h-14 w-14" />
+            <div className="min-w-0">
+              <h3 className="text-[17px] font-semibold text-ink">{srv.name}</h3>
+              {srv.description && <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-3">{srv.description}</p>}
+            </div>
           </div>
           <div className="flex items-center justify-between gap-5 @2xl:justify-end">
             <span className="text-sm"><Duration srv={srv} /></span>
@@ -502,6 +514,7 @@ function MenuServices({ p, items }: { p: Props; items: BookingService[] }) {
       {items.map((srv, i) => (
         <li key={srv.id}>
           <Reveal delay={Math.min(i, 5) * 0.04} distance={14}>
+            <Thumb srv={srv} className="mb-3 aspect-[16/9] w-full" />
             <div className="flex items-baseline gap-3">
               <h3 className={cn(headingCls, "text-[26px] leading-tight text-ink")}>{srv.name}</h3>
               <span className="min-w-6 flex-1 translate-y-[-4px] border-b border-dotted border-line-strong" aria-hidden="true" />
