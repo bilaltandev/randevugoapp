@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import fs from "fs/promises";
-import path from "path";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
+import { removeUpload } from "@/lib/uploads";
 
 // Add or Update Gallery Item
 export async function POST(req: Request) {
@@ -117,18 +116,11 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Bu görseli silme yetkiniz yok." }, { status: 403 });
     }
 
-    // Clean up file if local upload
-    if (existing.imageUrl?.startsWith("/uploads/gallery/")) {
-      try {
-        const filename = path.basename(existing.imageUrl);
-        const filePath = path.join(process.cwd(), "public", "uploads", "gallery", filename);
-        await fs.unlink(filePath).catch(() => {});
-      } catch {}
-    }
-
     await prisma.galleryItem.delete({
       where: { id },
     });
+
+    await removeUpload(existing.imageUrl);
 
     return NextResponse.json({ success: true });
   } catch (error) {

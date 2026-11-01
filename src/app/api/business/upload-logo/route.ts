@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import fs from "fs/promises";
 import path from "path";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
+import { removeUpload, saveUpload } from "@/lib/uploads";
 
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -62,38 +62,22 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "logos");
-    await fs.mkdir(uploadsDir, { recursive: true });
-
-    // Clean old logo if it was a local upload for this business
-    try {
-      const currentBusiness = await prisma.business.findUnique({
-        where: { id: user.business.id },
-        select: { logo: true },
-      });
-      if (currentBusiness?.logo?.startsWith("/uploads/logos/")) {
-        const oldFilename = path.basename(currentBusiness.logo);
-        const oldFilePath = path.join(uploadsDir, oldFilename);
-        await fs.unlink(oldFilePath).catch(() => {});
-      }
-    } catch {
-      // Ignore cleanup error
-    }
+    const currentBusiness = await prisma.business.findUnique({
+      where: { id: user.business.id },
+      select: { logo: true },
+    });
 
     // Generate safe filename
     const filename = `logo-${user.business.id}-${Date.now()}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    await fs.writeFile(filePath, buffer);
-
-    const publicUrl = `/uploads/logos/${filename}`;
+    const publicUrl = await saveUpload("logos", filename, buffer);
 
     // Update in database
     const updatedBusiness = await prisma.business.update({
       where: { id: user.business.id },
       data: { logo: publicUrl },
     });
+
+    await removeUpload(currentBusiness?.logo);
 
     return NextResponse.json({
       success: true,
@@ -118,25 +102,17 @@ export async function DELETE() {
     const locked = subscriptionLock(user.business.subscription);
     if (locked) return locked;
 
-    // Try to remove local file if any
-    try {
-      const currentBusiness = await prisma.business.findUnique({
-        where: { id: user.business.id },
-        select: { logo: true },
-      });
-      if (currentBusiness?.logo?.startsWith("/uploads/logos/")) {
-        const uploadsDir = path.join(process.cwd(), "public", "uploads", "logos");
-        const oldFilename = path.basename(currentBusiness.logo);
-        await fs.unlink(path.join(uploadsDir, oldFilename)).catch(() => {});
-      }
-    } catch {
-      // Ignore file delete error
-    }
+    const currentBusiness = await prisma.business.findUnique({
+      where: { id: user.business.id },
+      select: { logo: true },
+    });
 
     await prisma.business.update({
       where: { id: user.business.id },
       data: { logo: null },
     });
+
+    await removeUpload(currentBusiness?.logo);
 
     return NextResponse.json({ success: true, message: "Logo kaldırıldı." });
   } catch (error) {

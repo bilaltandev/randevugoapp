@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import fs from "fs/promises";
 import path from "path";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
+import { saveUpload } from "@/lib/uploads";
 
 const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -55,15 +55,8 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", "tables");
-    await fs.mkdir(uploadsDir, { recursive: true });
-
     const filename = `table-${user.business.id}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    await fs.writeFile(filePath, buffer);
-
-    const publicUrl = `/uploads/tables/${filename}`;
+    const publicUrl = await saveUpload("tables", filename, buffer);
 
     return NextResponse.json({
       success: true,

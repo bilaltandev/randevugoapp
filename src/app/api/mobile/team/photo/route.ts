@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
 import prisma from "@/lib/prisma";
 import { getStaffActor } from "@/lib/staffActor";
 import { subscriptionLock } from "@/lib/subscriptionAccess";
+import { removeUpload, saveUpload } from "@/lib/uploads";
 
 // Team member (mobile Bearer): POST multipart `file` sets their own staff photo (shown on the booking page).
-// Stored like logos and gallery images (public/uploads); only JPG, PNG and WebP, at most 5 MB.
+// Stored like logos and gallery images (lib/uploads.ts); only JPG, PNG and WebP, at most 5 MB.
 
 const ALLOWED: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const DIR = path.join(process.cwd(), "public", "uploads", "staff");
 
 export async function POST(req: Request) {
   try {
@@ -33,17 +31,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Geçersiz dosya formatı. JPG, PNG veya WebP yükleyebilirsiniz." }, { status: 400 });
     }
 
-    await fs.mkdir(DIR, { recursive: true });
     const current = await prisma.employee.findUniqueOrThrow({ where: { id: actor.employeeId }, select: { photo: true } });
     const filename = `staff-${actor.employeeId}-${Date.now()}.${ext}`;
-    await fs.writeFile(path.join(DIR, filename), Buffer.from(await file.arrayBuffer()));
-    const url = `/uploads/staff/${filename}`;
+    const url = await saveUpload("staff", filename, Buffer.from(await file.arrayBuffer()));
     await prisma.employee.update({ where: { id: actor.employeeId }, data: { photo: url } });
 
     // Remove the previous own upload; stock photos and other folders are never touched.
-    if (current.photo?.startsWith("/uploads/staff/")) {
-      await fs.unlink(path.join(DIR, path.basename(current.photo))).catch(() => {});
-    }
+    await removeUpload(current.photo);
     return NextResponse.json({ success: true, url });
   } catch (error) {
     console.error("[team-member] photo upload failed", { name: (error as Error)?.name });
