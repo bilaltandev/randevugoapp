@@ -418,6 +418,11 @@ export async function updateAccount(client: AuthClient, input: { name: string; e
   return (await client.request<{ user: Account }>('/api/mobile/account', { method: 'PATCH', body: input })).user;
 }
 
+/** Deletes the signed-in account for good; the server ends every session with it. */
+export async function deleteAccount(client: AuthClient, password: string) {
+  return client.request<{ success: boolean }>('/api/mobile/account', { method: 'DELETE', body: { password } });
+}
+
 export async function changePassword(client: AuthClient, currentPassword: string, newPassword: string) {
   return client.request<{ signedOutDevices: number }>('/api/mobile/account/password', { method: 'POST', body: { currentPassword, newPassword } });
 }

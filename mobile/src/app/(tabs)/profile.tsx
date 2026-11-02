@@ -139,6 +139,15 @@ export default function ProfileScreen() {
             subtitle={t('Diğer cihazlardaki oturumlar kapanır')}
             onPress={() => router.push('/profile/password')}
           />
+          <ListRow
+            flat
+            icon={icons.trash}
+            iconColor={colors.danger}
+            iconBackground={colors.dangerSoft}
+            title={t('Hesabı sil')}
+            subtitle={t('Hesabınız kalıcı olarak silinir')}
+            onPress={() => router.push('/profile/delete')}
+          />
         </ListGroup>
       </View>
 

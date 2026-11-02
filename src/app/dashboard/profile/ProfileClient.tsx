@@ -161,6 +161,61 @@ function PasswordForm() {
   );
 }
 
+function DeleteAccount() {
+  const [password, setPassword] = useState("");
+  const [sure, setSure] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Hesap silinemedi.");
+        return;
+      }
+      window.location.replace("/");
+    } catch {
+      setError("Bağlantı hatası oluştu.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <Panel title="Hesabı sil" description="Hesabınız kalıcı olarak silinir ve geri alınamaz.">
+      <div className="space-y-4">
+        <p className="text-sm text-ink-2">
+          İşletme sahibiyseniz işletmeniz, rezervasyon sayfanız, randevular, müşteriler, hizmetler, ekip üyelerinin hesapları ve
+          aboneliğiniz silinir. Kalan abonelik süresi iade edilmez. Ekip üyesiyseniz yalnızca kendi hesabınız silinir.
+        </p>
+        {error && <AuthError>{error}</AuthError>}
+        <form onSubmit={submit} className="space-y-4">
+          <Field label="Şifreniz *" htmlFor="delete-password">
+            <PasswordInput id="delete-password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </Field>
+          <label className="flex min-h-11 items-start gap-3 text-sm text-ink-2">
+            <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} className="mt-0.5 h-4 w-4 accent-(--rg-danger)" />
+            Hesabımın ve tüm verilerimin kalıcı olarak silineceğini anlıyorum.
+          </label>
+          <Button type="submit" variant="danger" disabled={!sure || !password || deleting}>
+            {deleting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {deleting ? "Siliniyor..." : "Hesabımı kalıcı olarak sil"}
+          </Button>
+        </form>
+      </div>
+    </Panel>
+  );
+}
+
 export default function ProfileClient({ initialUser }: { initialUser: ProfileUser }) {
   return (
     <div className="space-y-6">
@@ -169,6 +224,7 @@ export default function ProfileClient({ initialUser }: { initialUser: ProfileUse
         <ProfileForm initialUser={initialUser} />
         <PasswordForm />
       </div>
+      <DeleteAccount />
     </div>
   );
 }

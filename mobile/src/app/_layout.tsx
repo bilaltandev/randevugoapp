@@ -141,6 +141,7 @@ function RootNavigator() {
           <Stack.Screen name="settings/hours" options={{ ...header, title: t('Çalışma saatleri') }} />
           <Stack.Screen name="profile/edit" options={{ ...header, title: t('Profili düzenle') }} />
           <Stack.Screen name="profile/password" options={{ ...header, title: t('Şifre değiştir') }} />
+          <Stack.Screen name="profile/delete" options={{ ...header, title: t('Hesabı sil') }} />
           <Stack.Screen name="profile/language" options={{ ...header, title: t('Dil') }} />
         </Stack.Protected>
         {/* Support stays reachable from the lock screen. */}

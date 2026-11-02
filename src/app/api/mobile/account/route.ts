@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth";
 import { authenticateMobileAccessToken, getBearerToken } from "@/lib/mobileAuth";
+import { deleteOwnAccount } from "@/lib/accountDeletion";
 import { PHONE_TAKEN, isPhoneTaken, phoneChanged } from "@/lib/uniqueness";
 
 // Mobile app only (Bearer): the signed-in owner's own profile ("Profil" screen).
@@ -74,5 +75,21 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error("PATCH mobile account error:", error);
     return NextResponse.json({ error: "Profil güncellenirken bir hata oluştu." }, { status: 500 });
+  }
+}
+
+// Deletes the signed-in account for good (lib/accountDeletion.ts); every phone session ends with it.
+export async function DELETE(req: Request) {
+  try {
+    const auth = await authenticate(req);
+    if (!auth) return NextResponse.json({ error: "Oturum bulunamadı.", code: "UNAUTHORIZED" }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    const result = await deleteOwnAccount(auth.user.id, body.password);
+    if (!result.ok) return NextResponse.json({ error: result.error, code: result.code }, { status: result.status });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE mobile account error:", (error as Error)?.name);
+    return NextResponse.json({ error: "Hesap silinirken bir hata oluştu." }, { status: 500 });
   }
 }

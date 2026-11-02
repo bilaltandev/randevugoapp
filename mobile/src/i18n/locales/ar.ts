@@ -759,6 +759,19 @@ const dictionary: Record<string, string> = {
   'Ekip üyeleri: {0}': 'أعضاء الفريق: {0}',
   'Henüz başka ekip üyesi yok': 'لا يوجد أعضاء آخرون بعد',
   'Yöneticiniz yeni kişiler eklediğinde burada görünür.': 'سيظهر الأشخاص الجدد هنا عندما يضيفهم المسؤول.',
+  // Account deletion
+  'Hesabı sil': 'حذف الحساب',
+  'Hesabınız kalıcı olarak silinir': 'يُحذف حسابك نهائيًا',
+  'Şifrenizi girin.': 'أدخل كلمة المرور.',
+  'Hesabınız silinsin mi?': 'هل تريد حذف حسابك؟',
+  'Bu işlem geri alınamaz.': 'لا يمكن التراجع عن هذا الإجراء.',
+  'Kalıcı olarak sil': 'حذف نهائي',
+  'Hesabınız silindi': 'تم حذف حسابك',
+  'Yalnızca kendi hesabınız silinir. Geçmiş randevular işletmede kalır.': 'يُحذف حسابك فقط. تبقى المواعيد السابقة لدى النشاط التجاري.',
+  'İşletmeniz, rezervasyon sayfanız, randevular, müşteriler, hizmetler, ekip üyelerinin hesapları ve aboneliğiniz kalıcı olarak silinir. Kalan abonelik süresi iade edilmez.': 'سيُحذف نشاطك التجاري وصفحة الحجز والمواعيد والعملاء والخدمات وحسابات أعضاء الفريق والاشتراك نهائيًا. لا تُسترد المدة المتبقية من الاشتراك.',
+  'Hesabımın ve tüm verilerimin kalıcı olarak silineceğini anlıyorum.': 'أفهم أن حسابي وجميع بياناتي ستُحذف نهائيًا.',
+  'Hesabımı kalıcı olarak sil': 'حذف حسابي نهائيًا',
+  'Yönetici hesapları buradan silinemez.': 'لا يمكن حذف حسابات المسؤولين من هنا.',
 };
 
 export default dictionary;

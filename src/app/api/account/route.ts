@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getCurrentUser, verifyPassword } from "@/lib/auth";
+import { clearSessionCookie, getCurrentUser, verifyPassword } from "@/lib/auth";
+import { deleteOwnAccount } from "@/lib/accountDeletion";
 import { PHONE_REQUIRED, PHONE_TAKEN, isPhoneTaken, phoneChanged } from "@/lib/uniqueness";
 import { isPhoneNumber } from "@/lib/uniquenessKeys";
 
@@ -53,5 +54,23 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error("PATCH account error:", (error as Error)?.name);
     return NextResponse.json({ error: "Profil güncellenirken bir hata oluştu." }, { status: 500 });
+  }
+}
+
+// Deletes the signed-in account for good (lib/accountDeletion.ts). The password is required.
+export async function DELETE(req: Request) {
+  try {
+    const session = await getCurrentUser();
+    if (!session) return NextResponse.json({ error: "Oturum bulunamadı.", code: "UNAUTHORIZED" }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    const result = await deleteOwnAccount(session.id, body.password);
+    if (!result.ok) return NextResponse.json({ error: result.error, code: result.code }, { status: result.status });
+
+    await clearSessionCookie();
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE account error:", (error as Error)?.name);
+    return NextResponse.json({ error: "Hesap silinirken bir hata oluştu." }, { status: 500 });
   }
 }
